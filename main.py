@@ -98,7 +98,7 @@ ObsHeight = 500 # in km
 #find best configuration of layers and num_meas
 #so that cond(A) is not inf
 #exp case first
-SpecNumMeas = 33#105
+SpecNumMeas = 105
 SpecNumLayers = len(height_values)
 
 # find minimum and max angle in radians
@@ -354,7 +354,7 @@ Ax = np.matmul(A, theta)
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
-SNR = 60
+SNR = 150
 y, gamma = add_noise(Ax, SNR)
 #y = np.loadtxt('dataY.txt').reshape((SpecNumMeas,1))
 
@@ -399,7 +399,7 @@ def MinLogMargPost(params):#, coeff):
     Bp = ATA + lamb * L
 
 
-    B_inv_A_trans_y, exitCode = gmres(Bp, ATy[0::, 0], tol=tol, restart=25)
+    B_inv_A_trans_y, exitCode = gmres(Bp, ATy[0::, 0], rtol=tol, restart=25)
     if exitCode != 0:
         print(exitCode)
 
@@ -430,7 +430,7 @@ for j in range(len(lam)):
 
     B = (ATA + lam[j] * L)
 
-    B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
+    B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
     #print(exitCode)
 
     CheckB_inv_ATy = np.matmul(B, B_inv_A_trans_y)
@@ -523,7 +523,7 @@ around lam0 from gmres = '''
 
 B = (ATA + lam0* L)
 
-B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
+B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
 #print(exitCode)
 
 CheckB_inv_ATy = np.matmul(B, B_inv_A_trans_y)
@@ -533,7 +533,7 @@ CheckB_inv_ATy = np.matmul(B, B_inv_A_trans_y)
 B_inv_L = np.zeros(np.shape(B))
 
 for i in range(len(B)):
-    B_inv_L[:, i], exitCode = gmres(B, L[:, i], tol=tol, restart=25)
+    B_inv_L[:, i], exitCode = gmres(B, L[:, i], rtol=tol, restart=25)
     if exitCode != 0:
         print('B_inv_L ' + str(exitCode))
 
@@ -579,7 +579,7 @@ lambda0 = minimum[1]#deltas[0]/gammas[0]
 ATy = np.matmul(A.T, y)
 B = (ATA + lambda0 * L)
 
-B_inv_A_trans_y0, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
+B_inv_A_trans_y0, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
 if exitCode != 0:
     print(exitCode)
 
@@ -616,7 +616,7 @@ def MHwG(number_samples, burnIn, lambda0, gamma0):
     lambdas[0] = lambda0
 
     B = (ATA + lambda0 * L)
-    B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], x0=B_inv_A_trans_y0, tol=tol)
+    B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], x0=B_inv_A_trans_y0, rtol=tol)
 
     #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
     if exitCode != 0:
@@ -662,7 +662,7 @@ def MHwG(number_samples, burnIn, lambda0, gamma0):
             #only calc when lambda is updated
 
             B = (ATA + lam_p * L)
-            B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], x0= B_inv_A_trans_y0,tol=tol, restart=25)
+            B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], x0= B_inv_A_trans_y0,rtol=tol, restart=25)
             #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
 
             # if exitCode != 0:
@@ -752,7 +752,7 @@ for p in range(paraSamp):
     #     if exitCode != 0:
     #         print(exitCode)
 
-    B_inv_A_trans_y, exitCode = gmres(SetB, RandX, x0=B_inv_A_trans_y0, tol=tol)
+    B_inv_A_trans_y, exitCode = gmres(SetB, RandX, x0=B_inv_A_trans_y0, rtol=tol)
 
     # B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
     if exitCode != 0:
@@ -796,7 +796,7 @@ for p in range(BinHistStart):
     # LamMean = LamMean + SetLambda * lambHist[p]/sum(lambHist)
     SetB = ATA + SetLambda * L
 
-    B_inv_A_trans_y, exitCode = gmres(SetB, ATy[0::, 0], x0=B_inv_A_trans_y0, tol=tol)
+    B_inv_A_trans_y, exitCode = gmres(SetB, ATy[0::, 0], x0=B_inv_A_trans_y0, rtol=tol)
 
     # B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
     if exitCode != 0:
@@ -835,7 +835,7 @@ for BinHist in range(BinHistStart+1,100):
         #LamMean = LamMean + SetLambda * lambHist[p]/sum(lambHist)
         SetB = ATA + SetLambda * L
 
-        B_inv_A_trans_y, exitCode = gmres(SetB, ATy[0::, 0], x0=B_inv_A_trans_y0, tol=tol)
+        B_inv_A_trans_y, exitCode = gmres(SetB, ATy[0::, 0], x0=B_inv_A_trans_y0, rtol=tol)
 
         # B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
         if exitCode != 0:
@@ -863,17 +863,17 @@ for BinHist in range(BinHistStart+1,100):
         break
     oldRelErr = np.copy(newRelErr)
 
+MargInteg= np.copy(newMargInteg)
 
-MargInteg = np.copy(oldMargInteg)
+NormMargRes = np.linalg.norm(np.matmul(A, MargInteg) - y[0::, 0])
+xTLxMargRes = np.sqrt(np.matmul(np.matmul(MargInteg.T, L), MargInteg))
+
 fristVar = np.zeros((BinHist,len(theta)))
 for p in range(BinHist):
-
      fristVar = (MargInteg - B_inv_Res[p, :])**2  * lambHist[p]/ np.sum(lambHist)
 
 otherVar = 0.5 * np.sum( fristVar * trapezMat , 0)/(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
 
-NormMargRes = np.linalg.norm(np.matmul(A, MargInteg) - y[0::, 0])
-xTLxMargRes = np.sqrt(np.matmul(np.matmul(MargInteg.T, L), MargInteg))
 
 
 MargX =  MargInteg/ (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
@@ -881,6 +881,11 @@ MargXErr = np.sqrt( (MargIntegSq - MargInteg**2 )/ (num_mole * S[ind,0]  * f_bro
 MargTime = time.time() - startTime
 print('Post Mean in ' + str(MargTime) + ' s')
 #MargX  = np.sum(np.sum(MargResults, axis = 0), axis = 0) /(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
+
+
+
+
+
 
 # mpl.use(defBack)
 # mpl.rcParams.update(mpl.rcParamsDefault)
@@ -929,7 +934,7 @@ def MinLogMargPost(params):#, coeff):
     Bp = ATA + lamb * L
 
 
-    B_inv_A_trans_y, exitCode = gmres(Bp, ATy[0::, 0], x0 =B_inv_A_trans_y0,  tol=tol)
+    B_inv_A_trans_y, exitCode = gmres(Bp, ATy[0::, 0], x0 =B_inv_A_trans_y0,  rtol=tol)
     if exitCode != 0:
         print(exitCode)
 
@@ -949,11 +954,7 @@ tWalkSampNum= 10000
 MargPost.Run( T=tWalkSampNum+ burnIn, x0=minimum, xp0=np.array([normal(minimum[0], minimum[0]/4), normal((minimum[1]),(minimum[1])/4)]) )
 elapsedtWalkTime = time.time() - startTime
 print('Elapsed Time for t-walk: ' + str(elapsedtWalkTime))
-#MargPost.Ana()
-#MargPost.TS()
 
-#MargPost.Hist( par=0 )
-#MargPost.Hist( par=1 )
 
 MargPost.SavetwalkOutput("MargPostDat.txt")
 
@@ -961,13 +962,6 @@ MargPost.SavetwalkOutput("MargPostDat.txt")
 SampParas = np.loadtxt("MargPostDat.txt")
 
 
-# eng = matlab.engine.start_matlab()
-# eng.Run_Autocorr_PyTWalk(nargout=0)
-# eng.quit()
-#
-# AutoCorrDataPyTWalk= np.loadtxt("autoCorrPyTWalk.txt", skiprows=3, dtype='float')
-# #IntAutoLam, IntAutoGam , IntAutoDelt = np.loadtxt("auto_corr_dat.txt",userow = 1, skiprows=1, dtype='float'
-#
 with open("autoCorrPyTWalk.txt") as fID:
     for n, line in enumerate(fID):
        if n == 1:
@@ -1168,7 +1162,7 @@ plt.show()
 ##
 """f und g for  paper"""
 B_mode = ATA + minimum[1] * L
-B_mode_inv_A_trans_y, exitCode = gmres(B_mode, ATy[0::, 0], tol=tol)
+B_mode_inv_A_trans_y, exitCode = gmres(B_mode, ATy[0::, 0], rtol=tol)
 if exitCode != 0:
     print(exitCode)
 f_mode = f(ATy, y, B_mode_inv_A_trans_y)
@@ -1176,7 +1170,7 @@ f_mode = f(ATy, y, B_mode_inv_A_trans_y)
 
 
 B_MTC = ATA + np.mean(new_lamb) * L
-B_MTC_inv_A_trans_y, exitCode = gmres(B_MTC, ATy[0::, 0], tol=tol)
+B_MTC_inv_A_trans_y, exitCode = gmres(B_MTC, ATy[0::, 0], rtol=tol)
 if exitCode != 0:
     print(exitCode)
 f_MTC = f(ATy, y, B_MTC_inv_A_trans_y)
@@ -1185,7 +1179,7 @@ f_MTC = f(ATy, y, B_MTC_inv_A_trans_y)
 lamPyT = np.mean(LPYT)
 varPyT = np.var(LPYT)
 B_tW = ATA + lamPyT * L
-B_tW_inv_A_trans_y, exitCode = gmres(B_tW, ATy[0::, 0], tol=tol)
+B_tW_inv_A_trans_y, exitCode = gmres(B_tW, ATy[0::, 0], rtol=tol)
 if exitCode != 0:
     print(exitCode)
 f_tW = f(ATy, y, B_tW_inv_A_trans_y)
@@ -1194,13 +1188,13 @@ f_tW = f(ATy, y, B_tW_inv_A_trans_y)
 
 
 B_MTC_min = ATA + (np.mean(lambdas) - np.sqrt(np.var(lambdas))/2) * L
-B_MTC_min_inv_A_trans_y, exitCode = gmres(B_MTC_min, ATy[0::, 0], tol=tol)
+B_MTC_min_inv_A_trans_y, exitCode = gmres(B_MTC_min, ATy[0::, 0], rtol=tol)
 if exitCode != 0:
     print(exitCode)
 f_MTC_min = f(ATy, y, B_MTC_min_inv_A_trans_y)
 
 B_MTC_max = ATA + (np.mean(lambdas) + np.sqrt(np.var(lambdas))/2) * L
-B_MTC_max_inv_A_trans_y, exitCode = gmres(B_MTC_max, ATy[0::, 0], tol=tol)
+B_MTC_max_inv_A_trans_y, exitCode = gmres(B_MTC_max, ATy[0::, 0], rtol=tol)
 if exitCode != 0:
     print(exitCode)
 f_MTC_max = f(ATy, y, B_MTC_max_inv_A_trans_y)
@@ -1208,13 +1202,13 @@ f_MTC_max = f(ATy, y, B_MTC_max_inv_A_trans_y)
 xMTC = np.mean(lambdas) - np.sqrt(np.var(lambdas))/2
 
 B_pyT_min = ATA + (lamPyT - np.sqrt(varPyT)/2) * L
-B_pyT_min_inv_A_trans_y, exitCode = gmres(B_pyT_min, ATy[0::, 0], tol=tol)
+B_pyT_min_inv_A_trans_y, exitCode = gmres(B_pyT_min, ATy[0::, 0], rtol=tol)
 if exitCode != 0:
     print(exitCode)
 f_pyT_min = f(ATy, y, B_pyT_min_inv_A_trans_y)
 
 B_pyT_max = ATA + (lamPyT + np.sqrt(varPyT)/2) * L
-B_pyT_max_inv_A_trans_y, exitCode = gmres(B_pyT_max, ATy[0::, 0], tol=tol)
+B_pyT_max_inv_A_trans_y, exitCode = gmres(B_pyT_max, ATy[0::, 0], rtol=tol)
 if exitCode != 0:
     print(exitCode)
 f_pyT_max = f(ATy, y, B_pyT_max_inv_A_trans_y)
@@ -1222,13 +1216,13 @@ f_pyT_max = f(ATy, y, B_pyT_max_inv_A_trans_y)
 xpyT = lamPyT - np.sqrt(varPyT)/2
 
 B_min = ATA + (np.mean(lambdas) - np.sqrt(np.var(lambdas)) ) * L
-B_min_inv_A_trans_y, exitCode = gmres(B_min, ATy[0::, 0], tol=tol)
+B_min_inv_A_trans_y, exitCode = gmres(B_min, ATy[0::, 0], rtol=tol)
 if exitCode != 0:
     print(exitCode)
 f_min = f(ATy, y, B_min_inv_A_trans_y)
 
 B_max = ATA + (np.mean(lambdas) + np.sqrt(np.var(lambdas)) ) * L
-B_max_inv_A_trans_y, exitCode = gmres(B_max, ATy[0::, 0], tol=tol)
+B_max_inv_A_trans_y, exitCode = gmres(B_max, ATy[0::, 0], rtol=tol)
 if exitCode != 0:
     print(exitCode)
 f_max = f(ATy, y, B_max_inv_A_trans_y)
@@ -1418,7 +1412,7 @@ xTLxCurve2 = np.zeros(len(lamLCurve))
 for i in range(len(lamLCurve)):
     B = (ATA + lamLCurve[i] * L)
 
-    x, exitCode = gmres(B, ATy[0::, 0], tol=tol)
+    x, exitCode = gmres(B, ATy[0::, 0], rtol=tol)
     if exitCode != 0:
         print(exitCode)
         NormLCurve[i] = np.nan
@@ -1443,7 +1437,7 @@ xTLxCurveZoom = np.zeros(len(lamLCurve))
 for i in range(len(lamLCurveZoom)):
     B = (ATA + lamLCurveZoom[i] * L)
 
-    x, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
+    x, exitCode = gmres(B, ATy[0::, 0],rtol=tol, restart=25)
     if exitCode != 0:
         print(exitCode)
 
@@ -1561,7 +1555,7 @@ lam_opt_elbow = lamLCurveZoom[ np.where(NormLCurveZoom == knee_point)[0][0]]
 print('Elbow: ', lam_opt_elbow)
 
 B = (ATA + lam_opt * L)
-x_opt, exitCode = gmres(B, ATy[0::, 0], tol=tol, restart=25)
+x_opt, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
 LNormOpt = np.linalg.norm( np.matmul(A,x_opt) - y[0::,0])#, ord = 2)
 xTLxOpt = np.sqrt(np.matmul(np.matmul(x_opt.T, L), x_opt))
 
