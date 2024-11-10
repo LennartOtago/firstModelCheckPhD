@@ -37,7 +37,7 @@ PgWidthPt =  fraction * 421/2 #phd
 n_bins = 20
 burnIn = 50
 betaG = 1e-4
-betaD = 1e-7  # 1e-4
+betaD = 1e-10
 #Colors
 #pyTCol = [230/255,159/255, 0/255]
 pyTCol = [213/255,94/255, 0/255]
@@ -194,7 +194,7 @@ filename = 'tropical.O3.xml'
 #d_height = (height_values[1::] - height_values[0:-1] )
 #d_height = layers[1::] - layers[0:-1]
 N_A = constants.Avogadro # in mol^-1
-k_b_cgs = constants.Boltzmann * 1e7#in J K^-1
+k_b_cgs = constants.Boltzmann #* 1e7#in J K^-1
 R_gas = N_A * k_b_cgs # in ..cm^3
 
 # https://www.grc.nasa.gov/www/k-12/airplane/atmosmet.html
@@ -340,7 +340,9 @@ plt.savefig('PandQ.png')
 plt.show()
 
 
-A = A_lin * A_scal.T
+A, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind)
+
+
 ATA = np.matmul(A.T,A)
 Au, As, Avh = np.linalg.svd(A)
 cond_A =  np.max(As)/np.min(As)
@@ -351,14 +353,15 @@ cond_ATA = np.max(ATAs)/np.min(ATAs)
 print("Condition Number A^T A: " + str(orderOfMagnitude(cond_ATA)))
 #theta[0] = 0
 #theta[-1] = 0
-Ax = np.matmul(A, theta)
-
+#Ax = np.matmul(A, theta)
+Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
 SNR = 60
-y, gamma = add_noise(Ax, SNR)
-
+y, gamma = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
+np.savetxt('dataY.txt',y)
+np.savetxt('gamma0.txt',[gamma])
 #y = np.loadtxt('dataY.txt').reshape((SpecNumMeas,1))
 ATy = np.matmul(A.T, y)
 
@@ -417,7 +420,7 @@ def MinLogMargPost(params):#, coeff):
     return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gamma) + 0.5 * G + 0.5 * gamma * F +  ( betaD *  lamb * gamma + betaG *gamma)
 
 #minimum = optimize.fmin(MargPostU, [5e-5,0.5])
-minimum = optimize.fmin(MinLogMargPost, [1/(np.max(Ax) * 0.01)**2,1/(np.mean(vari))*(np.max(Ax) * 0.01)**2])
+minimum = optimize.fmin(MinLogMargPost, [gamma,gamma/(np.mean(vari))])
 
 lam0 = minimum[1]
 print(minimum)
@@ -492,15 +495,17 @@ f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y)
 f_0_2 = -1/2 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y)
 f_0_3 = 1/6 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y)
 f_0_4 = -1/24 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y)
-#f_0_5 = 120 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y)
+f_0_5 = 1/120 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y)
+f_0_6 = -1/720 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y)
+
 
 
 g_0_1 = np.trace(B_inv_L)
 g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
 g_0_3 = 1 /6 * np.trace(B_inv_L_3)
 g_0_4 = -1 /24 * np.trace(B_inv_L_4)
-g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
-g_0_6 = 0#1 /720 * np.trace(B_inv_L_6)
+g_0_5 = 1 /120 * np.trace(B_inv_L_5)
+g_0_6 = -1 /720 * np.trace(B_inv_L_6)
 
 
 
@@ -576,20 +581,9 @@ def MHwG(number_samples, burnIn, lambda0, gamma0):
                 lam_p = normal(lambdas[t], wLam)
 
         delta_lam = lam_p - lambdas[t]
-        # B = (ATA + lam_p * L)
-        # B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=rtol, restart=25)
-        # if exitCode != 0:
-        #     print(exitCode)
 
-
-        # f_new = f(ATy, y,  B_inv_A_trans_y)
-        # g_new = g(A, L,  lam_p)
-        #
-        # delta_f = f_new - f_old
-        # delta_g = g_new - g_old
-
-        delta_f = f_0_1 * delta_lam + f_0_2 * delta_lam**2 + f_0_3 * delta_lam**3
-        delta_g = g_0_1 * delta_lam + g_0_2 * delta_lam**2 + g_0_3 * delta_lam**3
+        delta_f = f_0_1 * delta_lam + f_0_2 * delta_lam**2 + f_0_3 * delta_lam**3 + f_0_4 * delta_lam**4 + f_0_5 * delta_lam**5
+        delta_g = g_0_1 * delta_lam + g_0_2 * delta_lam**2 + g_0_3 * delta_lam**3 + g_0_4 * delta_lam**4 + g_0_5 * delta_lam**5
 
         log_MH_ratio = ((SpecNumLayers)/ 2) * (np.log(lam_p) - np.log(lambdas[t])) - 0.5 * (delta_g + gammas[t] * delta_f) - betaD * gammas[t] * delta_lam
 
@@ -1067,8 +1061,8 @@ gmresCol = [204/255, 121/255, 167/255]
 
 
 delta_lam = lambBinEdges - minimum[1]
-taylorG = g_tayl(delta_lam,g(A, L, minimum[1]) ,g_0_1, g_0_2, g_0_3, g_0_4,g_0_5, g_0_6)
-taylorF = f_tayl(delta_lam, f_mode, f_0_1, f_0_2, f_0_3, f_0_4)
+taylorG = g_tayl(delta_lam,g(A, L, minimum[1]), g_0_1, g_0_2, g_0_3, g_0_4, g_0_5, g_0_6)
+taylorF = f_tayl(delta_lam, f_mode, f_0_1, f_0_2, f_0_3, f_0_4, f_0_5, f_0_6)
 
 
 fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)

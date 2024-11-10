@@ -76,7 +76,7 @@ def get_temp(height_value):
     """ used to be based on the ISA model see omnicalculator.com/physics/altitude-temperature
     now https://www.grc.nasa.gov/www/k-12/airplane/atmosmet.html """
     #temp_values[0] = 288.15#15 - (height_values[0] - 0) * 6.49 + 273.15
-    ###calculate temp values
+    #calculate temp values
 
     if height_value < 11:
         temp_value = np.around(- height_value * 6.49 + 288.15,2)
@@ -146,6 +146,61 @@ def gen_measurement(meas_ang, layers, w_cross, VMR_O3, P, T, Source, obs_height=
     # * 1e5 converts to cm
     return 2 * np.matmul(A_height, THETA), 2 * A_height, THETA, tang_height
 
+def composeAforO3(A_lin, temp, press, ind):
+
+    files = '634f1dc4.par'  # /home/lennartgolks/Python /Users/lennart/PycharmProjects
+
+    my_data = pd.read_csv(files, header=None)
+    data_set = my_data.values
+
+    size = data_set.shape
+    wvnmbr = np.zeros((size[0], 1))
+    S = np.zeros((size[0], 1))
+    F = np.zeros((size[0], 1))
+    g_air = np.zeros((size[0], 1))
+    g_self = np.zeros((size[0], 1))
+    E = np.zeros((size[0], 1))
+    n_air = np.zeros((size[0], 1))
+    g_doub_prime = np.zeros((size[0], 1))
+
+    for i, lines in enumerate(data_set):
+        wvnmbr[i] = float(lines[0][5:15])  # in 1/cm
+        S[i] = float(lines[0][16:25])  # in cm/mol
+        F[i] = float(lines[0][26:35])
+        g_air[i] = float(lines[0][35:40])
+        g_self[i] = float(lines[0][40:45])
+        E[i] = float(lines[0][46:55])
+        n_air[i] = float(lines[0][55:59])
+        g_doub_prime[i] = float(lines[0][155:160])
+
+    # from : https://hitran.org/docs/definitions-and-units/
+    HitrConst2 = 1.4387769  # in cm K
+    v_0 = wvnmbr[ind][0]
+
+    f_broad = 1
+    scalingConst = 1e11
+    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp)
+    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
+    LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
+                1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
+                              1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
+
+    C1 = 2 * constants.h * constants.c ** 2 * v_0 ** 3 * 1e8
+    C2 = constants.h * constants.c * 1e2 * v_0 / (constants.Boltzmann * temp)
+    # plancks function
+    Source = np.array(C1 / (np.exp(C2) - 1))
+
+    # take linear
+    num_mole = 1 / (constants.Boltzmann)  # * temp_values)
+
+    AscalConstKmToCm = 1e3
+    SpecNumMeas, SpecNumLayers = np.shape(A_lin)
+    # 1e2 for pressure values from hPa to Pa
+    A_scal = press.reshape((SpecNumLayers, 1)) * 1e2 * LineIntScal * Source * AscalConstKmToCm / (temp)
+    theta_scale = num_mole *  f_broad * 1e-4 * scalingConst * S[ind, 0]
+    A = A_lin * A_scal.T
+    #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
+    return A, theta_scale
 
 '''Generate Forward Map A
 where each collum is one measurment defined by a tangent height
@@ -177,7 +232,7 @@ def gen_sing_map(meas_ang, height, obs_height, R):
             dr = dr + A_height[m, i]
     A_height[m, i] = 0.5 * A_height[m, i]
     #return 2 * (A_...) for linear part
-    return  A_height, tang_height, layers[-1]
+    return  2*A_height, tang_height, layers[-1]
 
 
 
@@ -322,12 +377,12 @@ def g(A, L, l):
     # np.log(np.prod(Bs))
     return np.sum(np.log(Bs))
 
-def f_tayl( delta_lam, f_0, f_1, f_2, f_3, f_4):
+def f_tayl( delta_lam, f_0, f_1, f_2, f_3, f_4, f_5, f_6):
     """calculate taylor series for """
 
 
 
-    return f_0 + f_1 * delta_lam + f_2 * delta_lam**2 + f_3 * delta_lam**3 + f_4 * delta_lam**4 #+ f_5 * delta_lam**5 #- f_6 * delta_lam**6
+    return f_0 + f_1 * delta_lam + f_2 * delta_lam**2 + f_3 * delta_lam**3 + f_4 * delta_lam**4 + f_5 * delta_lam**5 + f_6 * delta_lam**6
 
 def g_MC_log_det(B_inv_L, num_sam):
     # calc trace of B_inv_L with monte carlo estiamtion
