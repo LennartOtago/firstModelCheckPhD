@@ -65,7 +65,7 @@ TrueCol = 'green' # "#004D40" #'k'
 DatCol =  'gray' # 'k'"#332288"#"#009E73"
 
 
-tol = 1e-6
+tol = 1e-8
 
 df = pd.read_excel('ExampleOzoneProfiles.xlsx')
 
@@ -361,7 +361,10 @@ Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 SNR = 60
 y, gamma = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
 np.savetxt('dataY.txt',y)
+np.savetxt('AMat.txt',A)
+np.savetxt('ALinMat.txt',A_lin)
 np.savetxt('gamma0.txt',[gamma])
+
 #y = np.loadtxt('dataY.txt').reshape((SpecNumMeas,1))
 ATy = np.matmul(A.T, y)
 
@@ -379,6 +382,8 @@ np.savetxt('height_values.txt', height_values, fmt = '%.15f', delimiter= '\t')
 np.savetxt('tan_height_values.txt', tang_heights_lin, fmt = '%.15f', delimiter= '\t')
 
 np.savetxt('pressure_values.txt', pressure_values, fmt = '%.15f', delimiter= '\t')
+np.savetxt('temp_values.txt', temp_values, fmt = '%.15f', delimiter= '\t')
+
 np.savetxt('VMR_O3.txt', VMR_O3, fmt = '%.15f', delimiter= '\t')
 
 
@@ -420,7 +425,7 @@ def MinLogMargPost(params):#, coeff):
     return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gamma) + 0.5 * G + 0.5 * gamma * F +  ( betaD *  lamb * gamma + betaG *gamma)
 
 #minimum = optimize.fmin(MargPostU, [5e-5,0.5])
-minimum = optimize.fmin(MinLogMargPost, [gamma,gamma/(np.mean(vari))])
+minimum = optimize.fmin(MinLogMargPost, [gamma,(np.mean(vari))/gamma])
 
 lam0 = minimum[1]
 print(minimum)
@@ -471,6 +476,7 @@ B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
 
 CheckB_inv_ATy = np.matmul(B, B_inv_A_trans_y)
 
+np.savetxt('B_inv_A_trans_y0.txt', B_inv_A_trans_y, fmt = '%.15f', delimiter= '\t')
 
 
 B_inv_L = np.zeros(np.shape(B))
@@ -547,7 +553,7 @@ f_new = f(ATy, y,  B_inv_A_trans_y0)
 #g_old = g(A, L,  lambdas[0])
 
 def MHwG(number_samples, burnIn, lambda0, gamma0):
-    wLam = 1e4#7e1
+    wLam = 3e4#7e1
 
     alphaG = 1
     alphaD = 1
@@ -1194,7 +1200,7 @@ print('bla')
 '''L-curve refularoization
 '''
 
-lamLCurve = np.logspace(-1,10,200)
+lamLCurve = np.logspace(1,7,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
@@ -1222,7 +1228,7 @@ for i in range(len(lamLCurve)):
         #xTLxCurve[i] = np.sqrt(x.T @ x)
 
 startTime  = time.time()
-lamLCurveZoom = np.logspace(1.5,6.5,200)
+lamLCurveZoom = np.logspace(1,7,200)
 NormLCurveZoom = np.zeros(len(lamLCurve))
 xTLxCurveZoom = np.zeros(len(lamLCurve))
 for i in range(len(lamLCurveZoom)):
@@ -1270,50 +1276,45 @@ xTLxOpt = np.sqrt(np.matmul(np.matmul(x_opt.T, L), x_opt))
 
 
 fig, axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-axs.scatter(NormLCurve,xTLxCurve, zorder = 0, color =  DatCol, s = 1, marker ='s')
+axs.scatter(NormLCurve,xTLxCurve, zorder = 0, color =  DatCol, s = 5, marker ='s')
 #axs.scatter(LNormOpt ,xTLxOpt, zorder = 10, color = 'red', label = 'Opt. Tikh. regularization ')
 #axs.scatter(opt_norm ,opt_regNorm, zorder = 10, color = 'red')
-axs.scatter(NormRes, xTLxRes, color = ResCol, s = 1.5, marker = "+")# ,mfc = 'black' , markeredgecolor='r',markersize=10,linestyle = 'None')
+axs.scatter(NormRes, xTLxRes, color = ResCol, s = 2, marker = "+",label = r'posterior samples ')# ,mfc = 'black' , markeredgecolor='r',markersize=10,linestyle = 'None')
 #axs.scatter(NewNormRes, NewxTLxRes, color = 'red', label = 'MTC RTO method')#, marker = "." ,mfc = 'black' , markeredgecolor='r',markersize=10,linestyle = 'None')
 
 #axs.scatter(SampleNorm, SamplexTLx, color = 'green', marker = 's', s= 100)
-axs.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 25, label = 'posterior mean',zorder=2)
+axs.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 50, label = 'posterior mean',zorder=2)
 #E$_{\mathbf{x},\mathbf{\theta}| \mathbf{y}}[\mathbf{x}_{\lambda}]$
 #axs.axvline(x = knee_point)
-axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'max. curvature', s= 25,zorder=1)
-#zoom in
-x1, x2, y1, y2 = NormLCurveZoom[0], NormLCurveZoom[-31], xTLxCurveZoom[0], xTLxCurveZoom[-1] # specify the limits
-axins = axs.inset_axes([0.1,0.05,0.55,0.45])
-#axins.scatter(LNormOpt ,xTLxOpt, zorder = 10, color = regCol)
-
-axins.scatter(NormRes, xTLxRes, color = ResCol, label = r'posterior samples ',marker = '+')#,$\mathbf{x} \sim \pi (\mathbf{x}| \mathbf{y}, \mathbf{\theta})$ s = 15)
-axins.scatter(NormLCurve,xTLxCurve, color =  DatCol,marker = 's', s= 10,zorder=0)
-axins.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 100,zorder=2)
-# axins.scatter(LNormOpt, xTLxOpt, color = 'crimson', marker = "s", s =80)[240/255,228/255,66/255]
-#axins.annotate(r'E$_{\mathbf{x},\mathbf{\theta}| \mathbf{y}}[\lambda]$ = ' + str('{:.2f}'.format(lam_opt)), (LNormOpt+0.05,xTLxOpt))
-#axins.scatter(NewNormRes, NewxTLxRes, color = 'red', label = 'MTC RTO method', s = 10)#, marker = "." ,mfc = 'black' , markeredgecolor='r',markersize=10,linestyle = 'None')
-axins.scatter(knee_point, kneedle.knee_y, color = RegCol, marker = 'v', s = 120,zorder=1)
-axins.set_xlim(x1-0.01, x2-1) # apply the x-limits
-#axins.set_ylim(y2,y1)
-axins.set_ylim(y2,max(xTLxRes)+0.001) # apply the y-limits (negative gradient)
-axins.tick_params(axis = 'x', which = 'both', labelbottom=False, bottom = False)
-axins.tick_params(axis = 'y', which = 'both', labelleft=False, left = False)
-axins.set_xscale('log')
-axins.set_yscale('log')
-handles2, labels2 = axins.get_legend_handles_labels()
-axs.indicate_inset_zoom(axins, edgecolor="none")
-
+axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'max. curvature', s= 50,zorder=1)
+# #zoom in
+# x1, x2, y1, y2 = NormLCurveZoom[0], NormLCurveZoom[-31], xTLxCurveZoom[0], xTLxCurveZoom[-1] # specify the limits
+# axins = axs.inset_axes([0.1,0.05,0.55,0.45])
+# axins.scatter(NormRes, xTLxRes, color = ResCol, label = r'posterior samples ',marker = '+')#,$\mathbf{x} \sim \pi (\mathbf{x}| \mathbf{y}, \mathbf{\theta})$ s = 15)
+# axins.scatter(NormLCurve,xTLxCurve, color =  DatCol,marker = 's', s= 10,zorder=0)
+# axins.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 100,zorder=2)
+# axins.scatter(knee_point, kneedle.knee_y, color = RegCol, marker = 'v', s = 120,zorder=1)
+# axins.set_xlim(x1-0.01, x2-1) # apply the x-limits
+# #axins.set_ylim(y2,y1)
+# axins.set_ylim(y2,max(xTLxRes)+0.001) # apply the y-limits (negative gradient)
+# axins.tick_params(axis = 'x', which = 'both', labelbottom=False, bottom = False)
+# axins.tick_params(axis = 'y', which = 'both', labelleft=False, left = False)
+# axins.set_xscale('log')
+# axins.set_yscale('log')
+# handles2, labels2 = axins.get_legend_handles_labels()
+# axs.indicate_inset_zoom(axins, edgecolor="none")
+# mark_inset(axs, axins, loc1=1, loc2=3, fc="none", ec="0.5")
 
 axs.set_xscale('log')
 axs.set_yscale('log')
 axs.set_ylabel(r'$ \sqrt{\bm{x}^T \bm{L}\bm{x}}$', style='italic')
 axs.set_xlabel(r'$|| \bm{Ax} - \bm{y}||$')
 #axs.set_title('L-curve for m=' + str(SpecNumMeas))
-mark_inset(axs, axins, loc1=1, loc2=3, fc="none", ec="0.5")
+
 
 handles, labels = axs.get_legend_handles_labels()
 
-axs.legend(handles = [handles[0],handles[1],handles2[0]],loc = 'upper right',  frameon =True)
+axs.legend(handles = [handles[0],handles[1],handles[2]],loc = 'upper right',  frameon =True)
 plt.savefig('LCurve.svg')
 #plt.savefig('LCurve.png')
 #tikzplotlib.save("LCurve.tex")
@@ -1333,7 +1334,7 @@ np.savetxt('RegSol.txt',x_opt /(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingC
 # BinHist = 30#n_bins
 # lambHist, lambBinEdges = np.histogram(new_lamb, bins= BinHist, density= True)
 
-paramsSkew, covs = scy.optimize.curve_fit(skew_norm_pdf,lambBinEdges[1::], lambHist/ np.sum(lambHist), p0 = [np.mean(lambBinEdges[1::]),np.sqrt(np.var(lambdas)),0.01, 1] )#np.mean(new_lamb)+1e3
+paramsSkew, covs = scy.optimize.curve_fit(skew_norm_pdf,lambBinEdges[1::], lambHist/ np.sum(lambHist), p0 = [np.mean(lambdas),np.sqrt(np.var(lambdas)),0.01, 1] )#np.mean(new_lamb)+1e3
 
 
 
@@ -1343,13 +1344,16 @@ axs[0].scatter(gammas[burnIn::math.ceil(IntAutoLam)+5],deltas[burnIn::math.ceil(
 axs[0].set_xlabel(r'the noise precision $\gamma$')
 axs[0].set_ylabel(r'the smoothnes parameter $\delta$')
 #axs[1].hist(new_lamb,bins=BinHist, color = MTCCol, zorder = 0, density = True)#10)
-axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges), color = MTCCol, zorder = 0,width = np.diff(lambBinEdges)[0])#10)
-axs[1].plot(lambBinEdges,  skew_norm_pdf(lambBinEdges, *paramsSkew )/np.sum(skew_norm_pdf(lambBinEdges, *paramsSkew )), zorder = 1, color =  gmresCol)#"#009E73")
+axs[1].bar(lambBinEdges[1:],lambHist*np.diff(lambBinEdges), color = MTCCol, zorder = 0,width = np.diff(lambBinEdges)[0])#10)
 axs[1].axvline( lam_opt, color = RegCol,linewidth=2)
+xLim = axs[1].get_xlim()
+xVal = np.linspace(xLim[0],xLim[1],100)
+axs[1].plot(xVal,  skew_norm_pdf(xVal, *paramsSkew )/np.sum(skew_norm_pdf(lambBinEdges, *paramsSkew )), zorder = 1, color =  gmresCol)#"#009E73")
+
 axs[1].set_xlabel(r'the regularization parameter $\lambda =\delta / \gamma$')
 axs[0].ticklabel_format(axis='y', style='sci',scilimits=(0,0))
 plt.savefig('ScatterplusHisto.svg')
-plt.show()
+#plt.show()
 
 
 
@@ -1460,9 +1464,9 @@ line3 = ax1.errorbar(MargX,height_values[:,0],yerr = np.sqrt(otherVar)/2 , marke
 
 #line5 = ax1.plot(x_opt/(num_mole * S[ind,0] * f_broad * 1e-4 * scalingConst),height_values, color = 'crimson', linewidth = 7, label = 'reg. sol.', zorder=1)
 ax1.set_ylim([heights[minInd-1], heights[maxInd-1]])
-ax1.set_xlabel(r'Ozone volume mixing ratio ')
+ax1.set_xlabel(r'ozone volume mixing ratio ')
 #multicolor_ylabel(ax1,('(Tangent)','Height in km'),('k', dataCol),axis='y')
-ax2.set_ylabel('(Tangent) Height in km')
+ax2.set_ylabel('(tangent) height in km')
 handles, labels = ax1.get_legend_handles_labels()
 handles2, labels2 = ax2.get_legend_handles_labels()
 # Handles = [handles[0], handles[1], handles[2]]
@@ -1477,7 +1481,7 @@ ax1.set_ylim([height_values[0], height_values[-1]])
 #ax1.set_xlim([min(x)-max(xerr)/2,max(x)+max(xerr)/2]) Ozone
 
 
-ax2.set_xlabel(r'Spectral radiance in $\frac{\text{W} \text{cm}}{\text{m}^2 \text{sr}} $',labelpad=10)# color =dataCol,
+ax2.set_xlabel(r'spectral radiance in $\frac{\text{W} \text{cm}}{\text{m}^2 \text{sr}} $',labelpad=10)# color =dataCol,
 ax2.tick_params(colors = DatCol, axis = 'x')
 ax2.xaxis.set_ticks_position('top')
 ax2.xaxis.set_label_position('top')
@@ -1489,9 +1493,10 @@ fig3.savefig('FirstRecRes.svg')
 plt.show()
 
 
+relErr = np.linalg.norm(MargX - VMR_O3)/np.linalg.norm(VMR_O3) * 100
 
 
-
+print(f'relative Error: {relErr:.2f} %')
 
 Samp = Results[::15,:] / (num_mole * S[ind, 0] * f_broad * 1e-4 * scalingConst)
 
