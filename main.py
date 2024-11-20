@@ -388,7 +388,7 @@ np.savetxt('VMR_O3.txt', VMR_O3, fmt = '%.15f', delimiter= '\t')
 
 
 
-
+##
 """start the mtc algo with first guesses of noise and lumping const delta"""
 
 
@@ -396,7 +396,9 @@ vari = np.zeros((len(theta)-2,1))
 
 for j in range(1,len(theta)-1):
     vari[j-1] = np.var([theta[j-1],theta[j],theta[j+1]])
+    #vari[j - 1] = abs(-theta[j + 1] + 2*theta[j] - theta[j - 1])**2
 
+##
 #find minimum for first guesses
 '''params[1] = delta
 params[0] = gamma'''
@@ -425,19 +427,94 @@ def MinLogMargPost(params):#, coeff):
     return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gamma) + 0.5 * G + 0.5 * gamma * F +  ( betaD *  lamb * gamma + betaG *gamma)
 
 #minimum = optimize.fmin(MargPostU, [5e-5,0.5])
-minimum = optimize.fmin(MinLogMargPost, [gamma,(np.mean(vari))/gamma])
+minimum = optimize.fmin(MinLogMargPost, [gamma,1/gamma* 1/ np.mean(vari)])
 
 lam0 = minimum[1]
 print(minimum)
 
 
 ## do derivate with newtom method
+lamInit = 1/gamma* 1/ np.mean(vari)/15
+#lamInit = minimum[1]
+gamInit = gamma
 
 #get inital guesses and do taylor
+''' check taylor series in f(lambda) and g(lambda)
+around lam0 from gmres = '''
+
+#taylor series arounf lam_0
+
+B = (ATA + lamInit* L)
+
+B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
+#print(exitCode)
+
+CheckB_inv_ATy = np.matmul(B, B_inv_A_trans_y)
+
+np.savetxt('B_inv_A_trans_y0.txt', B_inv_A_trans_y, fmt = '%.15f', delimiter= '\t')
+
+
+B_inv_L = np.zeros(np.shape(B))
+
+for i in range(len(B)):
+    B_inv_L[:, i], exitCode = gmres(B, L[:, i], rtol=tol, restart=25)
+    if exitCode != 0:
+        print('B_inv_L ' + str(exitCode))
+
+#relative_tol_L = rtol
+#CheckB_inv_L = np.matmul(B, B_inv_L)
+#print(np.linalg.norm(L- CheckB_inv_L)/np.linalg.norm(L)<relative_tol_L)
+
+B_inv_L_2 = np.matmul(B_inv_L, B_inv_L)
+B_inv_L_3 = np.matmul(B_inv_L_2, B_inv_L)
+B_inv_L_4 = np.matmul(B_inv_L_2, B_inv_L_2)
+B_inv_L_5 = np.matmul(B_inv_L_4, B_inv_L)
+B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
+
+
+f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y)
+f_0_2 = -1/2 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y)
+f_0_3 = 1/6 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y)
+f_0_4 = -1/24 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y)
+f_0_5 = 1/120 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y)
+f_0_6 = -1/720 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y)
+
+
+
+g_0_1 = np.trace(B_inv_L)
+g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
+g_0_3 = 1 /6 * np.trace(B_inv_L_3)
+g_0_4 = -1 /24 * np.trace(B_inv_L_4)
+g_0_5 = 1 /120 * np.trace(B_inv_L_5)
+g_0_6 = -1 /720 * np.trace(B_inv_L_6)
 
 #newton method to minimize vector
+F0 =  f(ATy, y, B_inv_A_trans_y)
+def gradPost(params):
 
-scipy.optimize.newton
+    gam = params[0]
+    lamb = params[1]
+    if lamb < 0  or gamma < 0:
+        return np.nan
+
+    n = SpecNumLayers
+    m = SpecNumMeas
+    delta_lam =  lamb - lamInit
+
+    Fprime = f_0_1 + 2 * f_0_2 * delta_lam + 3 * f_0_3 * delta_lam ** 2 + 4 * f_0_4 * delta_lam ** 3 + 5 * f_0_5 * delta_lam ** 4
+    Gprime = g_0_1 + 2 * g_0_2 * delta_lam + 3 * g_0_3 * delta_lam ** 2 + 4 * g_0_4 * delta_lam ** 3 + 5 * g_0_5 * delta_lam ** 4
+
+    F = F0 + f_0_1 * delta_lam + f_0_2 * delta_lam ** 2 + f_0_3 * delta_lam ** 3 + f_0_4 * delta_lam ** 4 + f_0_5 * delta_lam ** 5
+    derivLam = n/2 / lamb - 0.5 * Gprime - 0.5 * gam * Fprime - betaD * gam
+    derivGam =  (m/2 + 1) / gam - 0.5 * F - betaD * lamb  - betaG
+    return [derivGam, derivLam]
+
+
+#vec_res1 = scy.optimize.newton(gradPost, x0 = [gamInit, lamInit ], maxiter = 500,  full_output=True, disp=True)
+vec_res = scy.optimize.fsolve(gradPost, x0 = [gamInit, lamInit ], full_output = True, maxfev = 10)
+print(vec_res)
+lam0 = vec_res[0][1]
+gamma0 = vec_res[0][0]
 ##
 """ finally calc f and g with a linear solver adn certain lambdas
  using the gmres"""
@@ -475,7 +552,7 @@ around lam0 from gmres = '''
 
 #taylor series arounf lam_0
 
-B = (ATA + lam0* L)
+B = (ATA + lam0 * L)
 
 B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
 #print(exitCode)
@@ -529,12 +606,12 @@ number_samples = 10000
 
 
 #inintialize sample
-gamma0 = minimum[0] #3.7e-5#1/np.var(y) * 1e1 #(0.01* np.max(Ax))1e-5#
+#gamma0 = minimum[0] #3.7e-5#1/np.var(y) * 1e1 #(0.01* np.max(Ax))1e-5#
 #0.275#1/(2*np.mean(vari))0.1#
-lambda0 = minimum[1]#deltas[0]/gammas[0]
+#lambda0 = minimum[1]#deltas[0]/gammas[0]
 #deltas[0] =  minimum[1] * minimum[0]
 ATy = np.matmul(A.T, y)
-B = (ATA + lambda0 * L)
+B = (ATA + lam0 * L)
 
 B_inv_A_trans_y0, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
 if exitCode != 0:
@@ -551,7 +628,7 @@ print("Condition number B: " + str(orderOfMagnitude(cond_B)))
 
 alphaG = 1
 alphaD = 1
-rate = f(ATy, y, B_inv_A_trans_y0) / 2 + betaG + betaD * lambda0
+rate = f(ATy, y, B_inv_A_trans_y0) / 2 + betaG + betaD * lam0
 # draw gamma with a gibs step
 shape = SpecNumMeas/2 + alphaD + alphaG
 
@@ -634,7 +711,7 @@ def MHwG(number_samples, burnIn, lambda0, gamma0):
 
 
 startTime = time.time()
-lambdas ,gammas, k = MHwG(number_samples, burnIn, lambda0, gamma0)
+lambdas ,gammas, k = MHwG(number_samples, burnIn, lam0, gamma0)
 elapsed = time.time() - startTime
 print('MTC Done in ' + str(elapsed) + ' s')
 
@@ -897,7 +974,7 @@ def MargPostSupp(Params):
 MargPost = pytwalk.pytwalk( n=2, U=MinLogMargPost, Supp=MargPostSupp)
 startTime = time.time()
 tWalkSampNum= 10000
-MargPost.Run( T=tWalkSampNum+ burnIn, x0=minimum, xp0=np.array([normal(minimum[0], minimum[0]/4), normal((minimum[1]),(minimum[1])/4)]) )
+MargPost.Run( T=tWalkSampNum+ burnIn, x0=minimum, xp0=np.array([normal(gamma0, gamma0/4), normal(lam0,lam0/4)]) )
 elapsedtWalkTime = time.time() - startTime
 print('Elapsed Time for t-walk: ' + str(elapsedtWalkTime))
 
