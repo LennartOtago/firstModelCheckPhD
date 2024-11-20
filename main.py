@@ -431,7 +431,13 @@ lam0 = minimum[1]
 print(minimum)
 
 
+## do derivate with newtom method
 
+#get inital guesses and do taylor
+
+#newton method to minimize vector
+
+scipy.optimize.newton
 ##
 """ finally calc f and g with a linear solver adn certain lambdas
  using the gmres"""
