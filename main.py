@@ -358,7 +358,7 @@ Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
-SNR = 60
+SNR = 10
 y, gamma = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
 np.savetxt('dataY.txt',y)
 np.savetxt('AMat.txt',A)
