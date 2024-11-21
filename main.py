@@ -427,7 +427,7 @@ def MinLogMargPost(params):#, coeff):
     return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gamma) + 0.5 * G + 0.5 * gamma * F +  ( betaD *  lamb * gamma + betaG *gamma)
 
 #minimum = optimize.fmin(MargPostU, [5e-5,0.5])
-minimum = optimize.fmin(MinLogMargPost, [gamma,1/gamma* 1/ np.mean(vari)])
+minimum = optimize.fmin(MinLogMargPost, [gamma,1/gamma* 1/ np.mean(vari)/15])
 
 lam0 = minimum[1]
 print(minimum)
@@ -505,13 +505,13 @@ def gradPost(params):
     Gprime = g_0_1 + 2 * g_0_2 * delta_lam + 3 * g_0_3 * delta_lam ** 2 + 4 * g_0_4 * delta_lam ** 3 + 5 * g_0_5 * delta_lam ** 4
 
     F = F0 + f_0_1 * delta_lam + f_0_2 * delta_lam ** 2 + f_0_3 * delta_lam ** 3 + f_0_4 * delta_lam ** 4 + f_0_5 * delta_lam ** 5
-    derivLam = n/2 / lamb - 0.5 * Gprime - 0.5 * gam * Fprime - betaD * gam
-    derivGam =  (m/2 + 1) / gam - 0.5 * F - betaD * lamb  - betaG
+    derivLam =- n/2 / lamb + 0.5 * Gprime + 0.5 * gam * Fprime + betaD * gam
+    derivGam =  -(m/2 + 1) / gam + 0.5 * F + betaD * lamb  + betaG
     return [derivGam, derivLam]
 
 
 #vec_res1 = scy.optimize.newton(gradPost, x0 = [gamInit, lamInit ], maxiter = 500,  full_output=True, disp=True)
-vec_res = scy.optimize.fsolve(gradPost, x0 = [gamInit, lamInit ], full_output = True, maxfev = 10)
+vec_res = scy.optimize.fsolve(gradPost, x0 = [gamInit, lamInit ], full_output = True)#, maxfev = 50)
 print(vec_res)
 lam0 = vec_res[0][1]
 gamma0 = vec_res[0][0]
@@ -1428,10 +1428,12 @@ axs[0].set_xlabel(r'the noise precision $\gamma$')
 axs[0].set_ylabel(r'the smoothnes parameter $\delta$')
 #axs[1].hist(new_lamb,bins=BinHist, color = MTCCol, zorder = 0, density = True)#10)
 axs[1].bar(lambBinEdges[1:],lambHist*np.diff(lambBinEdges), color = MTCCol, zorder = 0,width = np.diff(lambBinEdges)[0])#10)
-axs[1].axvline( lam_opt, color = RegCol,linewidth=2)
+axs[1].axvline(lam_opt, color = RegCol,linewidth=2)
+axs[1].axvline(lam0, color = 'r',linewidth=2)
+axs[1].axvline(minimum[1], color = 'g',linewidth=2)
 xLim = axs[1].get_xlim()
 xVal = np.linspace(xLim[0],xLim[1],100)
-axs[1].plot(xVal,  skew_norm_pdf(xVal, *paramsSkew )/np.sum(skew_norm_pdf(lambBinEdges, *paramsSkew )), zorder = 1, color =  gmresCol)#"#009E73")
+axs[1].plot(xVal, skew_norm_pdf(xVal, *paramsSkew )/np.sum(skew_norm_pdf(lambBinEdges, *paramsSkew )), zorder = 1, color =  gmresCol)#"#009E73")
 
 axs[1].set_xlabel(r'the regularization parameter $\lambda =\delta / \gamma$')
 axs[0].ticklabel_format(axis='y', style='sci',scilimits=(0,0))
@@ -1444,18 +1446,18 @@ plt.savefig('ScatterplusHisto.svg')
 ##
 
 
-fig, axs = plt.subplots(3, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)
+fig, axs = plt.subplots(3, 1, tight_layout=True, figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)
 n_bins = n_bins
-BinSetLamb = np.arange(min(new_lamb),max(new_lamb)+ lam_opt/3,(max(new_lamb)+ lam_opt/3-min(new_lamb))/n_bins)
-BinSetGam = np.arange(min(new_gam),max(new_gam),(max(new_gam)-min(new_gam))/n_bins)
-BinSetDelt = np.arange(min(new_delt),max(new_delt),(max(new_delt)-min(new_delt))/n_bins)
+BinSetLamb = np.arange(min(new_lamb), max(new_lamb)+ lam_opt/3,(max(new_lamb)+ lam_opt/3-min(new_lamb))/n_bins)
+BinSetGam = np.arange(min(new_gam), max(new_gam), (max(new_gam)-min(new_gam))/n_bins)
+BinSetDelt = np.arange(min(new_delt), max(new_delt), (max(new_delt)-min(new_delt))/n_bins)
 
-axs[0].hist(new_gam,bins=BinSetGam, color = MTCCol, zorder = 0, label = r'\textbf{MwG}')
+axs[0].hist(new_gam, bins=BinSetGam, color=MTCCol, zorder=0, label = r'\textbf{MwG}')
 #axs[0].set_ylim([0,400])
 axs0 = axs[0].twinx()
-axs0.hist(SampParas[burnIn::math.ceil(IntAutoGamPyT),0],bins=BinSetGam,color = pyTCol, zorder = 1, label = 't-walk')
-axs0.set_ylim([0,100])
-axs0.tick_params(axis = 'y', colors=pyTCol, which = 'both')
+axs0.hist(SampParas[burnIn::math.ceil(IntAutoGamPyT), 0], bins=BinSetGam, color=pyTCol, zorder=1, label='t-walk')
+axs0.set_ylim([0, 100])
+axs0.tick_params(axis='y', colors=pyTCol, which='both')
 axs[0].spines[:].set_visible(False)
 axs0.spines['right'].set_color(pyTCol)
 hist0, lab0 = axs[0].get_legend_handles_labels()
