@@ -36,7 +36,7 @@ PgWidthPt = 245
 PgWidthPt =  fraction * 421/2 #phd
 n_bins = 20
 burnIn = 50
-betaG = 1e-4
+betaG = 1e-10
 betaD = 1e-10
 #Colors
 #pyTCol = [230/255,159/255, 0/255]
