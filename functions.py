@@ -6,7 +6,7 @@ import plotly.express as px
 import pandas as pd
 import math
 from scipy.sparse.linalg import gmres
-
+import scipy as scy
 
 def orderOfMagnitude(number):
     return math.floor(math.log(number, 10))
@@ -241,7 +241,7 @@ def gen_sing_map(meas_ang, height, obs_height, R):
             dr = dr + A_height[m, i]
         A_height[m, i] = 0.5 * A_height[m, i]
     #return 2 * (A_...) for linear part
-    return  2*A_height, tang_height, layers[-1]
+    return  2 * A_height, tang_height, layers[-1]
 
 
 
@@ -381,9 +381,10 @@ def f(ATy, y, B_inv_A_trans_y):
 def g(A, L, l):
     """ calculate g"""
     B = np.matmul(A.T,A) + l * L
-    Bu, Bs, Bvh = np.linalg.svd(B)
-    # np.log(np.prod(Bs))
-    return np.sum(np.log(Bs))
+    #Bu, Bs, Bvh = np.linalg.svd(B)
+    upL = scy.linalg.cholesky(B)
+    #return np.sum(np.log(Bs))
+    return 2* np.sum(np.log(np.diag(upL)))
 
 def f_tayl( delta_lam, f_0, f_1, f_2, f_3, f_4, f_5, f_6):
     """calculate taylor series for """
