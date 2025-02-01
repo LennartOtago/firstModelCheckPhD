@@ -1252,9 +1252,9 @@ mpl.use(defBack)
 mpl.rcParams.update(mpl.rcParamsDefault)
 plt.rcParams.update({'font.size': 12})
 gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
-fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} )#, dpi = dpi)
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) )#, dpi = dpi)
 
-axs[1].bar(gamBinEdges[1::],gamHist*np.diff(gamBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(gamBinEdges)[0])#10)
+axs[0].bar(gamBinEdges[1::],gamHist*np.diff(gamBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(gamBinEdges)[0])#10)
 
 
 axs[0].set_xlabel(r'the noise precision $\gamma$')
