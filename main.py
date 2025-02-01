@@ -361,10 +361,15 @@ Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 #y[y<=0] = 0
 SNR = 10
 y, gamma = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
-np.savetxt('dataY.txt',y)
-np.savetxt('AMat.txt',A)
-np.savetxt('ALinMat.txt',A_lin)
-np.savetxt('gamma0.txt',[gamma])
+np.savetxt('dataY.txt',y, fmt = '%.15f', delimiter= '\t')
+np.savetxt('AMat.txt',A, fmt = '%.15f', delimiter= '\t')
+np.savetxt('ALinMat.txt',A_lin, fmt = '%.15f', delimiter= '\t')
+np.savetxt('gamma0.txt',[gamma], fmt = '%.15f', delimiter= '\t')
+
+APress, press_scale = composeAforPress(A_lin, temp_values, VMR_O3, ind)
+np.savetxt('AP.txt', APress, fmt = '%.15f', delimiter= '\t')
+ATemp, temp_scale = composeAforTemp(A_lin, pressure_values, VMR_O3, ind, temp_values)
+np.savetxt('AT.txt', ATemp, fmt = '%.15f', delimiter= '\t')
 
 #y = np.loadtxt('dataY.txt').reshape((SpecNumMeas,1))
 ATy = np.matmul(A.T, y)
