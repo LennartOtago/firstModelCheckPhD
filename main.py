@@ -171,7 +171,7 @@ neigbours[neigbours >= len(height_values)] = np.nan
 neigbours[neigbours < 0] = np.nan
 
 L = generate_L(neigbours)
-startInd = 23
+startInd = 34
 L[startInd::, startInd::] = L[startInd::, startInd::] * 5
 L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
 
@@ -803,11 +803,12 @@ for p in range(BinHistStart):
     # LamMean = LamMean + SetLambda * lambHist[p]/sum(lambHist)
     SetB = ATA + SetLambda * L
 
-    B_inv_A_trans_y, exitCode = gmres(SetB, ATy[0::, 0], x0=B_inv_A_trans_y0, rtol=tol)
+    #B_inv_A_trans_y, exitCode = gmres(SetB, ATy[0::, 0], x0=B_inv_A_trans_y0, rtol=tol)
 
-    # B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=rtol, restart=25)
-    if exitCode != 0:
-        print(exitCode)
+    LowTri = np.linalg.cholesky(SetB)
+    UpTri = LowTri.T
+    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
 
     MargResults[p, :] = B_inv_A_trans_y * lambHist[p] / np.sum(lambHist)
     MargVarResults[p, :] = B_inv_A_trans_y ** 2 * lambHist[p] / np.sum(lambHist)
@@ -842,11 +843,13 @@ for BinHist in range(BinHistStart+1,100):
         #LamMean = LamMean + SetLambda * lambHist[p]/sum(lambHist)
         SetB = ATA + SetLambda * L
 
-        B_inv_A_trans_y, exitCode = gmres(SetB, ATy[0::, 0], x0=B_inv_A_trans_y0, rtol=tol)
-
-        # B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=rtol, restart=25)
-        if exitCode != 0:
-            print(exitCode)
+        # B_inv_A_trans_y, exitCode = gmres(SetB, ATy[0::, 0], x0=B_inv_A_trans_y0, rtol=tol)
+        # # B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=rtol, restart=25)
+        # if exitCode != 0:
+        #     print(exitCode)
+        LowTri = np.linalg.cholesky(SetB)
+        UpTri = LowTri.T
+        B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
 
         MargResults[p, :] = B_inv_A_trans_y * lambHist[p]/ np.sum(lambHist)
         MargVarResults[p, :] = B_inv_A_trans_y**2 * lambHist[p]/ np.sum(lambHist)
@@ -916,31 +919,63 @@ def skew_norm_pdf(x,mean=0,w=1,skewP=0, scale = 0.1):
 
 
 
+B_MTC = ATA + np.mean(lambdas) * L
+# B_MTC_inv_A_trans_y, exitCode = gmres(B_MTC, ATy[0::, 0], rtol=tol)
+# if exitCode != 0:
+#     print(exitCode)
+LowTri = np.linalg.cholesky(B_MTC)
+UpTri = LowTri.T
+B_MTC_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+f_MTC = f(ATy, y, B_MTC_inv_A_trans_y)
+
+
+
+
+
+
+
 B_MTC_min = ATA + (np.mean(lambdas) - np.sqrt(np.var(lambdas))/2) * L
-B_MTC_min_inv_A_trans_y, exitCode = gmres(B_MTC_min, ATy[0::, 0], rtol=tol)
-if exitCode != 0:
-    print(exitCode)
+# B_MTC_min_inv_A_trans_y, exitCode = gmres(B_MTC_min, ATy[0::, 0], rtol=tol)
+# if exitCode != 0:
+#     print(exitCode)
+
+LowTri = np.linalg.cholesky(B_MTC_min)
+UpTri = LowTri.T
+B_MTC_min_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
 f_MTC_min = f(ATy, y, B_MTC_min_inv_A_trans_y)
 
 B_MTC_max = ATA + (np.mean(lambdas) + np.sqrt(np.var(lambdas))/2) * L
-B_MTC_max_inv_A_trans_y, exitCode = gmres(B_MTC_max, ATy[0::, 0], rtol=tol)
-if exitCode != 0:
-    print(exitCode)
+# B_MTC_max_inv_A_trans_y, exitCode = gmres(B_MTC_max, ATy[0::, 0], rtol=tol)
+# if exitCode != 0:
+#     print(exitCode)
+LowTri = np.linalg.cholesky(B_MTC_max)
+UpTri = LowTri.T
+B_MTC_max_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
 f_MTC_max = f(ATy, y, B_MTC_max_inv_A_trans_y)
 
 xMTC = np.mean(lambdas) - np.sqrt(np.var(lambdas))/2
 
+
+
 B_min = ATA + (np.mean(lambdas) - np.sqrt(np.var(lambdas)) ) * L
-B_min_inv_A_trans_y, exitCode = gmres(B_min, ATy[0::, 0], rtol=tol)
-if exitCode != 0:
-    print(exitCode)
-f_min = f(ATy, y, B_min_inv_A_trans_y)
+# B_min_inv_A_trans_y, exitCode = gmres(B_min, ATy[0::, 0], rtol=tol)
+# if exitCode != 0:
+#     print(exitCode)
+LowTri = np.linalg.cholesky(B_min)
+UpTri = LowTri.T
+B_pyT_max_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+f_min = f(ATy, y, B_pyT_max_inv_A_trans_y)
 
 B_max = ATA + (np.mean(lambdas) + np.sqrt(np.var(lambdas)) ) * L
-B_max_inv_A_trans_y, exitCode = gmres(B_max, ATy[0::, 0], rtol=tol)
-if exitCode != 0:
-    print(exitCode)
+# B_max_inv_A_trans_y, exitCode = gmres(B_max, ATy[0::, 0], rtol=tol)
+# if exitCode != 0:
+#     print(exitCode)
+LowTri = np.linalg.cholesky(B_max)
+UpTri = LowTri.T
+B_max_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
 f_max = f(ATy, y, B_max_inv_A_trans_y)
+
 
 
 
@@ -1099,15 +1134,18 @@ xTLxCurve2 = np.zeros(len(lamLCurve))
 for i in range(len(lamLCurve)):
     B = (ATA + lamLCurve[i] * L)
 
-    x, exitCode = gmres(B, ATy[0::, 0], rtol=tol)
-    if exitCode != 0:
-        print(exitCode)
-        NormLCurve[i] = np.nan
-        xTLxCurve[i] = np.nan
-
-    else:
-        NormLCurve[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
-        xTLxCurve[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
+    #x, exitCode = gmres(B, ATy[0::, 0], rtol=tol)
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    x = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    # if exitCode != 0:
+    #     print(exitCode)
+    #     NormLCurve[i] = np.nan
+    #     xTLxCurve[i] = np.nan
+    #
+    # else:
+    NormLCurve[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
+    xTLxCurve[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
 
 
 startTime  = time.time()
@@ -1117,9 +1155,9 @@ xTLxCurveZoom = np.zeros(len(lamLCurve))
 for i in range(len(lamLCurveZoom)):
     B = (ATA + lamLCurveZoom[i] * L)
 
-    x, exitCode = gmres(B, ATy[0::, 0],rtol=tol, restart=25)
-    if exitCode != 0:
-        print(exitCode)
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    x = lu_solve(LowTri, UpTri, ATy[0::, 0])
 
     NormLCurveZoom[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
     xTLxCurveZoom[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
@@ -1151,7 +1189,10 @@ lam_opt_elbow = lamLCurveZoom[ np.where(NormLCurveZoom == knee_point)[0][0]]
 print('Elbow: ', lam_opt_elbow)
 
 B = (ATA + lam_opt * L)
-x_opt, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
+#x_opt, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
+LowTri = np.linalg.cholesky(B)
+UpTri = LowTri.T
+x_opt = lu_solve(LowTri, UpTri, ATy[0::, 0])
 LNormOpt = np.linalg.norm( np.matmul(A,x_opt) - y[0::,0])#, ord = 2)
 xTLxOpt = np.sqrt(np.matmul(np.matmul(x_opt.T, L), x_opt))
 
