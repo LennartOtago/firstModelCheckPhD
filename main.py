@@ -78,8 +78,8 @@ O3 = df['Ozone (VMR)'].values
 
 minInd = 2
 maxInd = 45#54
-pressure_values = press[minInd:maxInd]
-VMR_O3 = O3[minInd:maxInd]
+pressure_values = press[minInd:maxInd][::2]#press[minInd:maxInd]
+VMR_O3 = O3[minInd:maxInd][::2]#O3[minInd:maxInd]
 scalingConstkm = 1e-3
 
 def height_to_pressure(p0, x, dx):
@@ -109,7 +109,8 @@ for i in range(1,len(calc_press)):
 """ analayse forward map without any real data values"""
 heights = actual_heights[1:]
 SpecNumLayers = len(VMR_O3)
-height_values = heights[minInd:maxInd].reshape((SpecNumLayers,1))
+#height_values = heights[minInd:maxInd].reshape((SpecNumLayers,1))
+height_values = heights[minInd:maxInd][::2].reshape((SpecNumLayers,1))
 MinH = height_values[0]
 MaxH = height_values[-1]
 R_Earth = 6371 # earth radiusin km
@@ -124,7 +125,7 @@ MinAng = np.arcsin((height_values[0] + R_Earth) / (R_Earth + ObsHeight))
 
 
 
-pointAcc = 0.0002#0.0009
+pointAcc = 0.0009
 meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
 
 SpecNumMeas = len(meas_ang)
@@ -171,7 +172,7 @@ neigbours[neigbours >= len(height_values)] = np.nan
 neigbours[neigbours < 0] = np.nan
 
 L = generate_L(neigbours)
-startInd = 34
+startInd = 20
 L[startInd::, startInd::] = L[startInd::, startInd::] * 5
 L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
 
@@ -200,7 +201,8 @@ R_gas = N_A * k_b_cgs # in ..cm^3
 
 # https://www.grc.nasa.gov/www/k-12/airplane/atmosmet.html
 temperature = get_temp_values(heights)
-temp_values = temperature[minInd:maxInd]
+#temp_values = temperature[minInd:maxInd]
+temp_values = temperature[minInd:maxInd][::2]
 #x = VMR_O3 * N_A * pressure_values /(R_gas * temp_values)#* 1e-13
 #https://hitran.org/docs/definitions-and-units/
 #files = '/home/lennartgolks/Python/firstModelCheck/634f1dc4.par' #/home/lennartgolks/Python /Users/lennart/PycharmProjects
@@ -359,7 +361,7 @@ Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
-SNR = 10
+SNR = 20
 y, gamma = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
 np.savetxt('dataY.txt',y, fmt = '%.15f', delimiter= '\t')
 np.savetxt('AMat.txt',A, fmt = '%.15f', delimiter= '\t')
@@ -433,7 +435,7 @@ def MinLogMargPost(params):#, coeff):
     return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gamma) + 0.5 * G + 0.5 * gamma * F +  ( betaD *  lamb * gamma + betaG *gamma)
 
 #minimum = optimize.fmin(MargPostU, [5e-5,0.5])
-minimum = optimize.fmin(MinLogMargPost, [gamma,1/gamma* 1/ np.mean(vari)/15])
+minimum = optimize.fmin(MinLogMargPost, [gamma,1/gamma* 1/ np.mean(vari)/15], maxiter = 25)
 gamma0 = minimum[0]
 lam0 = minimum[1]
 print(minimum)
