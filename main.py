@@ -78,8 +78,9 @@ O3 = df['Ozone (VMR)'].values
 
 minInd = 2
 maxInd = 45#54
-pressure_values = press[minInd:maxInd][::2]#press[minInd:maxInd]
-VMR_O3 = O3[minInd:maxInd][::2]#O3[minInd:maxInd]
+skipInd = 1
+pressure_values = press[minInd:maxInd][::skipInd]#press[minInd:maxInd]
+VMR_O3 = O3[minInd:maxInd][::skipInd]#O3[minInd:maxInd]
 scalingConstkm = 1e-3
 
 def height_to_pressure(p0, x, dx):
@@ -110,7 +111,7 @@ for i in range(1,len(calc_press)):
 heights = actual_heights[1:]
 SpecNumLayers = len(VMR_O3)
 #height_values = heights[minInd:maxInd].reshape((SpecNumLayers,1))
-height_values = heights[minInd:maxInd][::2].reshape((SpecNumLayers,1))
+height_values = heights[minInd:maxInd][::skipInd].reshape((SpecNumLayers,1))
 MinH = height_values[0]
 MaxH = height_values[-1]
 R_Earth = 6371 # earth radiusin km
@@ -125,7 +126,7 @@ MinAng = np.arcsin((height_values[0] + R_Earth) / (R_Earth + ObsHeight))
 
 
 
-pointAcc = 0.0009
+pointAcc = 0.0003
 meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
 
 SpecNumMeas = len(meas_ang)
@@ -172,7 +173,7 @@ neigbours[neigbours >= len(height_values)] = np.nan
 neigbours[neigbours < 0] = np.nan
 
 L = generate_L(neigbours)
-startInd = 20
+startInd = 23
 L[startInd::, startInd::] = L[startInd::, startInd::] * 5
 L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
 
@@ -202,7 +203,7 @@ R_gas = N_A * k_b_cgs # in ..cm^3
 # https://www.grc.nasa.gov/www/k-12/airplane/atmosmet.html
 temperature = get_temp_values(heights)
 #temp_values = temperature[minInd:maxInd]
-temp_values = temperature[minInd:maxInd][::2]
+temp_values = temperature[minInd:maxInd][::skipInd]
 #x = VMR_O3 * N_A * pressure_values /(R_gas * temp_values)#* 1e-13
 #https://hitran.org/docs/definitions-and-units/
 #files = '/home/lennartgolks/Python/firstModelCheck/634f1dc4.par' #/home/lennartgolks/Python /Users/lennart/PycharmProjects
@@ -232,7 +233,7 @@ for i, lines in enumerate(data_set):
     n_air[i] = float(lines[0][55:59])
     g_doub_prime[i] = float(lines[0][155:160])
 
-
+np.savetxt('S.txt', S, fmt = '%.15f', delimiter= '\t')
 #load constants in si annd convert to cgs units by multiplying
 h = scy.constants.h #* 1e7#in J Hz^-1
 c_cgs = constants.c * 1e2# in m/s
@@ -305,6 +306,8 @@ scalingConst = 1e11
 #theta =(num_mole * w_cross.reshape((SpecNumLayers,1)) * Source * scalingConst )
 theta = num_mole * w_cross.reshape((SpecNumLayers,1)) * scalingConst * S[ind,0]
 
+np.savetxt('num_mole.txt', [num_mole], fmt = '%.15f', delimiter= '\t')
+np.savetxt('LineIntScal.txt', LineIntScal, fmt = '%.15f', delimiter= '\t')
 # A_scal = pressure_values.reshape((SpecNumLayers,1)) / ( temp_values)
 # scalingConst_old = 1e16
 # theta =(num_mole * w_cross.reshape((SpecNumLayers,1)) * Source * scalingConst_old )
@@ -361,7 +364,7 @@ Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
-SNR = 20
+SNR = 60
 y, gamma = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
 np.savetxt('dataY.txt',y, fmt = '%.15f', delimiter= '\t')
 np.savetxt('AMat.txt',A, fmt = '%.15f', delimiter= '\t')
