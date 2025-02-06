@@ -126,7 +126,7 @@ MinAng = np.arcsin((height_values[0] + R_Earth) / (R_Earth + ObsHeight))
 
 
 
-pointAcc = 0.0003
+pointAcc = 0.00025
 meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
 
 SpecNumMeas = len(meas_ang)
@@ -364,7 +364,7 @@ Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
-SNR = 60
+SNR = 90
 y, gamma = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
 np.savetxt('dataY.txt',y, fmt = '%.15f', delimiter= '\t')
 np.savetxt('AMat.txt',A, fmt = '%.15f', delimiter= '\t')
@@ -750,6 +750,25 @@ print('acceptance ratio: ' + str(k/(number_samples+burnIn)))
 deltas = lambdas * gammas
 np.savetxt('samples.txt', np.vstack((gammas[burnIn::], deltas[burnIn::], lambdas[burnIn::])).T, header = 'gammas \t deltas \t lambdas \n Acceptance Ratio: ' + str(k/number_samples) + '\n Elapsed Time: ' + str(elapsed), fmt = '%.15f \t %.15f \t %.15f')
 
+##
+mpl.use(defBack)
+mpl.rcParams.update(mpl.rcParamsDefault)
+plt.rcParams.update({'font.size': 12})
+BinHist = 30#n_bins
+lambHist, lambBinEdges = np.histogram(lambdas, bins= BinHist, density= True)
+gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) )#, dpi = dpi)
+
+axs[0].bar(gamBinEdges[1::],gamHist*np.diff(gamBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(gamBinEdges)[0])#10)
+
+
+axs[0].set_xlabel(r'the noise precision $\gamma$')
+
+
+axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(lambBinEdges)[0])#10)
+axs[1].set_title(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
+plt.savefig('HistoPlot.png')
+plt.show()
 
 
 ###draw paramter samples
@@ -958,10 +977,10 @@ B_MTC_min = ATA + (np.mean(lambdas) - np.sqrt(np.var(lambdas))/2) * L
 # if exitCode != 0:
 #     print(exitCode)
 
-LowTri = np.linalg.cholesky(B_MTC_min)
-UpTri = LowTri.T
-B_MTC_min_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
-f_MTC_min = f(ATy, y, B_MTC_min_inv_A_trans_y)
+# LowTri = np.linalg.cholesky(B_MTC_min)
+# UpTri = LowTri.T
+# B_MTC_min_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+# f_MTC_min = f(ATy, y, B_MTC_min_inv_A_trans_y)
 
 B_MTC_max = ATA + (np.mean(lambdas) + np.sqrt(np.var(lambdas))/2) * L
 # B_MTC_max_inv_A_trans_y, exitCode = gmres(B_MTC_max, ATy[0::, 0], rtol=tol)
@@ -1043,7 +1062,7 @@ axs.set_xscale('log')
 axins = axs.inset_axes([0.05,0.5,0.4,0.45])
 axins.plot(lam,f_func, color = fCol, zorder=3, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
 
-axins.axvline( minimum[1], color = gmresCol, label = r'$\pi(\lambda_0|\bm{y}, \gamma)$')
+axins.axvline( minimum[1], color = gmresCol, label = r'$\pi(\lambda_0|\mathbf{y}, \gamma)$')
 
 axins.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
 axs.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 2, label = 'Taylor series' )
@@ -1250,8 +1269,8 @@ axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'ma
 
 axs.set_xscale('log')
 axs.set_yscale('log')
-axs.set_ylabel(r'$ \sqrt{\bm{x}^T \bm{L}\bm{x}}$', style='italic')
-axs.set_xlabel(r'$|| \bm{Ax} - \bm{y}||$')
+axs.set_ylabel(r'$ \sqrt{\mathbf{x}^T \mathbf{L}\mathbf{x}}$', style='italic')
+axs.set_xlabel(r'$|| \mathbf{Ax} - \mathbf{y}||$')
 #axs.set_title('L-curve for m=' + str(SpecNumMeas))
 
 
