@@ -233,7 +233,8 @@ for i, lines in enumerate(data_set):
     n_air[i] = float(lines[0][55:59])
     g_doub_prime[i] = float(lines[0][155:160])
 
-np.savetxt('S.txt', S, fmt = '%.15f', delimiter= '\t')
+
+np.savetxt('S.txt',S, delimiter= '\t')
 #load constants in si annd convert to cgs units by multiplying
 h = scy.constants.h #* 1e7#in J Hz^-1
 c_cgs = constants.c * 1e2# in m/s
@@ -307,7 +308,10 @@ scalingConst = 1e11
 theta = num_mole * w_cross.reshape((SpecNumLayers,1)) * scalingConst * S[ind,0]
 
 np.savetxt('num_mole.txt', [num_mole], fmt = '%.15f', delimiter= '\t')
-np.savetxt('LineIntScal.txt', LineIntScal, fmt = '%.15f', delimiter= '\t')
+np.savetxt('wvnmbr.txt', wvnmbr, fmt = '%.15f', delimiter= '\t')
+np.savetxt('g_doub_prime.txt', g_doub_prime, fmt = '%.15f', delimiter= '\t')
+np.savetxt('E.txt', E, fmt = '%.15f', delimiter= '\t')
+
 # A_scal = pressure_values.reshape((SpecNumLayers,1)) / ( temp_values)
 # scalingConst_old = 1e16
 # theta =(num_mole * w_cross.reshape((SpecNumLayers,1)) * Source * scalingConst_old )
@@ -365,11 +369,19 @@ Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
 SNR = 100
-y, gamma = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
+y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
+
+
+nonLinA = calcNonLin(A_lin, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
+OrgData = np.matmul(A/2 * nonLinA,VMR_O3 * theta_scale_O3)
+noise = np.random.normal(0, np.sqrt(1 / gam0), size = OrgData.shape)
+nonLinY = (OrgData + noise).reshape((SpecNumMeas,1))
+y = (Ax + noise).reshape((SpecNumMeas,1))
+np.savetxt('nonLinDataY.txt',nonLinY, fmt = '%.15f', delimiter= '\t')
 np.savetxt('dataY.txt',y, fmt = '%.15f', delimiter= '\t')
 np.savetxt('AMat.txt',A, fmt = '%.15f', delimiter= '\t')
 np.savetxt('ALinMat.txt',A_lin, fmt = '%.15f', delimiter= '\t')
-np.savetxt('gamma0.txt',[gamma], fmt = '%.15f', delimiter= '\t')
+np.savetxt('gamma0.txt',[gam0], fmt = '%.15f', delimiter= '\t')
 
 APress, press_scale = composeAforPress(A_lin, temp_values, VMR_O3, ind)
 np.savetxt('AP.txt', APress, fmt = '%.15f', delimiter= '\t')
@@ -385,8 +397,10 @@ ax1.plot(Ax, tang_heights_lin)
 ax1.plot(AxPT, tang_heights_lin)
 ax1.plot(AxP, tang_heights_lin)
 ax1.plot(AxT, tang_heights_lin)
-ax1.scatter(y, tang_heights_lin)
-ax1.plot(y, tang_heights_lin)
+ax1.scatter(y, tang_heights_lin, color = 'r')
+ax1.plot(y, tang_heights_lin, color = 'r')
+ax1.scatter(nonLinY, tang_heights_lin, color = 'k')
+ax1.plot(nonLinY, tang_heights_lin, color = 'k')
 plt.show()
 
 #y = np.loadtxt('dataY.txt').reshape((SpecNumMeas,1))
@@ -430,9 +444,9 @@ def MinLogMargPost(params):#, coeff):
 
     # gamma = params[0]
     # delta = params[1]
-    gamma = params[0]
+    gam = params[0]
     lamb = params[1]
-    if lamb < 0  or gamma < 0:
+    if lamb < 0  or gam < 0:
         return np.nan
 
     n = SpecNumLayers
@@ -448,10 +462,10 @@ def MinLogMargPost(params):#, coeff):
     G = g(A, L,  lamb)
     F = f(ATy, y,  B_inv_A_trans_y)
 
-    return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gamma) + 0.5 * G + 0.5 * gamma * F +  ( betaD *  lamb * gamma + betaG *gamma)
+    return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gam) + 0.5 * G + 0.5 * gam * F +  ( betaD *  lamb * gam + betaG *gam)
 
 #minimum = optimize.fmin(MargPostU, [5e-5,0.5])
-minimum = optimize.fmin(MinLogMargPost, [gamma,1/gamma* 1/ np.mean(vari)/15], maxiter = 25)
+minimum = optimize.fmin(MinLogMargPost, [gam0,1/gam0* 1/ np.mean(vari)/15], maxiter = 25)
 gamma0 = minimum[0]
 lam0 = minimum[1]
 print(minimum)
