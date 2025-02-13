@@ -369,6 +369,7 @@ Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
 SNR = 100
+
 y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
 
 
