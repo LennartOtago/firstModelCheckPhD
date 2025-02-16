@@ -173,7 +173,7 @@ neigbours[neigbours >= len(height_values)] = np.nan
 neigbours[neigbours < 0] = np.nan
 
 L = generate_L(neigbours)
-startInd = 40
+startInd = 35
 L[startInd::, startInd::] = L[startInd::, startInd::] * 5
 L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
 
@@ -372,6 +372,10 @@ SNR = 60
 
 y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
 
+signal_power = np.sqrt(np.mean(np.abs(Ax) ** 2))
+noise = np.random.normal(0, np.sqrt(1 / gam0), size =y.shape)
+noise_power = np.sqrt(np.mean(np.abs(noise) ** 2))
+snr = signal_power / noise_power
 
 nonLinA = calcNonLin(A_lin, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
 OrgData = np.matmul(A/2 * nonLinA,VMR_O3 * theta_scale_O3)
@@ -382,6 +386,7 @@ np.savetxt('nonLinDataY.txt',nonLinY, fmt = '%.15f', delimiter= '\t')
 np.savetxt('dataY.txt',y, fmt = '%.15f', delimiter= '\t')
 np.savetxt('AMat.txt',A, fmt = '%.15f', delimiter= '\t')
 np.savetxt('ALinMat.txt',A_lin, fmt = '%.15f', delimiter= '\t')
+np.savetxt('nonLinA.txt',nonLinA, fmt = '%.15f', delimiter= '\t')
 np.savetxt('gamma0.txt',[gam0], fmt = '%.15f', delimiter= '\t')
 
 APress, press_scale = composeAforPress(A_lin, temp_values, VMR_O3, ind)
