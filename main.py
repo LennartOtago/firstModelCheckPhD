@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib as mpl
 
-from importetFunctions import *
+#from importetFunctions import *
 import time
 import pickle as pl
 #import matlab.engine
@@ -111,7 +111,8 @@ for i in range(1,len(calc_press)):
 heights = actual_heights[1:]
 SpecNumLayers = len(VMR_O3)
 #height_values = heights[minInd:maxInd].reshape((SpecNumLayers,1))
-height_values = heights[minInd:maxInd][::skipInd].reshape((SpecNumLayers,1))
+height_values = np.around(heights[minInd:maxInd][::skipInd].reshape((SpecNumLayers,1)),2)
+
 MinH = height_values[0]
 MaxH = height_values[-1]
 R_Earth = 6371 # earth radiusin km
@@ -132,8 +133,12 @@ meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
 SpecNumMeas = len(meas_ang)
 m = SpecNumMeas
 
-A_lin, tang_heights_lin, extraHeight = gen_sing_map(meas_ang,height_values,ObsHeight,R_Earth)
+A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_ang,height_values,ObsHeight,R_Earth)
 np.savetxt('tang_heights_lin.txt',tang_heights_lin, fmt = '%.15f', delimiter= '\t')
+np.savetxt('A_lin_dx.txt',A_lin_dx, fmt = '%.15f', delimiter= '\t')
+
+A_lin = gen_sing_map(A_lin_dx, tang_heights_lin, height_values)
+
 
 #condition number for A
 A_lin = A_lin
@@ -148,8 +153,8 @@ print("normal: " + str(orderOfMagnitude(cond_A_lin)))
 tot_r = np.zeros((SpecNumMeas,1))
 #calculate total length
 for j in range(0, SpecNumMeas):
-    tot_r[j] = 2 * (np.sqrt( ( ObsHeight + R_Earth)**2 - (tang_heights_lin[j] +R_Earth )**2)  - np.sqrt( ( ObsHeight + R_Earth)**2 - (tang_heights_lin[j] +R_Earth )**2) )
-print('Distance through layers check: ' + str(np.allclose( sum(A_lin.T,0), tot_r[:,0])))
+    tot_r[j] =  np.sqrt( ( height_values[-1] + R_Earth)**2 - (tang_heights_lin[j] +R_Earth )**2)
+print('Distance through layers check: ' + str(np.allclose( sum(A_lin_dx.T,0), tot_r[:,0])))
 
 
 
@@ -173,7 +178,7 @@ neigbours[neigbours >= len(height_values)] = np.nan
 neigbours[neigbours < 0] = np.nan
 
 L = generate_L(neigbours)
-startInd = 35
+startInd = 37
 L[startInd::, startInd::] = L[startInd::, startInd::] * 5
 L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
 
@@ -312,21 +317,6 @@ np.savetxt('wvnmbr.txt', wvnmbr, fmt = '%.15f', delimiter= '\t')
 np.savetxt('g_doub_prime.txt', g_doub_prime, fmt = '%.15f', delimiter= '\t')
 np.savetxt('E.txt', E, fmt = '%.15f', delimiter= '\t')
 
-# A_scal = pressure_values.reshape((SpecNumLayers,1)) / ( temp_values)
-# scalingConst_old = 1e16
-# theta =(num_mole * w_cross.reshape((SpecNumLayers,1)) * Source * scalingConst_old )
-#
-#num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst
-
-""" plot forward model values """
-numDensO3 =  N_A * press * 1e2 * O3 / (R * temp_values[0,:]) * 1e-6
-# fig, axs = plt.subplots(tight_layout=True)
-# plt.plot(press ,heights,color = [0, 205/255, 127/255])
-# #plt.plot((1/ temp_values) ,heights,color ='k')
-# axs.set_ylabel('Height in km')
-# axs.set_xlabel('Number density of Ozone in cm$^{-3}$')
-# plt.savefig('theta.png')
-# plt.show()
 
 
 
@@ -350,8 +340,8 @@ plt.savefig('PandQ.png')
 plt.show()
 
 
-A, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind)
-
+AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind)
+A = 2*AO3
 
 ATA = np.matmul(A.T,A)
 Au, As, Avh = np.linalg.svd(A)
@@ -372,13 +362,28 @@ SNR = 60
 
 y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
 
+
+fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
+ax1.plot(Ax, tang_heights_lin)
+ax1.scatter(y, tang_heights_lin, color = 'r')
+plt.show()
+
+
 signal_power = np.sqrt(np.mean(np.abs(Ax) ** 2))
 noise = np.random.normal(0, np.sqrt(1 / gam0), size =y.shape)
 noise_power = np.sqrt(np.mean(np.abs(noise) ** 2))
 snr = signal_power / noise_power
 
-nonLinA = calcNonLin(A_lin, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
-OrgData = np.matmul(A/2 * nonLinA,VMR_O3 * theta_scale_O3)
+nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
+OrgData = np.matmul(AO3 * nonLinA,VMR_O3 * theta_scale_O3)
+
+fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
+ax1.plot(Ax, tang_heights_lin, label = 'linear Data')
+ax1.plot(OrgData , tang_heights_lin, label = 'nonlinear Data')
+ax1.scatter(y, tang_heights_lin, color = 'r')
+ax1.legend()
+plt.show()
+
 noise = np.random.normal(0, np.sqrt(1 / gam0), size = OrgData.shape)
 nonLinY = (OrgData + noise).reshape((SpecNumMeas,1))
 y = (Ax + noise).reshape((SpecNumMeas,1))
@@ -389,20 +394,20 @@ np.savetxt('ALinMat.txt',A_lin, fmt = '%.15f', delimiter= '\t')
 np.savetxt('nonLinA.txt',nonLinA, fmt = '%.15f', delimiter= '\t')
 np.savetxt('gamma0.txt',[gam0], fmt = '%.15f', delimiter= '\t')
 
-APress, press_scale = composeAforPress(A_lin, temp_values, VMR_O3, ind)
+APress, press_scale = composeAforPress(2*A_lin, temp_values, VMR_O3, ind)
 np.savetxt('AP.txt', APress, fmt = '%.15f', delimiter= '\t')
-ATemp, temp_scale = composeAforTemp(A_lin, pressure_values, VMR_O3, ind, temp_values)
+ATemp, temp_scale = composeAforTemp(2*A_lin, pressure_values, VMR_O3, ind, temp_values)
 np.savetxt('AT.txt', ATemp, fmt = '%.15f', delimiter= '\t')
-APressTemp, press_temp_scale = composeAforTempPress(A_lin, VMR_O3, ind, temp_values)
+APressTemp, press_temp_scale = composeAforTempPress(2*A_lin, VMR_O3, ind, temp_values)
 np.savetxt('APT.txt', APressTemp, fmt = '%.15f', delimiter= '\t')
 AxPT = np.matmul(APressTemp, pressure_values/temp_values[:,0])
 AxT = np.matmul(ATemp, 1/temp_values[:,0])
 AxP = np.matmul(APress, pressure_values)
 fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
-ax1.plot(Ax, tang_heights_lin)
-ax1.plot(AxPT, tang_heights_lin)
-ax1.plot(AxP, tang_heights_lin)
-ax1.plot(AxT, tang_heights_lin)
+ax1.plot(Ax, tang_heights_lin, color = 'g')
+ax1.plot(AxPT, tang_heights_lin, color = 'blue')
+ax1.plot(AxP, tang_heights_lin,  color = 'orange')
+ax1.plot(AxT, tang_heights_lin, color = 'm')
 ax1.scatter(y, tang_heights_lin, color = 'r')
 ax1.plot(y, tang_heights_lin, color = 'r')
 ax1.scatter(nonLinY, tang_heights_lin, color = 'k')

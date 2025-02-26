@@ -8,6 +8,8 @@ import math
 from scipy.sparse.linalg import gmres
 import scipy as scy
 
+
+
 def orderOfMagnitude(number):
     return math.floor(math.log(number, 10))
 
@@ -211,46 +213,37 @@ def composeAforO3(A_lin, temp, press, ind):
     #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
     return A, theta_scale
 
-'''Generate Forward Map A
-where each collum is one measurment defined by a tangent height
-every entry is length in km each measurement goes through
-first non-zero entry of each row is the lowest layer (which should have a Ozone amount of 0)
-last entry of each row is highest layer (also 0 Ozone)'''
-def gen_sing_map(meas_ang, height, obs_height, R):
-    tang_height = np.around((np.sin(meas_ang) * (obs_height + R)) - R, 2)
-    num_meas = len(tang_height)
-    # add one extra layer so that the difference in height can be calculated
-    layers = np.zeros((len(height)+1,1))
-    layers[0:-1] = height
-    layers[-1] = height[-1] + (height[-1] - height[-2])/2
-
-
-    A_height = np.zeros((num_meas, len(layers)-1))
-    t = 0
-    for m in range(0, num_meas):
-
-        while layers[t] <= tang_height[m]:
-
+'''generate forward map accoring to trapezoidal rule'''
+def gen_sing_map(dxs, tang_heights, heights):
+    m,n = dxs.shape
+    A_lin = np.zeros((m,n+1))
+    for i in range(0,m):
+        t = 0
+        while heights[t] <= tang_heights[i]:
             t += 1
+        A_lin[i, t-1] = 0.5 * dxs[i, t-1]
+        for j in range(t, n):
+            A_lin[i,j] = 0.5 * (dxs[i,j-1] + dxs[i,j])
+        A_lin[i, -1] = 0.5 * dxs[i, -1]
+    return A_lin
 
-        # first dr
-        A_height[m, t - 1] =  np.sqrt((layers[t] + R) ** 2 - (tang_height[m] + R) ** 2)
-        dr = A_height[m, t - 1]
-        for i in range(t, len(layers) - 1):
-            A_height[m, i] = np.sqrt((layers[i + 1] + R) ** 2 - (tang_height[m] + R) ** 2) - dr
-            dr = dr + A_height[m, i]
-        A_height[m, i] = 0.5 * A_height[m, i]
-    #return 2 * (A_...) for linear part
-    return  2 * A_height, tang_height, layers[-1]
+def gen_trap_rul(dxs):
+    val = np.zeros(len(dxs)+1)
+    val[0] = dxs[0] * 0.5
+    for i in range(1,len(dxs)):
+        val[i] = (dxs[i-1] + dxs[i])* 0.5
 
-def calcNonLin(A_lin, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime):
+    val[-1] = dxs[-1] * 0.5
+    return val
+
+def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime):
     '''careful that A_lin is just dx values
     maybe do A_lin_copy = np.copy(A_lin/2)
     A_lin_copy[:,-1] = A_lin_copy[:,-1] * 2
     if A_lin has been generated for linear data'''
-    A_lin = A_lin / 2
-    A_lin[:, -1] = A_lin[:, -1] * 2
-    SpecNumMeas, SpecNumLayers = np.shape(A_lin)
+
+    SpecNumLayers = len(temp_values)#
+    SpecNumMeas = len(tang_heights)
     temp = temp_values.reshape((SpecNumLayers, 1))
     # wvnmbr = np.loadtxt('wvnmbr.txt').reshape((909,1))
     # S = np.loadtxt('S.txt').reshape((909,1))
@@ -277,31 +270,43 @@ def calcNonLin(A_lin, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToC
     theta = num_mole * f_broad * 1e-4 * VMR_O3.reshape((SpecNumLayers,1)) * S[ind,0]
     ConcVal = - pressure_values.reshape((SpecNumLayers, 1)) * 1e2 * LineIntScal / temp_values * theta * AscalConstKmToCm
 
-
-    mask = A_lin * np.ones((SpecNumMeas, SpecNumLayers))
-    mask[mask != 0] = 1
-    preTrans = np.zeros((SpecNumMeas, SpecNumLayers))
-
-
-    for i in range(0,SpecNumMeas):
-        for j in range(0, SpecNumLayers-1):
-            if mask[i,j] !=0 :
-                currMask = np.copy(mask[i, :])
-                currMask[j] = 0.5
-                currMask[-1] = 0.5
-                ValPerLayPre = np.sum(ConcVal.T * currMask * A_lin[i,:])
-                preTrans[i,j] = np.exp(ValPerLayPre)
-        preTrans[i, -1] = 1
     afterTrans = np.zeros((SpecNumMeas, SpecNumLayers))
+    preTrans = np.zeros((SpecNumMeas, SpecNumLayers))
     for i in range(0,SpecNumMeas):
-        for j in range(0, SpecNumLayers):
-            if mask[i,j] !=0 :
-                currMask1 = np.copy(mask[i, :])
-                currMask1[-1] = 0.5
-                currMask2 = np.copy(mask[i, :j+1])
-                currMask2[-1] = 0.5
-                ValPerLayAfter = np.sum(ConcVal.T * currMask1 * A_lin[i,:]) + np.sum(ConcVal[:j+1].T * currMask2 * A_lin[i,:j+1])
-                afterTrans[i,j] = np.exp(ValPerLayAfter)
+        t = 0
+        while height_values[t] <= tang_heights[i]:
+            t += 1
+            currDxs = gen_trap_rul(np.append(np.flip(dxs[i, t - 1:]), dxs[i, t - 1]))
+            ValPerLayAfter = np.sum(np.append(np.flip(ConcVal[t - 1:]), ConcVal[t]) * currDxs)
+            afterTrans[i, t - 1] = np.exp(ValPerLayAfter)
+            for j in range(t-1, SpecNumLayers-1):
+                currDxs = gen_trap_rul(dxs[i,j:])
+                ValPerLayPre = np.sum(ConcVal[j:].T  * currDxs)
+                preTrans[i,j] = np.exp(ValPerLayPre)
+
+                if j >=t:
+                    currDxs = gen_trap_rul(np.append(np.flip(dxs[i, t - 1:]), dxs[i, t - 1:j]))
+                    ValPerLayAfter = np.sum(np.append(np.flip(ConcVal[t - 1:]), ConcVal[t:j + 1]) * currDxs)
+                    afterTrans[i, j] = np.exp(ValPerLayAfter)
+
+        currDxs = gen_trap_rul(np.append(np.flip(dxs[i, t - 1:]), dxs[i, t - 1:]))
+        ValPerLayAfter = np.sum(np.append(np.flip(ConcVal[t - 1:]), ConcVal[t:]) * currDxs)
+        afterTrans[i, -1] = np.exp(ValPerLayAfter)
+        preTrans[i, -1] = 1
+
+    # afterTrans = np.zeros((SpecNumMeas, SpecNumLayers))
+    # for i in range(0,SpecNumMeas):
+    #     t = 0
+    #     while height_values[t] <= tang_heights[i]:
+    #         t += 1
+    #
+    #     currDxs = gen_trap_rul(np.append(np.flip(dxs[i, t - 1:]), dxs[i, t - 1]))
+    #     ValPerLayAfter = np.sum(np.append(np.flip(ConcVal[t - 1:]), ConcVal[t]) * currDxs)
+    #     afterTrans[i, t-1] = np.exp(ValPerLayAfter)
+    #     for j in range(t, SpecNumLayers):
+    #         currDxs = gen_trap_rul(np.append(np.flip(dxs[i, t-1:]), dxs[i, t-1:j]))
+    #         ValPerLayAfter = np.sum(np.append(np.flip(ConcVal[t-1:]), ConcVal[t:j+1]) * currDxs )
+    #         afterTrans[i,j] = np.exp(ValPerLayAfter)
 
     return preTrans + afterTrans
 
@@ -401,36 +406,23 @@ def plot_svd(ATA, height_values):
     fig.write_html('SVD.html')
     return ATAu, ATAs, ATAvh
 
-'''Generate Forward Map A
-where each collum is one measurment defined by a tangent height
-every entry is length in km each measurement goes through
-first non-zero entry of each row is the lowest layer (which should have a Ozone amount of 0)
-last entry of each row is highest layer (also 0 Ozone)'''
-def gen_forward_map(meas_ang, height, obs_height, R):
+
+''' generate dx'''
+def gen_forward_map(meas_ang, heights, obs_height, R):
     tang_height = np.around((np.sin(meas_ang) * (obs_height + R)) - R, 2)
     num_meas = len(tang_height)
-    # add one extra layer so that the difference in height can be calculated
-    layers = np.zeros(len(height)+1)
-    layers[0:-1] = height
-    layers[-1] = height[-1] + (height[-1] - height[-2])/2
+    A_height = np.zeros((num_meas, len(heights)-1))
 
-
-    A_height = np.zeros((num_meas, len(layers)-1))
-    t = 0
     for m in range(0, num_meas):
-
-        while layers[t] <= tang_height[m]:
-
+        t = 0
+        #find t so that layers[t] is larger than tang height
+        while heights[t] < tang_height[m]:
             t += 1
 
-        # first dr
-        A_height[m, t - 1] =  np.sqrt((layers[t] + R) ** 2 - (tang_height[m] + R) ** 2)
-        dr =  A_height[m, t - 1]
-        for i in range(t, len(layers) - 1):
-            A_height[m, i] = np.sqrt((layers[i + 1] + R) ** 2 - (tang_height[m] + R) ** 2) - dr
-            dr = dr + A_height[m, i]
-        A_height[m, i] = 0.5 * A_height[m, i]
-    return 2 * A_height, tang_height, layers[-1]
+        for i in range(t, len(heights)):
+            A_height[m, i-1] = np.sqrt((heights[i] + R) ** 2 - (tang_height[m] + R) ** 2) - np.sum( A_height[m, :i])
+
+    return A_height, tang_height, heights[-1]
 
 
 def f(ATy, y, B_inv_A_trans_y):
