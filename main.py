@@ -123,6 +123,8 @@ ObsHeight = 500 # in km
 # find minimum and max angle in radians
 # min and max angle are defined by the height values of the retrived profile
 MaxAng = np.arcsin((height_values[-1]+ R_Earth) / (R_Earth + ObsHeight))
+#MaxAng = [np.arcsin((55+ R_Earth) / (R_Earth + ObsHeight))]
+
 MinAng = np.arcsin((height_values[0] + R_Earth) / (R_Earth + ObsHeight))
 
 
@@ -209,6 +211,7 @@ R_gas = N_A * k_b_cgs # in ..cm^3
 temperature = get_temp_values(heights)
 #temp_values = temperature[minInd:maxInd]
 temp_values = temperature[minInd:maxInd][::skipInd]
+
 #x = VMR_O3 * N_A * pressure_values /(R_gas * temp_values)#* 1e-13
 #https://hitran.org/docs/definitions-and-units/
 #files = '/home/lennartgolks/Python/firstModelCheck/634f1dc4.par' #/home/lennartgolks/Python /Users/lennart/PycharmProjects
@@ -324,6 +327,9 @@ fig, axs = plt.subplots(tight_layout=True, figsize=set_size(PgWidthPt, fraction=
 #plt.plot(press/1013.25,heights, label = 'pressure in hPa/' + str(np.around(max(press),3)) )
 #plt.plot(Source/max(Source),height_values, label = r'Source in $\frac{W}{m^2 sr}\frac{1}{\frac{1}{cm}}$/' + str(np.around(max(Source[0]),5)) )
 plt.plot(temperature,heights, color = 'darkred')# label = r'Source in K/' + str(np.around(max(temperature[0]),3)) )
+
+plt.plot(temp_values,height_values, color = 'red')# label = r'Source in K/' + str(np.around(max(temperature[0]),3)) )
+
 #plt.plot(LineInt,heights[minInd:maxInd], color = 'darkred')# label = r'Source in K/' + str(np.around(max(temperature[0]),3)) )
 #axs.legend()
 axs.tick_params(axis = 'x', labelcolor="darkred")
@@ -393,6 +399,18 @@ np.savetxt('AMat.txt',A, fmt = '%.15f', delimiter= '\t')
 np.savetxt('ALinMat.txt',A_lin, fmt = '%.15f', delimiter= '\t')
 np.savetxt('nonLinA.txt',nonLinA, fmt = '%.15f', delimiter= '\t')
 np.savetxt('gamma0.txt',[gam0], fmt = '%.15f', delimiter= '\t')
+
+
+## some modifiaction
+# to find correaltion bewteen tmep and others
+
+# y = np.copy(nonLinY)
+#
+# temp_values = np.mean(temp_values) * np.ones((SpecNumLayers,1))
+#
+# AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind)
+# A = 2*AO3
+
 
 APress, press_scale = composeAforPress(2*A_lin, temp_values, VMR_O3, ind)
 np.savetxt('AP.txt', APress, fmt = '%.15f', delimiter= '\t')
