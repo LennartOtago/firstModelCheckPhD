@@ -123,7 +123,7 @@ ObsHeight = 500 # in km
 # find minimum and max angle in radians
 # min and max angle are defined by the height values of the retrived profile
 MaxAng = np.arcsin((height_values[-1]+ R_Earth) / (R_Earth + ObsHeight))
-#MaxAng = [np.arcsin((55+ R_Earth) / (R_Earth + ObsHeight))]
+MaxAng = [np.arcsin((55+ R_Earth) / (R_Earth + ObsHeight))]
 
 MinAng = np.arcsin((height_values[0] + R_Earth) / (R_Earth + ObsHeight))
 
@@ -346,7 +346,7 @@ plt.savefig('PandQ.png')
 plt.show()
 
 
-AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind)
+AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, temp_values)
 A = 2*AO3
 
 ATA = np.matmul(A.T,A)
@@ -404,11 +404,11 @@ np.savetxt('gamma0.txt',[gam0], fmt = '%.15f', delimiter= '\t')
 ## some modifiaction
 # to find correaltion bewteen tmep and others
 
-# y = np.copy(nonLinY)
+y = np.copy(nonLinY)
+
+# new_temp_values = np.mean(temp_values) * np.ones((SpecNumLayers,1))
 #
-# temp_values = np.mean(temp_values) * np.ones((SpecNumLayers,1))
-#
-# AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind)
+# AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, new_temp_values)
 # A = 2*AO3
 
 
@@ -453,6 +453,20 @@ np.savetxt('temp_values.txt', temp_values, fmt = '%.15f', delimiter= '\t')
 
 np.savetxt('VMR_O3.txt', VMR_O3, fmt = '%.15f', delimiter= '\t')
 np.savetxt('theta_scale_O3.txt', [theta_scale_O3], fmt = '%.15f')
+
+## change data length
+
+# MaxAng = [np.arcsin((55+ R_Earth) / (R_Earth + ObsHeight))]
+# MinAng = np.arcsin((height_values[0] + R_Earth) / (R_Earth + ObsHeight))
+# pointAcc = 0.00045
+# meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
+# SpecNumMeas = len(meas_ang)
+# m = SpecNumMeas
+# A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_ang,height_values,ObsHeight,R_Earth)
+# A_lin = gen_sing_map(A_lin_dx, tang_heights_lin, height_values)
+# AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, temp_values)
+# A = 2*AO3
+# y = np.copy(y[:m])
 
 
 ##

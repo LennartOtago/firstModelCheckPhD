@@ -157,7 +157,7 @@ def gen_measurement(meas_ang, layers, w_cross, VMR_O3, P, T, Source, obs_height=
     # * 1e5 converts to cm
     return 2 * np.matmul(A_height, THETA), 2 * A_height, THETA, tang_height
 
-def composeAforO3(A_lin, temp, press, ind):
+def composeAforO3(A_lin, temp, press, ind, set_temp):
 
     files = '634f1dc4.par'  # /home/lennartgolks/Python /Users/lennart/PycharmProjects
 
@@ -206,8 +206,9 @@ def composeAforO3(A_lin, temp, press, ind):
 
     AscalConstKmToCm = 1e3
     SpecNumMeas, SpecNumLayers = np.shape(A_lin)
+
     # 1e2 for pressure values from hPa to Pa
-    A_scal = press.reshape((SpecNumLayers, 1)) * 1e2 * LineIntScal * Source * AscalConstKmToCm / (temp)
+    A_scal = press.reshape((SpecNumLayers, 1)) * 1e2 * LineIntScal * Source * AscalConstKmToCm / (set_temp)
     theta_scale = num_mole *  f_broad * 1e-4 * scalingConst * S[ind, 0]
     A = A_lin * A_scal.T
     #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
