@@ -123,7 +123,7 @@ ObsHeight = 500 # in km
 # find minimum and max angle in radians
 # min and max angle are defined by the height values of the retrived profile
 MaxAng = np.arcsin((height_values[-1]+ R_Earth) / (R_Earth + ObsHeight))
-MaxAng = [np.arcsin((55+ R_Earth) / (R_Earth + ObsHeight))]
+#MaxAng = [np.arcsin((55+ R_Earth) / (R_Earth + ObsHeight))]
 
 MinAng = np.arcsin((height_values[0] + R_Earth) / (R_Earth + ObsHeight))
 
@@ -382,6 +382,8 @@ snr = signal_power / noise_power
 
 nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
 OrgData = np.matmul(AO3 * nonLinA,VMR_O3 * theta_scale_O3)
+DatErr = np.linalg.norm( OrgData -  Ax) / np.linalg.norm(OrgData) * 100
+print('DataErr '+ str(DatErr))
 
 fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
 ax1.plot(Ax, tang_heights_lin, label = 'linear Data')
@@ -443,7 +445,7 @@ plt.show()
 #print(1/np.var(y))
 
 
-np.savetxt('dataY.txt', y, header = 'Data y including noise', fmt = '%.15f')
+#np.savetxt('dataY.txt', y, header = 'Data y including noise', fmt = '%.15f')
 np.savetxt('ForWardMatrix.txt', A, header = 'Forward Matrix A', fmt = '%.15f', delimiter= '\t')
 np.savetxt('height_values.txt', height_values, fmt = '%.15f', delimiter= '\t')
 np.savetxt('tan_height_values.txt', tang_heights_lin, fmt = '%.15f', delimiter= '\t')
@@ -720,7 +722,7 @@ shape = SpecNumMeas/2 + alphaD + alphaG
 #g_old = g(A, L,  lambdas[0])
 
 def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
-    wLam = lam0*1.3#8e3#7e1
+    wLam = lam0*0.9#8e3#7e1
 
     alphaG = 1
     alphaD = 1

@@ -765,3 +765,4 @@ def composeAforTempPress(A_lin, O3, ind, old_temp):
     A = A_lin * A_scal.T
     #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
     return A, 1
+
