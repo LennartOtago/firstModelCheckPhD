@@ -26,26 +26,26 @@ plt.rcParams.update({'font.size': fraction * 12,
 ResCol = "#1E88E5"#"#0072B2"
 MeanCol = 'k'#"#FFC107"#"#d62728"
 RegCol = "#D81B60"#"#D55E00"
-TrueCol = 'green' # "#004D40" #'k'
+TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
 DatCol =  'gray' # 'k'"#332288"#"#009E73"
 
 dir = '/home/lennartgolks/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
-
+dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
 A_lin_dx = np.loadtxt(dir + 'A_lin_dx.txt')
 tang_heights_lin = np.loadtxt(dir +'tan_height_values.txt')
 height_values = np.loadtxt(dir +'height_values.txt')
 height_values = height_values.reshape((len(height_values),1))
-A = np.loadtxt(dir +'AMat.txt')
+#A = np.loadtxt(dir +'AMat.txt')
 gamma0 = np.loadtxt(dir +'gamma0.txt')
 #y = np.loadtxt(dir +'dataY.txt')
 nonLinY = np.loadtxt(dir +'nonLinDataY.txt')
 y = np.loadtxt(dir +'nonLinDataY.txt')
 y = y.reshape((len(y),1))
 
-ATA = np.matmul(A.T,A)
-ATy = np.matmul(A.T, y)
+#ATA = np.matmul(A.T,A)
+#ATy = np.matmul(A.T, y)
 #B_inv_A_trans_y0 = np.loadtxt('B_inv_A_trans_y0.txt')
 VMR_O3 = np.loadtxt(dir +'VMR_O3.txt')
 VMR_O3 = VMR_O3.reshape((len(VMR_O3), 1))
@@ -76,16 +76,24 @@ lowC_L = scy.linalg.cholesky(L, lower = True)
 
 #new temp
 dir = '/Users/lennart/PycharmProjects/TwoForOnePlusNonLin/'
+dir = '/home/lennartgolks/PycharmProjects/TwoForOnePlusNonLin/'
 SampParas = np.loadtxt(dir +  'SampParas.txt')
 burnInTP = 10000
 numberSampPT = 1000000
 randInt = np.random.randint(low=burnInTP, high=burnInTP+numberSampPT, size=1)
 newTemp = temp_func(height_values, *SampParas[randInt, :12][0])
-
-AO3, theta_scale_O3 = composeAforO3withTemp(A_lin, temp_values, pressure_values, ind, wvnmbr, g_doub_prime, E, S, newTemp)
+newTemp = np.mean(temp_func(height_values, *SampParas[randInt, :12][0])) * np.ones(height_values.shape)
+newTemp = temp_values
+newPress = pressFunc(height_values[:,0], *SampParas[randInt, 12:-1][0])
+newPress = pressure_values
+AO3, theta_scale_O3 = composeAforO3withTemp(A_lin, newTemp, newPress, ind, wvnmbr, g_doub_prime, E, S, newTemp)
 dir = '/Users/lennart/PycharmProjects/firstModelCheckPhD/'
+dir = '/home/lennartgolks/PycharmProjects/firstModelCheckPhD/'
 RealMap = np.loadtxt(dir +  'RealMap.txt')
+
 A = RealMap @ (2*AO3)
+ATA = A.T @ A
+ATy = A.T @ y
 
 Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
@@ -93,9 +101,23 @@ ax1.plot(Ax, tang_heights_lin)
 ax1.scatter(y, tang_heights_lin, color = 'r')
 plt.show()
 
+fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(PgWidthPt, fraction=fraction))
+ax1.plot(newTemp, height_values, color = 'k', label = 'posterior sample')
+ax1.plot(temp_values, height_values,marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{T}$', zorder=0 ,linewidth = 1.5, markersize =7)
+ax1.set_xlabel(r'temperature in K ')
+ax1.set_ylabel('height in km')
+ax1.legend()
+fig3.savefig('TempPostTest.svg')
+plt.show()
+
 fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
-ax1.plot(newTemp, height_values, color = 'k')
-ax1.plot(temp_values, height_values, color = 'r')
+ax1.plot(newPress, height_values, color = 'k')
+ax1.plot(pressure_values, height_values, color = 'r')
+plt.show()
+
+fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
+ax1.plot(newPress/newTemp[0,:], height_values, color = 'k')
+ax1.plot(pressure_values/temp_values[0,:], height_values, color = 'r')
 plt.show()
 
 
@@ -423,7 +445,7 @@ axs[0].set_xlabel(r'the noise precision $\gamma$')
 
 
 axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = 'k', zorder = 0,width = np.diff(lambBinEdges)[0])#10)
-axs[1].set_title(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
+axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
 plt.savefig('HistoPlotTempTest.png')
 plt.show()
 

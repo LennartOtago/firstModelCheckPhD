@@ -2,6 +2,12 @@ import numpy as np
 from scipy import constants
 import scipy
 
+def pressFunc(x, b1, b2, h0, p0):
+    b = np.ones(len(x))
+    b[x<=h0] = b1
+    b[x>h0] = b2
+    return np.exp(-b * (x -h0)  + np.log(p0))
+
 def temp_func(x,h0,h1,h2,h3,h4,h5,a0,a1,a2,a3,a4,b0):
     a = np.ones(x.shape)
     b = np.ones(x.shape)

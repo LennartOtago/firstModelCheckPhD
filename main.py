@@ -408,11 +408,11 @@ np.savetxt('gamma0.txt',[gam0], fmt = '%.15f', delimiter= '\t')
 
 y = np.copy(nonLinY)
 
-# new_temp_values = np.mean(temp_values) * np.ones((SpecNumLayers,1))
-#
-# AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, new_temp_values)
-# A = 2*AO3
-
+new_temp_values = np.mean(temp_values) * np.ones((SpecNumLayers,1))
+AO3, theta_scale_O3 = composeAforO3(A_lin, new_temp_values, pressure_values, ind, new_temp_values)
+A = 2*AO3
+ATA = np.matmul(A.T,A)
+Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 
 APress, press_scale = composeAforPress(2*A_lin, temp_values, VMR_O3, ind)
 np.savetxt('AP.txt', APress, fmt = '%.15f', delimiter= '\t')

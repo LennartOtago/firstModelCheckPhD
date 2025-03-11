@@ -32,6 +32,7 @@ DatCol =  'gray' # 'k'"#332288"#"#009E73"
 dir = '/home/lennartgolks/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
+dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
 
 A_lin_dx = np.loadtxt(dir + 'A_lin_dx.txt')
 tang_heights_lin = np.loadtxt(dir +'tan_height_values.txt')
@@ -405,7 +406,7 @@ axs[0].set_xlabel(r'the noise precision $\gamma$')
 
 
 axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = 'k', zorder = 0,width = np.diff(lambBinEdges)[0])#10)
-axs[1].set_title(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
+axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
 plt.savefig('HistoPlot.png')
 plt.show()
 
@@ -690,7 +691,7 @@ axs[0].set_xlabel(r'the noise precision $\gamma$')
 
 
 axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = 'k', zorder = 0,width = np.diff(lambBinEdges)[0])#10)
-axs[1].set_title(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
+axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter')
 plt.savefig('SecHistoPlot.png')
 plt.show()
 
