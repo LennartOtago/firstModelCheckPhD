@@ -32,7 +32,7 @@ DatCol =  'gray' # 'k'"#332288"#"#009E73"
 dir = '/home/lennartgolks/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
-dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
+#dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
 A_lin_dx = np.loadtxt(dir + 'A_lin_dx.txt')
 tang_heights_lin = np.loadtxt(dir +'tan_height_values.txt')
 height_values = np.loadtxt(dir +'height_values.txt')
@@ -76,19 +76,19 @@ lowC_L = scy.linalg.cholesky(L, lower = True)
 
 #new temp
 dir = '/Users/lennart/PycharmProjects/TwoForOnePlusNonLin/'
-dir = '/home/lennartgolks/PycharmProjects/TwoForOnePlusNonLin/'
+#dir = '/home/lennartgolks/PycharmProjects/TwoForOnePlusNonLin/'
 SampParas = np.loadtxt(dir +  'SampParas.txt')
 burnInTP = 10000
 numberSampPT = 1000000
 randInt = np.random.randint(low=burnInTP, high=burnInTP+numberSampPT, size=1)
 newTemp = temp_func(height_values, *SampParas[randInt, :12][0])
-newTemp = np.mean(temp_func(height_values, *SampParas[randInt, :12][0])) * np.ones(height_values.shape)
-newTemp = temp_values
+#newTemp = np.mean(temp_func(height_values, *SampParas[randInt, :12][0])) * np.ones(height_values.shape)
+#newTemp = temp_values
 newPress = pressFunc(height_values[:,0], *SampParas[randInt, 12:-1][0])
-newPress = pressure_values
-AO3, theta_scale_O3 = composeAforO3withTemp(A_lin, newTemp, newPress, ind, wvnmbr, g_doub_prime, E, S, newTemp)
+#newPress = pressure_values
+AO3, theta_scale_O3 = composeAforO3withTemp(A_lin, temp_values, newPress, ind, wvnmbr, g_doub_prime, E, S, newTemp)
 dir = '/Users/lennart/PycharmProjects/firstModelCheckPhD/'
-dir = '/home/lennartgolks/PycharmProjects/firstModelCheckPhD/'
+#dir = '/home/lennartgolks/PycharmProjects/firstModelCheckPhD/'
 RealMap = np.loadtxt(dir +  'RealMap.txt')
 
 A = RealMap @ (2*AO3)
@@ -110,14 +110,22 @@ ax1.legend()
 fig3.savefig('TempPostTest.svg')
 plt.show()
 
-fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
-ax1.plot(newPress, height_values, color = 'k')
-ax1.plot(pressure_values, height_values, color = 'r')
+fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(PgWidthPt, fraction=fraction))
+ax1.plot(newPress, height_values, color = 'k', label = 'posterior sample')
+ax1.plot(pressure_values, height_values,marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{p}$', zorder=0 ,linewidth = 1.5, markersize =7)
+ax1.set_xlabel(r'pressure in hPa ')
+ax1.set_ylabel('height in km')
+ax1.legend()
+fig3.savefig('PressPostTest.svg')
 plt.show()
 
-fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
-ax1.plot(newPress/newTemp[0,:], height_values, color = 'k')
-ax1.plot(pressure_values/temp_values[0,:], height_values, color = 'r')
+fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(PgWidthPt, fraction=fraction))
+ax1.plot(newPress/newTemp[0,:], height_values,marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{p/T}$', zorder=0 ,linewidth = 1.5, markersize =7)
+ax1.plot(pressure_values/temp_values[0,:], height_values, color = 'k', label = 'posterior sample')
+ax1.set_xlabel(r'pressure/temperature in hPa/K ')
+ax1.set_ylabel('height in km')
+ax1.legend()
+fig3.savefig('TempOverPressPostTest.svg')
 plt.show()
 
 
