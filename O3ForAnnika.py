@@ -66,7 +66,8 @@ DatCol =  'gray' # 'k'"#332288"#"#009E73"
 
 
 tol = 1e-8
-dat = np.loadtxt('/Users/lennart/PycharmProjects/openData/testProf.txt')
+#dat = np.loadtxt('/Users/lennart/PycharmProjects/openData/testProf.txt')
+dat = np.loadtxt('/home/lennartgolks/PycharmProjects/openData/testProf.txt')
 press = dat[0,:]
 O3 = dat[1,:]
 
@@ -81,7 +82,7 @@ O3 = dat[1,:]
 
 
 minInd = 35#2
-#minInd = 2
+minInd = 2
 maxInd = 54
 skipInd = 1
 pressure_values = press[minInd:maxInd][::skipInd]#press[minInd:maxInd]
@@ -94,16 +95,16 @@ axs.invert_yaxis()
 axs.set_yscale('log')
 plt.show()
 
-def height_to_pressure(p0, x, dx):
-    R = constants.gas_constant
-    R_Earth = 6371  # earth radiusin km
-    grav = 9.81 * ((R_Earth)/(R_Earth + x))**2
-    temp = get_temp(x)
-    return p0 * np.exp(-28.97 * grav / R * dx/temp )
+# def height_to_pressure(p0, x, dx):
+#     R = constants.gas_constant
+#     R_Earth = 6356#6371  # earth radiusin km
+#     grav = 9.81 * ((R_Earth)/(R_Earth + x))**2
+#     temp = get_temp(x)
+#     return p0 * np.exp(-28.97 * grav / R * dx/temp )
 
 def pressure_to_height(p0, pplus, x):
     R = constants.gas_constant
-    R_Earth = 6371  # earth radiusin km
+    R_Earth =6356# 6371  # earth radiusin km6356#
     grav = 9.81 * ((R_Earth)/(R_Earth + x))**2
     temp = get_temp(x)
     dP = pplus - p0
@@ -128,8 +129,15 @@ height_values = np.around(heights[minInd:maxInd][::skipInd].reshape((SpecNumLaye
 #height_values = np.around(heights[minInd:][::skipInd].reshape((SpecNumLayers,1)),2)
 MinH = height_values[0]
 MaxH = height_values[-1]
-R_Earth = 6371 # earth radiusin km
+R_Earth =6356# 6371 # earth radiusin km
 ObsHeight = 500 # in km
+
+
+
+fig3, axs = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
+axs.plot(O3, heights)
+plt.show()
+
 
 ''' do svd for one specific set up for linear case and then exp case'''
 

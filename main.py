@@ -85,14 +85,14 @@ scalingConstkm = 1e-3
 
 def height_to_pressure(p0, x, dx):
     R = constants.gas_constant
-    R_Earth = 6371  # earth radiusin km
+    R_Earth = 6356#6371  # earth radiusin km
     grav = 9.81 * ((R_Earth)/(R_Earth + x))**2
     temp = get_temp(x)
     return p0 * np.exp(-28.97 * grav / R * dx/temp )
 
 def pressure_to_height(p0, pplus, x):
     R = constants.gas_constant
-    R_Earth = 6371  # earth radiusin km
+    R_Earth = 6356#6371  # earth radiusin km
     grav = 9.81 * ((R_Earth)/(R_Earth + x))**2
     temp = get_temp(x)
     return np.log(pplus/p0) /(-28.97 * grav / R /temp )
@@ -115,7 +115,7 @@ height_values = np.around(heights[minInd:maxInd][::skipInd].reshape((SpecNumLaye
 
 MinH = height_values[0]
 MaxH = height_values[-1]
-R_Earth = 6371 # earth radiusin km
+R_Earth = 6356#6371 # earth radiusin km
 ObsHeight = 500 # in km
 
 ''' do svd for one specific set up for linear case and then exp case'''
@@ -880,116 +880,77 @@ for p in range(paraSamp):
     xTLxRes[p] = np.sqrt(np.matmul(np.matmul(B_inv_A_trans_y.T, L), B_inv_A_trans_y))
 
 
+##
+def postMeanAndVar(margPDF, Grid, ATy, ATA, L, Var):
+    gridLen = len(margPDF[0])
+    MargResults = np.zeros((gridLen,len(L)))
+    gamInt = np.zeros(gridLen)
+    VarB = np.zeros((gridLen, len(L), len(L)))
+    B_inv = np.zeros((gridLen, len(L), len(L)))
+    if len(Grid[0]) != len(margPDF[0]):
+        print('Grid not the same lenght as Marg PDF')
 
+    IDiag = np.eye(len(L))
+    for p in range(gridLen):
+        SetGamma = Grid[0, p]
+        SetLambda = Grid[1,p]
 
-startTime = time.time()
-BinHistStart = 3
-
-lambHist, lambBinEdges = np.histogram(lambdas, bins=BinHistStart, density=True)
-
-MargResults = np.zeros((BinHistStart, len(theta)))
-MargVarResults = np.zeros((BinHistStart, len(theta)))
-B_inv_Res = np.zeros((BinHistStart, len(theta)))
-# MargResults = np.zeros((BinHist,BinHist,len(theta)))
-# LamMean = 0
-
-for p in range(BinHistStart):
-    # DLambda = ( lambBinEdges[p+1] - lambBinEdges[p])/2
-    SetLambda = lambBinEdges[p]
-    # LamMean = LamMean + SetLambda * lambHist[p]/sum(lambHist)
-    SetB = ATA + SetLambda * L
-
-    #B_inv_A_trans_y, exitCode = gmres(SetB, ATy[0::, 0], x0=B_inv_A_trans_y0, rtol=tol)
-
-    LowTri = np.linalg.cholesky(SetB)
-    UpTri = LowTri.T
-    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
-
-
-    MargResults[p, :] = B_inv_A_trans_y * lambHist[p] / np.sum(lambHist)
-    MargVarResults[p, :] = B_inv_A_trans_y ** 2 * lambHist[p] / np.sum(lambHist)
-    B_inv_Res[p, :] = B_inv_A_trans_y
-
-trapezMat = 2 * np.ones(MargResults.shape)
-trapezMat[:, 0] = 1
-trapezMat[:, -1] = 1
-oldMargInteg = 0.5 * np.sum(MargResults * trapezMat, 0)  # * (lambBinEdges[1]- lambBinEdges[0] )
-MargIntegSq = 0.5 * np.sum(MargVarResults * trapezMat , 0)
-MargInteg = np.copy(oldMargInteg)
-MargX =  MargInteg/ (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
-MargXErr = np.sqrt( (MargIntegSq - MargInteg**2 )/ (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)**2 )
-MargTime = time.time() - startTime
-print('Post Mean in ' + str(MargTime) + ' s')
-
-oldRelErr = 0
-print(BinHistStart)
-for BinHist in range(BinHistStart+1,100):
-
-    lambHist, lambBinEdges = np.histogram(lambdas, bins= BinHist, density =True)
-
-    MargResults = np.zeros((BinHist,len(theta)))
-    MargVarResults = np.zeros((BinHist,len(theta)))
-    B_inv_Res = np.zeros((BinHist,len(theta)))
-    #MargResults = np.zeros((BinHist,BinHist,len(theta)))
-    #LamMean = 0
-    startTime  = time.time()
-    for p in range(BinHist):
-        #DLambda = ( lambBinEdges[p+1] - lambBinEdges[p])/2
-        SetLambda =  lambBinEdges[p]
-        #LamMean = LamMean + SetLambda * lambHist[p]/sum(lambHist)
         SetB = ATA + SetLambda * L
 
-        # B_inv_A_trans_y, exitCode = gmres(SetB, ATy[0::, 0], x0=B_inv_A_trans_y0, rtol=tol)
-        # # B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=rtol, restart=25)
-        # if exitCode != 0:
-        #     print(exitCode)
         LowTri = np.linalg.cholesky(SetB)
         UpTri = LowTri.T
         B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
 
-        MargResults[p, :] = B_inv_A_trans_y * lambHist[p]/ np.sum(lambHist)
-        MargVarResults[p, :] = B_inv_A_trans_y**2 * lambHist[p]/ np.sum(lambHist)
-        B_inv_Res[p, :] = B_inv_A_trans_y
+        MargResults[p, :] = B_inv_A_trans_y * margPDF[1,p]
 
-    trapezMat = 2 * np.ones(MargResults.shape)
-    trapezMat[:, 0] = 1
-    trapezMat[:, -1] = 1
-    newMargInteg = 0.5 * np.sum(MargResults * trapezMat , 0) #* (lambBinEdges[1]- lambBinEdges[0] )
+        if Var == True:
+            LowTri = np.linalg.cholesky(SetB)
+            UpTri = LowTri.T
+            for i in range(len(SetB)):
+                B_inv[p, :, i] = lu_solve(LowTri, UpTri,IDiag[:, i])
+            VarB[p] = B_inv[p] *  margPDF[1,p]
+            gamInt[p] = 1/SetGamma *  margPDF[0,p]
 
-    MargIntegSq = 0.5 * np.sum(MargVarResults * trapezMat , 0)
+    postMean = np.sum(MargResults,0)
+    postVar = np.sum(gamInt) * np.sum(VarB,0)
+    return postMean, postVar
 
-    NormMargRes = np.linalg.norm( np.matmul(A,newMargInteg) - y[0::,0])
-    xTLxMargRes = np.sqrt(np.matmul(np.matmul(newMargInteg.T, L),newMargInteg))
-    newRelErr = np.linalg.norm(oldMargInteg - newMargInteg) / np.linalg.norm(newMargInteg) * 100
+
+##
+
+BinHistStart = 3
+print(BinHistStart)
+oldpostMean = 0
+for PostMeanBinHist in range(BinHistStart+1,100):
+
+    lambHist, lambBinEdges = np.histogram(lambdas[burnIn:], bins= PostMeanBinHist, density =True)
+    gamHist, gamBinEdges = np.histogram(gammas[burnIn:], bins= PostMeanBinHist, density =True)
+    margPDF = np.array([gamHist/np.sum(gamHist) , lambHist/np.sum(lambHist)])
+    Grid = np.array([ gamBinEdges[:-1] + (gamBinEdges[1:] - gamBinEdges[:-1])/2, lambBinEdges[:-1] + (lambBinEdges[1:] - lambBinEdges[:-1])/2])
+
+    startTime = time.time()
+    newPostMean, postVar = postMeanAndVar(margPDF, Grid, ATy, ATA, L, True)
+    MargTime = time.time() - startTime
+
+    newRelErr = np.linalg.norm(oldpostMean - newPostMean) / np.linalg.norm(newPostMean) * 100
     print(newRelErr)
-    print(BinHist)
-    oldMargInteg = np.copy(newMargInteg)
-    if  0.1 > newRelErr:
-        print(f'break at {BinHist}')
+    if  0.5 > newRelErr:
+        print(f'break at {PostMeanBinHist}')
         break
+    oldpostMean = np.copy(newPostMean)
     oldRelErr = np.copy(newRelErr)
 
-MargInteg= np.copy(newMargInteg)
 
-NormMargRes = np.linalg.norm(np.matmul(A, MargInteg) - y[0::, 0])
-xTLxMargRes = np.sqrt(np.matmul(np.matmul(MargInteg.T, L), MargInteg))
+MargX =  newPostMean / (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
+MargVar = postVar / (num_mole * S[ind, 0] * f_broad * 1e-4 * scalingConst) ** 2
 
-fristVar = np.zeros((BinHist,len(theta)))
-for p in range(BinHist):
-     fristVar = (MargInteg - B_inv_Res[p, :])**2  * lambHist[p]/ np.sum(lambHist)
-
-otherVar = 0.5 * np.sum( fristVar * trapezMat , 0)/(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
+NormMargRes = np.linalg.norm(np.matmul(A, newPostMean) - y[0::, 0])
+xTLxMargRes = np.sqrt(np.matmul(np.matmul(newPostMean.T, L), newPostMean))
 
 
-
-MargX =  MargInteg/ (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
-MargXErr = np.sqrt( (MargIntegSq - MargInteg**2 )/ (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)**2 )
-MargTime = time.time() - startTime
 print('Post Mean in ' + str(MargTime) + ' s')
-#MargX  = np.sum(np.sum(MargResults, axis = 0), axis = 0) /(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
 
 
-print('MTC Done in ' + str(elapsed) + ' s')
 
 ##
 "Fitting prob distr to hyperparameter histogram"
@@ -1245,9 +1206,9 @@ for i in range(len(lamLCurve)):
 
 
 startTime  = time.time()
-lamLCurveZoom = np.logspace(1,7,200)
-NormLCurveZoom = np.zeros(len(lamLCurve))
-xTLxCurveZoom = np.zeros(len(lamLCurve))
+lamLCurveZoom = np.logspace(0,7,200)
+NormLCurveZoom = np.zeros(len(lamLCurveZoom))
+xTLxCurveZoom = np.zeros(len(lamLCurveZoom))
 for i in range(len(lamLCurveZoom)):
     B = (ATA + lamLCurveZoom[i] * L)
 
@@ -1417,7 +1378,6 @@ x = np.mean(Results,0 )/ (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
 #xerr = np.sqrt(np.var(Results / (num_mole * S[ind, 0] * f_broad * 1e-4 * scalingConst), 0)) / 2
 xerr = np.sqrt(np.var(Results,0)/(num_mole *S[ind,0]  * f_broad * 1e-4 * scalingConst)**2)/2
 XOPT = x_opt /(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
-MargX = MargInteg/ (num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
 
 fig3, ax2 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
  # ax1 and ax2 share y-axis
@@ -1445,7 +1405,7 @@ ax1.plot(XOPT, height_values[:,0], markerfacecolor = 'none', markeredgecolor = R
 #line2 = ax1.errorbar(x,height_values,capsize=5, yerr = np.zeros(len(height_values)) ,color = MTCCol,zorder=5,markersize = 5, fmt = 'o',label = r'$\mathbf{x} \sim \pi(\mathbf{x} |\mathbf{y}, \mathbf{\theta} ) $')#, label = 'MC estimate')
 
 line3 = ax1.plot(MargX,height_values[:,0], markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.',  label = r'$\text{E}_{\mathbf{x},\mathbf{\theta}|\mathbf{y}} [\mathbf{x}]$', markersize =3, linewidth =1)#, markerfacecolor = 'none'
-line3 = ax1.errorbar(MargX,height_values[:,0],yerr = np.sqrt(otherVar)/2 , markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.', markersize =3, linewidth =1)#, markerfacecolor = 'none'
+line3 = ax1.errorbar(MargX,height_values,  xerr = np.sqrt(np.diag(MargVar)), markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.', label = 'posterior mean ', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
 
 #E$_{\mathbf{x},\mathbf{\theta}| \mathbf{y}}[h(\mathbf{x})]$
 # markersize = 6
