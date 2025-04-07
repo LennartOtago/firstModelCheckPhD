@@ -66,11 +66,11 @@ DatCol =  'gray' # 'k'"#332288"#"#009E73"
 
 
 tol = 1e-8
-#dat = np.loadtxt('/Users/lennart/PycharmProjects/openData/testProf.txt')
-dat = np.loadtxt('/home/lennartgolks/PycharmProjects/openData/testProf.txt')
+dat = np.loadtxt('/Users/lennart/PycharmProjects/openData/testProf.txt')
+#dat = np.loadtxt('/home/lennartgolks/PycharmProjects/openData/testProf.txt')
 press = dat[0,:]
 O3 = dat[1,:]
-
+O3[O3 < 0] = 0
 # df = pd.read_excel('ExampleOzoneProfiles.xlsx')
 #
 # #print the column names
@@ -84,6 +84,7 @@ O3 = dat[1,:]
 minInd = 35#2
 minInd = 2
 maxInd = 54
+maxInd = 45
 skipInd = 1
 pressure_values = press[minInd:maxInd][::skipInd]#press[minInd:maxInd]
 VMR_O3 = O3[minInd:maxInd][::skipInd]#O3[minInd:maxInd]
@@ -109,7 +110,12 @@ def pressure_to_height(p0, pplus, x):
     temp = get_temp(x)
     dP = pplus - p0
     #return np.log(pplus/p0) /(-28.97 * grav / R /temp )
-    return (dP/p0) /(-28.97 * grav / R /temp )
+
+    if x > 80:
+       M = 28.97 * 0.995
+    else:
+        M = 28.97
+    return (dP/p0) /(-M * grav / R /temp )
 
 calc_press = np.zeros((len(press)+1,1))
 calc_press[0] = 1013.25
@@ -151,7 +157,7 @@ MinAng = np.arcsin((height_values[0] + R_Earth) / (R_Earth + ObsHeight))
 
 
 
-pointAcc = 0.00045
+pointAcc = 0.00045#0.00075#
 meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
 
 SpecNumMeas = len(meas_ang)
@@ -200,9 +206,9 @@ neigbours[neigbours >= len(height_values)] = np.nan
 neigbours[neigbours < 0] = np.nan
 
 L = generate_L(neigbours)
-startInd = 37
-# L[startInd::, startInd::] = L[startInd::, startInd::] * 5
-# L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
+startInd = 38
+L[startInd::, startInd::] = L[startInd::, startInd::] * 10
+L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
 
 
 #cholesky decomposition of L for W1 and v1
@@ -376,7 +382,7 @@ Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
-SNR = 10000
+SNR = 60
 
 y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
 
@@ -427,6 +433,7 @@ ax1.scatter(y, tang_heights_lin, color = 'r')
 ax1.plot(y, tang_heights_lin, color = 'r')
 ax1.scatter(nonLinY, tang_heights_lin, color = 'k')
 ax1.plot(nonLinY, tang_heights_lin, color = 'k')
+
 plt.show()
 
 #y = np.loadtxt('dataY.txt').reshape((SpecNumMeas,1))
@@ -556,7 +563,7 @@ shape = SpecNumMeas/2 + alphaD + alphaG
 #g_old = g(A, L,  lambdas[0])
 
 def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
-    wLam = lam0*0.9#8e3#7e1
+    wLam = lam0 * 0.9#8e3#7e1
 
     alphaG = 1
     alphaD = 1
@@ -595,33 +602,19 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
         #accept or rejeict new lam_p
         u = uniform()
         if np.log(u) <= log_MH_ratio:
-        #accept
+            #accept
             k = k + 1
             lambdas[t + 1] = lam_p
-            #only calc when lambda is updated
-
-            #B = (ATA + lam_p * L)
-            #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], x0= B_inv_A_trans_y0,rtol=tol, restart=25)
-            #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=rtol, restart=25)
-
-            # if exitCode != 0:
-            #         print(exitCode)
-            f_old = np.copy(f_new)
-            rate_old = np.copy(rate)
+            delta_lam = lam_p - lam0
+            delta_f = f_0_1 * delta_lam + f_0_2 * delta_lam ** 2 + f_0_3 * delta_lam ** 3
             f_new = f_0 + delta_f
-            #g_old = np.copy(g_new)
-            rate = f_new/2 + betaG + betaD * lam_p#lambdas[t+1]
+            # g_old = np.copy(g_new)
+            rate = f_new / 2 + betaG + betaD * lam_p  # lambdas[t+1]
             if rate <= 0:
-                k -=  1
                 print('scale < 0')
-                lambdas[t + 1] = np.copy(lambdas[t])
-                f_new = np.copy(f_old)
-                rate = np.copy(rate_old)
         else:
             #rejcet
             lambdas[t + 1] = np.copy(lambdas[t])
-
-
 
 
         gammas[t+1] = np.random.gamma(shape = shape, scale = 1/rate)
@@ -636,6 +629,7 @@ startTime = time.time()
 lambdas, gammas, k = MHwG(number_samples, burnIn, lam0, gamma0, f_0)
 elapsed = time.time() - startTime
 print('MTC Done in ' + str(elapsed) + ' s')
+print('acceptance ratio: ' + str(k/(number_samples+burnIn)))
 
 ##
 startTime = time.time()
