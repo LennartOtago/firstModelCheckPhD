@@ -32,7 +32,7 @@ DatCol =  'gray' # 'k'"#332288"#"#009E73"
 dir = '/home/lennartgolks/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
-dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
+#dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
 
 A_lin_dx = np.loadtxt(dir + 'A_lin_dx.txt')
 tang_heights_lin = np.loadtxt(dir +'tan_height_values.txt')
@@ -182,7 +182,7 @@ f_0 = f(ATy, y, B_inv_A_trans_y0)
 ##
 
 '''do the sampling'''
-number_samples = 10000
+number_samples = 20000
 burnIn = 100
 f_0 = f(ATy, y, B_inv_A_trans_y0)
 #wLam = 2e2#5.5e2
@@ -199,7 +199,7 @@ shape = SpecNumMeas/2 + alphaD + alphaG
 #g_old = g(A, L,  lambdas[0])
 
 def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
-    wLam = lam0*0.9#8e3#7e1
+    wLam = lam0 * 0.8#8e3#7e1
 
     alphaG = 1
     alphaD = 1
@@ -229,42 +229,40 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
                 lam_p = normal(lambdas[t], wLam)
 
         delta_lam = lam_p - lambdas[t]
-
-        delta_f = f_0_1 * delta_lam + f_0_2 * delta_lam**2 + f_0_3 * delta_lam**3 #+ f_0_4 * delta_lam**4 + f_0_5 * delta_lam**5
-        delta_g = g_0_1 * delta_lam + g_0_2 * delta_lam**2 + g_0_3 * delta_lam**3 #+ g_0_4 * delta_lam**4 + g_0_5 * delta_lam**5
+        delta_lam_t = lambdas[t] - lam0
+        delta_lam_p = lam_p - lam0
+        delta_f = f_0_1 * delta_lam + f_0_2 * (delta_lam_p**2 - delta_lam_t**2) + f_0_3 *(delta_lam_p**3 - delta_lam_t**3) #+ f_0_4 * delta_lam**4 + f_0_5 * delta_lam**5
+        delta_g = g_0_1 * delta_lam + g_0_2 * (delta_lam_p**2 - delta_lam_t**2) + g_0_3 * (delta_lam_p**3 - delta_lam_t**3) #+ g_0_4 * delta_lam**4 + g_0_5 * delta_lam**5
 
         log_MH_ratio = ((SpecNumLayers)/ 2) * (np.log(lam_p) - np.log(lambdas[t])) - 0.5 * (delta_g + gammas[t] * delta_f) - betaD * gammas[t] * delta_lam
 
         #accept or rejeict new lam_p
         u = uniform()
-        if np.log(u) <= log_MH_ratio:
-        #accept
+
+        if np.log(u) <= np.min(log_MH_ratio,0):
+            #accept
             k = k + 1
             lambdas[t + 1] = lam_p
             #only calc when lambda is updated
-
+            #f_old = np.copy(f_new)
+            #rate_old = np.copy(rate)
+            #f_new = f_0 + delta_f
             #B = (ATA + lam_p * L)
-            #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], x0= B_inv_A_trans_y0,rtol=tol, restart=25)
-            #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=rtol, restart=25)
+            #LowTri = np.linalg.cholesky(B)
+            #UpTri = LowTri.T
+            #B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
 
-            # if exitCode != 0:
-            #         print(exitCode)
-            f_old = np.copy(f_new)
-            rate_old = np.copy(rate)
+            #f_new = f(ATy, y, B_inv_A_trans_y)
+            delta_lam_p = lam_p - lam0
+            delta_f = f_0_1 * delta_lam_p + f_0_2 * delta_lam_p ** 2 + f_0_3 * delta_lam_p ** 3
             f_new = f_0 + delta_f
-            #g_old = np.copy(g_new)
-            rate = f_new/2 + betaG + betaD * lam_p#lambdas[t+1]
+            # g_old = np.copy(g_new)
+            rate = f_new / 2 + betaG + betaD * lam_p  # lambdas[t+1]
             if rate <= 0:
-                k -=  1
                 print('scale < 0')
-                lambdas[t + 1] = np.copy(lambdas[t])
-                f_new = np.copy(f_old)
-                rate = np.copy(rate_old)
         else:
             #rejcet
             lambdas[t + 1] = np.copy(lambdas[t])
-
-
 
 
         gammas[t+1] = np.random.gamma(shape = shape, scale = 1/rate)
@@ -444,7 +442,7 @@ ax1.set_ylim([height_values[0], height_values[-1]])
 # ax1.xaxis.set_label_position('bottom')
 # ax1.spines[:].set_visible(False)
 
-fig3.savefig('FirstRecRes.svg')
+fig3.savefig('FirstRecRes.png')
 plt.show()
 
 
@@ -478,7 +476,7 @@ ax1.set_ylabel('height in km')
 handles, labels = ax1.get_legend_handles_labels()
 ax1.legend()
 ax1.set_ylim([height_values[0], height_values[-1]])
-fig3.savefig('FirstTestRes.svg')
+fig3.savefig('FirstTestRes.png')
 plt.show()
 
 
@@ -495,7 +493,7 @@ ax4.set_ylabel('(tangent) height in km')
 ax4.set_xlabel(r'spectral radiance in $\frac{\text{W} \text{cm}}{\text{m}^2 \text{sr}} $',labelpad=10)# color =dataCol,
 #ax4.xaxis.set_ticks_position('top')
 #ax4.xaxis.set_label_position('top')
-plt.savefig('SampMapAssesment.svg')
+plt.savefig('SampMapAssesment.png')
 plt.show()
 
 
@@ -727,23 +725,25 @@ ax1.legend()
 # ax1.xaxis.set_label_position('bottom')
 # ax1.spines[:].set_visible(False)
 
-fig3.savefig('SecRecRes.svg')
+fig3.savefig('SecRecRes.png')
 plt.show()
 
 ## make nice scatter plot with trace
 
 
-trace = [MinLogMargPost( [gammas[burnIn + i], lambdas[burnIn + i]]) for i in range(0,number_samples) ]
+trace = [MinLogMargPost(np.array([lambdas[burnIn+ i],gammas[burnIn+ i]])) for i in range(number_samples)]
+
+
 fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} )#, dpi = dpi)
 
 axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = 'k')
 axs[0].set_xlabel(r'the noise precision $\gamma$')
 axs[0].set_ylabel(r'the regularization parameter parameter $\lambda$')
 
-axs[1].plot(trace)
-axs[1].set_title(r'Trace of log post $\pi(\lambda, \gamma| \bm{y})$', fontsize = 12)
-
-plt.savefig('ScatterplusHisto.svg')
+axs[1].plot(trace, color = 'k')
+axs[1].set_ylabel(r'$\pi(\lambda, \gamma| \bm{y})$')
+axs[1].set_xlabel('number of samples')
+plt.savefig('ScatterplusHisto.png')
 plt.show()
 
 ##

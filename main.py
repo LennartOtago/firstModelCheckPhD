@@ -625,7 +625,7 @@ taylorG = g_tayl(delta_lam,g(A, L, minimum[1]), g_0_1, g_0_2, g_0_3, g_0_4, g_0_
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3, f_0_4, f_0_5, f_0_6)
 
 
-fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)
+fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)#, dpi = dpi)
 
 axs.plot(lam,f_func, color = fCol, zorder = 2, linestyle=  'dotted')
 axs.set_yscale('log')
@@ -703,7 +703,7 @@ ax2.spines['left'].set_visible(False)
 axs.legend(np.append(lines2,lines),np.append(lab2,lab0), loc = 'lower right')
 
 axins.set_xlim(min(lambBinEdges),max(lambBinEdges))
-fig.savefig('f_and_g_paper.svg', bbox_inches='tight')
+fig.savefig('f_and_g_paper.png', bbox_inches='tight')
 plt.show()
 
 
@@ -711,7 +711,7 @@ plt.show()
 ##
 
 '''do the sampling'''
-number_samples = 10000
+number_samples = 20000
 burnIn = 100
 f_0 = f(ATy, y, B_inv_A_trans_y0)
 #wLam = 2e2#5.5e2
@@ -817,9 +817,7 @@ gam_mean, gam_del, gam_tint, gam_d_tint= tauint([[gammas]],0)
 lam_mean, lam_del, lam_tint, lam_d_tint = tauint([[lambdas]],0)
 
 ##
-mpl.use(defBack)
-mpl.rcParams.update(mpl.rcParamsDefault)
-plt.rcParams.update({'font.size': 12})
+
 BinHist = 30#n_bins
 lambHist, lambBinEdges = np.histogram(lambdas, bins= BinHist, density= True)
 gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
@@ -838,8 +836,9 @@ axs[0].set_xlabel(r'the noise precision $\gamma$')
 axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(lambBinEdges)[0])#10)
 axs[1].set_title(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
 
-axs[2].plot( range(number_samples), trace)
-
+axs[2].plot( range(number_samples), trace, color = 'k')
+axs[2].set_ylabel(r'$\pi(\bm{\theta}|\bm{y})$')
+axs[2].set_xlabel('number of samples')
 plt.savefig('HistoPlot.png')
 plt.show()
 
@@ -1091,15 +1090,15 @@ axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'ma
 
 axs.set_xscale('log')
 axs.set_yscale('log')
-axs.set_ylabel(r'$ \sqrt{\mathbf{x}^T \mathbf{L}\mathbf{x}}$', style='italic')
-axs.set_xlabel(r'$|| \mathbf{Ax} - \mathbf{y}||$')
+axs.set_ylabel(r'$ \sqrt{\bm{x}^T \bm{L}\bm{x}}$', style='italic')
+axs.set_xlabel(r'$|| \bm{Ax} - \bm{y}||$')
 #axs.set_title('L-curve for m=' + str(SpecNumMeas))
 
 
 handles, labels = axs.get_legend_handles_labels()
 
 axs.legend(handles = [handles[0],handles[1],handles[2]],loc = 'upper right',  frameon =True)
-plt.savefig('LCurve.svg')
+plt.savefig('LCurve.png')
 #plt.savefig('LCurve.png')
 #tikzplotlib.save("LCurve.tex")
 plt.show()
@@ -1125,9 +1124,7 @@ lambHist, lambBinEdges = np.histogram(lambdas, bins= BinHist, density= True)
 #paramsSkew, covs = scy.optimize.curve_fit(skew_norm_pdf,lambBinEdges[1::], lambHist/ np.sum(lambHist), p0 = [np.mean(lambBinEdges[1::]),np.sqrt(np.var(lambdas)),0.01, 1] )#np.mean(new_lamb)+1e3
 paramsSkew, covs = scy.optimize.curve_fit(fitFunc,lambBinEdges[1:], lambHist, p0 = [np.mean(lambdas), 1, np.sqrt(np.var(lambdas))], bounds=(0, np.inf))
 
-mpl.use(defBack)
-mpl.rcParams.update(mpl.rcParamsDefault)
-plt.rcParams.update({'font.size': 12})
+
 fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} )#, dpi = dpi)
 
 axs[0].scatter(gammas[burnIn:],deltas[burnIn:], marker = '.', color = MTCCol)
@@ -1153,9 +1150,7 @@ plt.show()
 
 
 ##
-mpl.use(defBack)
-mpl.rcParams.update(mpl.rcParamsDefault)
-plt.rcParams.update({'font.size': 12})
+
 gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
 fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) )#, dpi = dpi)
 
@@ -1180,18 +1175,18 @@ XOPT = x_opt /(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
 
 fig3, ax2 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
  # ax1 and ax2 share y-axis
-line3 = ax2.scatter(y, tang_heights_lin, label = r'data $\mathbf{y}$', zorder = 0, marker = '*', color =DatCol )#,linewidth = 5
+line3 = ax2.scatter(y, tang_heights_lin, label = r'data $\bm{y}$', zorder = 0, marker = '*', color =DatCol )#,linewidth = 5
 
 ax1 = ax2.twiny()
 #ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
-ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\mathbf{x}$', zorder=0 ,linewidth = 1.5, markersize =7)
+ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 1.5, markersize =7)
 
 # edgecolor = [0, 158/255, 115/255]
 #line1 = ax1.plot(VMR_O3,height_values, color = [0, 158/255, 115/255], linewidth = 10, zorder=0)
 for n in range(0,paraSamp,20):
     Sol = Results[n, :] / theta_scale_O3
 
-    ax1.plot(Sol,height_values[:,0],marker= '+',color = ResCol,label = r'$\mathbf{x} \sim \pi(\mathbf{x}|\mathbf{y}, \mathbf{\theta})$', zorder = 1, linewidth = 0.5, markersize = 5)
+    ax1.plot(Sol,height_values[:,0],marker= '+',color = ResCol,label = r'$\bm{x} \sim \pi(\bm{x}|\bm{y}, \bm{\theta})$', zorder = 1, linewidth = 0.5, markersize = 5)
     with open('Samp' + str(n) +'.txt', 'w') as f:
         for k in range(0, len(Sol)):
             f.write('(' + str(Sol[k]) + ' , ' + str(height_values[k]) + ')')
@@ -1200,10 +1195,10 @@ for n in range(0,paraSamp,20):
 # ax1.plot(Sol, height_values, marker='+', color=ResCol, label='posterior samples ', zorder=4, linewidth=0.5,
 # markersize=2, linestyle = 'none')
 #$\mathbf{x} \sim \pi(\mathbf{x} |\mathbf{y}, \mathbf{\theta} ) $' , markerfacecolor = 'none'
-ax1.plot(XOPT, height_values[:,0], markerfacecolor = 'none', markeredgecolor = RegCol, color = RegCol ,marker='v', zorder=1, label=r'$\mathbf{x}_{\lambda}$', markersize =8, linewidth = 2 )# color="#D55E00"
+ax1.plot(XOPT, height_values[:,0], markerfacecolor = 'none', markeredgecolor = RegCol, color = RegCol ,marker='v', zorder=1, label=r'$\bm{x}_{\lambda}$', markersize =8, linewidth = 2 )# color="#D55E00"
 #line2 = ax1.errorbar(x,height_values,capsize=5, yerr = np.zeros(len(height_values)) ,color = MTCCol,zorder=5,markersize = 5, fmt = 'o',label = r'$\mathbf{x} \sim \pi(\mathbf{x} |\mathbf{y}, \mathbf{\theta} ) $')#, label = 'MC estimate')
 
-line3 = ax1.plot(MargX,height_values[:,0], markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.',  label = r'$\text{E}_{\mathbf{x},\mathbf{\theta}|\mathbf{y}} [\mathbf{x}]$', markersize =3, linewidth =1)#, markerfacecolor = 'none'
+line3 = ax1.plot(MargX,height_values[:,0], markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.',  label = r'$\text{E}_{\bm{x},\bm{\theta}|\bm{y}} [\bm{x}]$', markersize =3, linewidth =1)#, markerfacecolor = 'none'
 line3 = ax1.errorbar(MargX,height_values,  xerr = np.sqrt(np.diag(MargVar)), markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.', label = 'posterior mean ', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
 
 #E$_{\mathbf{x},\mathbf{\theta}| \mathbf{y}}[h(\mathbf{x})]$
@@ -1241,7 +1236,7 @@ ax1.xaxis.set_ticks_position('bottom')
 ax1.xaxis.set_label_position('bottom')
 ax1.spines[:].set_visible(False)
 #ax2.spines['top'].set_color(pyTCol)
-fig3.savefig('FirstRecRes.svg')
+fig3.savefig('FirstRecRes.png')
 plt.show()
 
 
