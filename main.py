@@ -78,7 +78,7 @@ O3 = df['Ozone (VMR)'].values
 O3[O3<0] = 0
 
 minInd = 5
-maxInd = 47#51#54
+maxInd = 47#51#54#47
 skipInd = 1
 pressure_values = press[minInd:maxInd][::skipInd]#press[minInd:maxInd]
 VMR_O3 = O3[minInd:maxInd][::skipInd]#O3[minInd:maxInd]
@@ -189,6 +189,26 @@ L = generate_L(neigbours)
 startInd = 35
 L[startInd::, startInd::] = L[startInd::, startInd::] * 5
 L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
+##
+delHeights = height_values[1:] - height_values[0:-1]
+newL = generate_L(neigbours)
+for i in range(1,len(newL)-1):
+    newL[i, i]= 1/delHeights[i-1]**2 + 1/delHeights[i]**2
+    newL[i, i-1] = -1/delHeights[i-1]**2
+    newL[i,i+1] = -1/delHeights[i]**2
+
+newL[0, 0] = 2 / delHeights[0] ** 2
+newL[1, 0] = -1 / delHeights[0] ** 2
+newL[0, 1] = -1 / delHeights[0] ** 2
+
+newL[-1, -1] = 2 / delHeights[-1] ** 2
+newL[-2,-1] = -1 / delHeights[-1] ** 2
+newL[-1, -2] = -1 / delHeights[-1] ** 2
+
+
+#L = np.copy(newL)
+##
+#L[1:].shape
 
 #L[startInd+1, startInd+1] = -L[startInd+1, startInd+1-1] - L[startInd+1,startInd+1+1] -L[startInd+1, startInd+1-2] - L[startInd+1, startInd+1+2]
 # L[16, 16] = 13
@@ -1165,6 +1185,35 @@ axs[1].set_title(r'$\lambda =\delta / \gamma$, the regularization parameter', fo
 plt.savefig('HistoPlot.png')
 plt.show()
 
+##
+
+gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
+deltHist, deltBinEdges = np.histogram(deltas, bins= BinHist, density= True)
+fig, axs = plt.subplots(3, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) )#, dpi = dpi)
+
+axs[0].bar(gamBinEdges[1::],gamHist*np.diff(gamBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(gamBinEdges)[0])#10)
+axs[0].set_xlabel(r'the noise precision $\gamma$')
+axT = axs[0].twinx()
+gamX = gamBinEdges[1::]
+normConst = np.sum(np.exp(-1e-10 * gamX ))
+axT.plot(gamX,np.exp(-1e-10 *  gamX )/normConst )
+
+axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(lambBinEdges)[0])#10)
+axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter')
+axT = axs[1].twinx()
+lambX = lambBinEdges[1::]
+normConst = 1#np.sum(np.exp(-1e-10 *  lambX * gamX ) * gamX )
+axT.plot(lambX, np.exp(-1e-10 *  lambX * gamX )/ normConst )
+
+axs[2].bar(deltBinEdges[1::],deltHist*np.diff(deltBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(deltBinEdges)[0])#10)
+axs[2].set_xlabel(r'$\delta$, the smoothness parameter')
+axT = axs[2].twinx()
+delX = deltBinEdges[1::]
+normConst = np.sum(np.exp( -1e-10 * delX ))
+axT.plot(delX,np.round(np.exp( -1e-10 *  delX ))/normConst )
+
+plt.savefig('AllHistoPlot.png')
+plt.show()
 
 ###
 plt.close('all')

@@ -11,17 +11,16 @@ import scipy as scy
 fraction = 1.5
 dpi = 300
 PgWidthPt = 245
-PgWidthPt =  fraction * 421/2 #phd
+PgWidthPt = 421/2 #phd
 
 defBack = mpl.get_backend()
 mpl.use(defBack)
 mpl.rcParams.update(mpl.rcParamsDefault)
-plt.rcParams.update({'font.size': fraction * 12,
+plt.rcParams.update({'font.size':  11,
                      'text.usetex': True,
                      'font.family' : 'serif',
                      'font.serif'  : 'cm',
                      'text.latex.preamble': r'\usepackage{bm, amsmath}'})
-
 
 ResCol = "#1E88E5"#"#0072B2"
 MeanCol = 'k'#"#FFC107"#"#d62728"
@@ -282,7 +281,7 @@ print('MTC Done in ' + str(elapsed) + ' s')
 
 print('acceptance ratio: ' + str(k/(number_samples+burnIn)))
 deltas = lambdas * gammas
-np.savetxt('samples.txt', np.vstack((gammas[burnIn::], deltas[burnIn::], lambdas[burnIn::])).T, header = 'gammas \t deltas \t lambdas \n Acceptance Ratio: ' + str(k/number_samples) + '\n Elapsed Time: ' + str(elapsed), fmt = '%.15f \t %.15f \t %.15f')
+np.savetxt('FirstSamples.txt', np.vstack((gammas[burnIn::], deltas[burnIn::], lambdas[burnIn::])).T, header = 'gammas \t deltas \t lambdas \n Acceptance Ratio: ' + str(k/number_samples) + '\n Elapsed Time: ' + str(elapsed), fmt = '%.15f \t %.15f \t %.15f')
 
 
 
@@ -395,7 +394,7 @@ print('MTC Done in ' + str(elapsed) + ' s')
 #BinHist = 30#n_bins
 lambHist, lambBinEdges = np.histogram(lambdas, bins= BinHist, density= True)
 gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
-fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) )#, dpi = dpi)
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) , dpi = 300)
 
 axs[0].bar(gamBinEdges[1::],gamHist*np.diff(gamBinEdges)[0], color = 'k', zorder = 0,width = np.diff(gamBinEdges)[0])#10)
 
@@ -411,7 +410,7 @@ plt.show()
 ##
 TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
 
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
 
 #line3 = ax2.scatter(y, tang_heights_lin, label = r'data $\mathbf{y}$', zorder = 0, marker = '*', color =DatCol )#,linewidth = 5
 
@@ -458,17 +457,22 @@ linTestDat = np.matmul(A,VMR_O3 * theta_scale_O3)
 MapLinTestDat = np.matmul( RealMap @ A,VMR_O3 * theta_scale_O3)
 nonLinTestDat = np.matmul( A/2 * nonLinA,VMR_O3 * theta_scale_O3)
 
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
+binCol = 'C0'
+postCol = 'C1'
+priorCol = 'k'
+#TrueCol = 'C2'
 
-ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 1.5, markersize =7)
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+
+ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
 
 #line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr = np.sqrt(np.diag(CondVar)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
 #ax1.errorbar(MargInteg,height_values[:,0],  yerr = np.zeros(len(height_values)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', label = r'posterior $\mu \pm \sigma$ ', markersize =3, linewidth =1, capsize = 3)
-ax1.plot(Results[0], height_values, markeredgecolor='k', color='k', zorder=1, marker='.', markersize=2,
+ax1.plot(Results[0], height_values, markeredgecolor=binCol, color=binCol, zorder=1, marker='.', markersize=2,
          linewidth=0.5, label='posterior sample', alpha = 0.5)
 for i in range(1,FirstSamp):
-    ax1.plot(testO3[i], height_values, markeredgecolor='k', color='k', zorder=1, marker='.', markersize=2,
-             linewidth=0.5, alpha = 0.5)
+    ax1.plot(testO3[i], height_values, markeredgecolor=binCol, color=binCol, zorder=1, marker='.', markersize=4,
+             linewidth=0.75, alpha = 0.5)
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
 
@@ -479,15 +483,15 @@ ax1.set_ylim([height_values[0], height_values[-1]])
 fig3.savefig('FirstTestRes.png')
 plt.show()
 
-
+##
 
 DatCol =  'gray'
 
-fig4, ax4 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
-ax4.plot(linTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'linear $\bm{A}_L\bm{x}$', markersize = 15 , zorder = 0, color = DatCol )
+fig4, ax4 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True, dpi = 300)
+ax4.plot(linTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'linear $\bm{A}_L\bm{x}$', markersize = 18 , zorder = 0, color = DatCol )
 relErr = np.linalg.norm( MapLinTestDat -  nonLinTestDat) / np.linalg.norm(MapLinTestDat) * 100
-ax4.plot(MapLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = 'o', label = r'mappped $\bm{A}_L\bm{x}$' + f', rel. Err.: {relErr:.1f} \%', markersize = 3, zorder = 2, color ='k')
-ax4.plot(nonLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = 'o', label = r'non-linear $\bm{A_{NL}x}$', markersize = 7, zorder = 1, color = 'r')
+ax4.plot(MapLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'mappped $\bm{A}_L\bm{x}$' + f', rel. Err.: {relErr:.1f} \%', markersize = 7, zorder = 2, color ='k')
+ax4.plot(nonLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = 'o', label = r'non-linear $\bm{A_{NL}x}$', markersize = 10, zorder = 1, color = 'r')
 ax4.legend()
 ax4.set_ylabel('(tangent) height in km')
 ax4.set_xlabel(r'spectral radiance in $\frac{\text{W} \text{cm}}{\text{m}^2 \text{sr}} $',labelpad=10)# color =dataCol,
@@ -568,7 +572,7 @@ print('MTC Done in ' + str(elapsed) + ' s')
 print('acceptance ratio: ' + str(k/(number_samples+burnIn)))
 
 deltas = lambdas * gammas
-np.savetxt('samples.txt', np.vstack((gammas[burnIn::], deltas[burnIn::], lambdas[burnIn::])).T, header = 'gammas \t deltas \t lambdas \n Acceptance Ratio: ' + str(k/number_samples) + '\n Elapsed Time: ' + str(elapsed), fmt = '%.15f \t %.15f \t %.15f')
+np.savetxt('AffineSamples.txt', np.vstack((gammas[burnIn::], deltas[burnIn::], lambdas[burnIn::])).T, header = 'gammas \t deltas \t lambdas \n Acceptance Ratio: ' + str(k/number_samples) + '\n Elapsed Time: ' + str(elapsed), fmt = '%.15f \t %.15f \t %.15f')
 
 
 
@@ -680,7 +684,7 @@ print('MTC Done in ' + str(elapsed) + ' s')
 #BinHist = 30#n_bins
 lambHist, lambBinEdges = np.histogram(lambdas, bins= BinHist, density= True)
 gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
-fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) )#, dpi = dpi)
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300 )#, dpi = dpi)
 
 axs[0].bar(gamBinEdges[1::],gamHist*np.diff(gamBinEdges)[0], color = 'k', zorder = 0,width = np.diff(gamBinEdges)[0])#10)
 
@@ -696,15 +700,15 @@ plt.show()
 ##
 TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
 
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
 
 
 #ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
-ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 1.5, markersize =7)
+ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
 
 #line3 = ax1.plot(MargInteg,height_values[:,0], markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.',  label = r'$\text{E}_{\mathbf{x},\mathbf{\theta}|\mathbf{y}} [\mathbf{x}]$', markersize =3, linewidth =1)#, markerfacecolor = 'none'
-line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr = np.sqrt(np.diag(CondVar)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
-ax1.errorbar(MargInteg,height_values[:,0],  yerr = np.zeros(len(height_values)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', label = r'posterior $\mu \pm \sigma$ ', markersize =3, linewidth =1, capsize = 3)
+line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr =3* np.sqrt(np.diag(CondVar)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
+ax1.errorbar(MargInteg,height_values[:,0],  yerr = np.zeros(len(height_values)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', label = r'posterior $\mu \pm 3\sigma$ ', markersize =3, linewidth =1, capsize = 3)
 
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
@@ -734,11 +738,11 @@ plt.show()
 trace = [MinLogMargPost(np.array([lambdas[burnIn+ i],gammas[burnIn+ i]])) for i in range(number_samples)]
 
 
-fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} )#, dpi = dpi)
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} , dpi =300)
 
-axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = 'k')
-axs[0].set_xlabel(r'the noise precision $\gamma$')
-axs[0].set_ylabel(r'the regularization parameter parameter $\lambda$')
+axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
+axs[0].set_xlabel(r'$\gamma$')
+axs[0].set_ylabel(r'$\lambda$')
 
 axs[1].plot(trace, color = 'k')
 axs[1].set_ylabel(r'$\pi(\lambda, \gamma| \bm{y})$')
@@ -751,7 +755,7 @@ BinHist = 30#n_bins
 lambHist, lambBinEdges = np.histogram(lambdas, bins= BinHist, density= True)
 gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
 
-fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) )#, dpi = dpi)
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300 )#, dpi = dpi)
 #axs[0].set_xlim([0.1e-7, 5e-7])
 #axs[0].bar(gamBinEdges[1::],gamHist*np.diff(gamBinEdges)[0], color = 'k', zorder = 0,width = np.diff(gamBinEdges)[0])#10)
 axs[0].hist(gammas, color = 'k', zorder = 0, bins = BinHist)
