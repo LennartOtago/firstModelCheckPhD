@@ -16,7 +16,7 @@ PgWidthPt = 421/2 #phd
 defBack = mpl.get_backend()
 mpl.use(defBack)
 mpl.rcParams.update(mpl.rcParamsDefault)
-plt.rcParams.update({'font.size':  11,
+plt.rcParams.update({'font.size':  10,
                      'text.usetex': True,
                      'font.family' : 'serif',
                      'font.serif'  : 'cm',
@@ -740,7 +740,7 @@ trace = [MinLogMargPost(np.array([lambdas[burnIn+ i],gammas[burnIn+ i]])) for i 
 
 fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} , dpi =300)
 
-axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
+axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 0.1)
 axs[0].set_xlabel(r'$\gamma$')
 axs[0].set_ylabel(r'$\lambda$')
 
@@ -749,6 +749,52 @@ axs[1].set_ylabel(r'$\pi(\lambda, \gamma| \bm{y})$')
 axs[1].set_xlabel('number of samples')
 plt.savefig('ScatterplusHisto.png')
 plt.show()
+##
+# dimMargO3 = 2
+# gridSize = 25
+# index = 'first'
+# dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
+# margPDFO3 = np.zeros((dimMargO3, gridSize))
+# univarGridO3 = np.zeros((dimMargO3, gridSize))
+# for i in range(0, dimMargO3):
+#     margPDFO3[i] =  np.loadtxt(dir + index +'margPDFMargO3' + str(i) + '.txt')
+#     univarGridO3[i] = np.loadtxt(dir + index +'uniVarGridMargO3' + str(i) + '.txt')
+#
+# #Create 2D map
+# TTMarg = np.zeros((gridSize,gridSize))
+# for i in range(0, gridSize):
+#     for j in range(0, gridSize):
+#         TTMarg[i,j] = margPDFO3[0,i] * margPDFO3[1,j]
+#
+# #viridis = mpl.cm.get_cmap('viridis', 12)
+# viridis = mpl.colormaps.get_cmap('viridis')
+# from mpl_toolkits.axes_grid1 import make_axes_locatable
+# fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} , dpi =300)
+# #im = axs[0].imshow(TTMarg, zorder = 0)
+# #axs[0].pcolormesh(univarGridO3[0],univarGridO3[1],TTMarg)
+# #axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
+# for i in range(0,len(gammas[burnIn:])):
+# #for i in range(0, 10):
+#     gamVal = np.interp(gammas[burnIn+i],univarGridO3[0],margPDFO3[0])
+#     lamVal = np.interp(lambdas[burnIn + i], univarGridO3[1], margPDFO3[1])
+#     colVal = (gamVal*lamVal)/np.max(TTMarg)
+#     #print(colVal)
+#     sc = axs[0].scatter(gammas[burnIn+i], lambdas[burnIn + i], marker='.', color=viridis(colVal), s=0.15)
+# cbar = plt.colorbar(sc)
+# label = cbar.ax.get_yticks()
+# newlabel = [np.round(lab * np.max(TTMarg),3) for lab in label]
+# cbar.ax.set_yticks(label)
+# cbar.ax.set_yticklabels(newlabel)
+# cbar.set_label(r'$\pi(\lambda, \gamma| \bm{y})$')
+# #axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
+# axs[0].set_xlabel(r'$\gamma$')
+# axs[0].set_ylabel(r'$\lambda$')
+#
+# axs[1].plot(trace, color = 'k')
+# axs[1].set_ylabel(r'$\pi(\lambda, \gamma| \bm{y})$')
+# axs[1].set_xlabel('number of samples')
+# plt.savefig('ScatterplusHistoPlusTT.png')
+# plt.show()
 
 ##
 BinHist = 30#n_bins
@@ -765,3 +811,292 @@ axs[1].hist(lambdas, color = 'k', zorder = 0, bins = BinHist)
 axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter')
 plt.savefig('FinalHistoPlot.png')
 plt.show()
+
+
+## regularization
+'''L-curve refularoization
+'''
+
+lamLCurve = np.logspace(1,7,200)
+#lamLCurve = np.linspace(1e-15,1e3,200)
+
+NormLCurve = np.zeros(len(lamLCurve))
+xTLxCurve = np.zeros(len(lamLCurve))
+xTLxCurve2 = np.zeros(len(lamLCurve))
+for i in range(len(lamLCurve)):
+    B = (ATA + lamLCurve[i] * L)
+    #x, exitCode = gmres(B, ATy[0::, 0], rtol=tol)
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    x = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    NormLCurve[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
+    xTLxCurve[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
+
+
+startTime  = time.time()
+lamLCurveZoom = np.logspace(0,7,200)
+NormLCurveZoom = np.zeros(len(lamLCurveZoom))
+xTLxCurveZoom = np.zeros(len(lamLCurveZoom))
+for i in range(len(lamLCurveZoom)):
+    B = (ATA + lamLCurveZoom[i] * L)
+
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    x = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+    NormLCurveZoom[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
+    xTLxCurveZoom[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
+
+import kneed
+
+# calculate and show knee/elbow
+kneedle = kneed.KneeLocator(NormLCurveZoom, xTLxCurveZoom, curve='convex', direction='decreasing', online = True, S = 1, interp_method="interp1d")
+knee_point = kneedle.knee
+
+elapsedtRegTime = time.time() - startTime
+print('Elapsed Time to find oprimal Reg Para: ' + str(elapsedtRegTime))
+#knee_point = kneedle.knee_y #
+
+lam_opt = lamLCurveZoom[ np.where(NormLCurveZoom == knee_point)[0][0]]
+print('Knee: ', lam_opt) #print('Elbow: ', elbow_point)
+np.savetxt('lam_opt.txt',[lam_opt], fmt = '%.15f')
+
+elbow_point = kneedle.elbow
+
+lam_opt_elbow = lamLCurveZoom[ np.where(NormLCurveZoom == knee_point)[0][0]]
+
+print('Elbow: ', lam_opt_elbow)
+
+B = (ATA + lam_opt * L)
+#x_opt, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
+LowTri = np.linalg.cholesky(B)
+UpTri = LowTri.T
+x_opt = lu_solve(LowTri, UpTri, ATy[0::, 0])
+LNormOpt = np.linalg.norm( np.matmul(A,x_opt) - y[0::,0])#, ord = 2)
+xTLxOpt = np.sqrt(np.matmul(np.matmul(x_opt.T, L), x_opt))
+
+regCol = 'C3'
+
+#generate samples and calc norms
+sampSize = 100
+xTLxRes = np.zeros(sampSize)
+NormRes = np.zeros(sampSize)
+
+for i in range(0,sampSize):
+    currSamp = np.random.multivariate_normal(MargInteg* theta_scale_O3,CondVar * theta_scale_O3 ** 2)
+
+    xTLxRes[i] =  np.sqrt(np.matmul(np.matmul(currSamp.T, L), currSamp))
+    NormRes[i] = np.linalg.norm( np.matmul(A,currSamp) - y[0::,0])
+
+currX = MargInteg* theta_scale_O3
+NormMargRes = np.linalg.norm( np.matmul(A,currX) - y[0::,0])
+xTLxMargRes = np.sqrt(np.matmul(np.matmul(currX.T, L), currX))
+
+
+
+fig, axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+axs.scatter(NormLCurve,xTLxCurve, zorder = 0, color =  DatCol, s = 3.5, marker ='s', label = 'reg. solution')
+axs.scatter(NormRes, xTLxRes, color = ResCol, s = 3, marker = "+",label = r'posterior samples ')# ,mfc = 'black' , markeredgecolor='r',markersize=10,linestyle = 'None')
+axs.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 50, label = 'posterior mean',zorder=2)
+axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'max. curvature', s= 50,zorder=1)
+
+axs.set_xscale('log')
+axs.set_yscale('log')
+axs.set_ylabel(r'$ \sqrt{\bm{x}^T \bm{L}\bm{x}}$', style='italic')
+axs.set_xlabel(r'$|| \bm{Ax} - \bm{y}||$')
+handles, labels = axs.get_legend_handles_labels()
+axs.legend()
+#axs.legend(handles = [handles[0],handles[1],handles[2]],loc = 'upper right',  frameon =True)
+plt.savefig('LCurvePhD.png')
+
+plt.show()
+
+print('bla')
+
+#np.savetxt('RegSol.txt',x_opt /(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst), fmt = '%.15f', delimiter= '\t')
+
+##
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+#ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
+ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
+#line3 = ax1.plot(MargInteg,height_values[:,0], markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.',  label = r'$\text{E}_{\mathbf{x},\mathbf{\theta}|\mathbf{y}} [\mathbf{x}]$', markersize =3, linewidth =1)#, markerfacecolor = 'none'
+line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr =3* np.sqrt(np.diag(CondVar)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
+ax1.errorbar(MargInteg,height_values[:,0],  yerr = np.zeros(len(height_values)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', label = r'posterior $\mu \pm 3\sigma$ ', markersize =3, linewidth =1, capsize = 3)
+ax1.plot(x_opt / theta_scale_O3,height_values[:,0],marker = 'v',markerfacecolor = RegCol, color = RegCol , label = r'reg. solution', zorder=2 ,linewidth = 2, markersize =8)
+
+
+ax1.set_xlabel(r'ozone volume mixing ratio ')
+
+ax1.set_ylabel('height in km')
+handles, labels = ax1.get_legend_handles_labels()
+
+ax1.set_ylim([height_values[0], height_values[-1]])
+ax1.legend()
+
+
+fig3.savefig('SecRecResinclReg.png')
+plt.show()
+
+
+##
+lam= np.logspace(-5,15,500)
+f_func = np.zeros(len(lam))
+g_func = np.zeros(len(lam))
+
+for j in range(len(lam)):
+
+    B = (ATA + lam[j] * L)
+
+    #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    # check if L L.H = B
+    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+    CheckB_inv_ATy = np.matmul(B, B_inv_A_trans_y)
+    if np.linalg.norm(ATy[0::, 0]- CheckB_inv_ATy)/np.linalg.norm(ATy[0::, 0])<=1e-3:
+        f_func[j] = f(ATy, y, B_inv_A_trans_y)
+    else:
+        print('tol not reached')
+        f_func[j] = np.nan
+
+    g_func[j] = g(A, L, lam[j])
+
+
+''' check taylor series in f(lambda) and g(lambda)
+around lam0 from gmres = '''
+
+def g_tayl(delta_lam, g_0, trace_B_inv_L_1, trace_B_inv_L_2, trace_B_inv_L_3, trace_B_inv_L_4, trace_B_inv_L_5, trace_B_inv_L_6):
+
+    return g_0 + trace_B_inv_L_1 * delta_lam + trace_B_inv_L_2 * delta_lam**2 + trace_B_inv_L_3 * delta_lam**3 + trace_B_inv_L_4 * delta_lam**4 + trace_B_inv_L_5 * delta_lam**5 + trace_B_inv_L_6 * delta_lam**6
+
+
+
+def f_tayl( delta_lam, f_0, f_1, f_2, f_3, f_4, f_5, f_6):
+    """calculate taylor series for """
+
+    return f_0 + f_1 * delta_lam + f_2 * delta_lam**2 + f_3 * delta_lam**3 + f_4 * delta_lam**4 + f_5 * delta_lam**5 + f_6 * delta_lam**6
+
+
+##
+
+
+f_0 = f(ATy, y, B_inv_A_trans_y0)
+g_0 = g(A, L, minimum[1])
+fCol = [0, 144/255, 178/255]
+gCol = [230/255, 159/255, 0]
+gmresCol = [204/255, 121/255, 167/255]
+#lam0 = minimum[1]
+# find min ind and max ind for lambda
+minInd = np.argmin(abs(lam - lambBinEdges[0]))
+maxInd = np.argmin(abs(lam - lambBinEdges[-1]))
+delta_lam = lambBinEdges - minimum[1]
+taylorG = g_tayl(delta_lam,g_0, g_0_1, g_0_2, g_0_3, 0, 0,0)
+taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3, 0, 0, 0)
+
+fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction),  dpi = 300,tight_layout = True)
+
+axs.plot(lam,f_func, color = fCol, zorder = 2, linestyle=  'dotted')
+axs.set_yscale('log')
+axs.set_xlabel('$\lambda$')
+axs.set_ylabel('$f(\lambda)$')#, color = fCol)
+axs.tick_params(axis = 'y',  colors=fCol, which = 'both')
+
+ax2 = axs.twinx() # ax1 and ax2 share y-axis
+ax2.plot(lam,g_func, color = gCol, zorder = 0, linestyle=  'dashed')
+#ax2.scatter(minimum[1],g(A, L, minimum[1]), color = gmresCol, zorder=0, marker = 's')
+
+#ax2.scatter(np.mean(lambdas),g(A, L, np.mean(lambdas) ), color = MTCCol, zorder=5)
+#ax2.scatter(lamPyT,g(A, L, lamPyT) , color = pyTCol, zorder=6, marker = 'D')
+#ax2.annotate('T-Walk $\lambda$ sample mean',(lamPyT+1e6,g(A_lin, L, lamPyT) +50), color = 'k')
+ax2.set_ylabel('$g(\lambda)$')#,color = gCol)
+ax2.tick_params(axis = 'y', colors= gCol)
+axs.set_xscale('log')
+axs.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 2, label = 'Taylor series' )
+ax2.plot(lambBinEdges, taylorG , color = 'k', linewidth = 1, zorder = 2)
+ax2.axvline( minimum[1], color = gmresCol, ymin=0, ymax=0.5, zorder = 0)
+ax2.axvline( minimum[1], color = gmresCol, ymin=0.95, ymax=1, zorder = 0)
+
+
+#mark_inset(axs, axins, loc1=3, loc2=4, fc="none", ec="0.5")
+
+#axs.spines['top'].set_visible(False)
+axs.spines['right'].set_visible(False)
+#axs.spines['left'].set_color(fCol)
+axs.spines['left'].set_color('k')
+ax2.spines['top'].set_visible(False)
+ax2.spines['right'].set_color('k')
+#ax2.spines['right'].set_color(gCol)
+ax2.spines['bottom'].set_visible(False)
+ax2.spines['left'].set_visible(False)
+
+
+
+axins = axs.inset_axes([0.05,0.5,0.4,0.45])
+axins.plot(lam,f_func, color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+axins.axvline( minimum[1], color = gmresCol, label = r'$\pi(\lambda_0|\bm{y}, \gamma)$')
+
+axins.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+
+axins.set_ylim(0.95 * taylorF[0],1.5 * taylorF[-1])
+axins.set_xlabel('$\lambda$')
+axins.set_yscale('log')
+axins.set_xscale('log')
+
+axins.tick_params(axis='x', which='both',  bottom=False, labelbottom=False)
+
+axins.tick_params(axis='y', which='both',  left=False, labelleft=False)
+
+axins.tick_params(axis='y', which='both', length=0)
+
+axin2 = axins.twinx()
+axin2.spines['top'].set_visible(False)
+axin2.spines['right'].set_visible(False)
+axin2.spines['bottom'].set_visible(False)
+axin2.spines['left'].set_visible(False)
+
+
+axin2.tick_params(axis = 'y', which = 'both',labelright=False, right=False)
+axin2.tick_params(axis='y', which='both', length=0)
+
+
+# #axin2.set_xticks([np.mean(lambdas) -np.sqrt(np.var(lambdas)) , np.mean(lambdas), np.mean(lambdas) + np.sqrt(np.var(lambdas)) ] )
+axin2.plot(lam,g_func, color = gCol, zorder=3, linestyle=  'dashed', linewidth = 3,label = '$g(\lambda)$')
+
+axin2.plot(lambBinEdges, taylorG, color = 'k', linewidth = 1, zorder = 2 )
+axin2.set_ylim(0.8 * taylorG[0],1.05 * taylorG[-1])
+axin2.set_xlim(min(lambBinEdges),max(lambBinEdges))
+axin2.set_xscale('log')
+lines2, lab2 = axin2.get_legend_handles_labels()
+lines, lab0 = axins.get_legend_handles_labels()
+axins.set_xlim(min(lambBinEdges),max(lambBinEdges))
+axs.legend(np.append(lines2,lines),np.append(lab2,lab0), loc = 'lower right')
+
+fig.savefig('f_and_g_phd.png', bbox_inches='tight')
+plt.show()
+
+
+## prior for Ozone
+
+test = 20
+
+
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+
+ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
+for i in range(0,test):
+    delt = np.random.gamma(shape = 1, scale = 1e10)
+    priorTest = np.random.multivariate_normal(np.zeros(len(L)), delt * L)
+    ax1.plot( priorTest ,height_values , markeredgecolor =binCol , color = binCol ,zorder=2, marker = '.', markersize =4, linewidth =0.75, label = 'prior sample', alpha = 0.25)
+
+ax1.set_xlabel(r'ozone volume mixing ratio ')
+ax1.set_ylabel('height in km')
+handles, labels = ax1.get_legend_handles_labels()
+
+ax1.set_ylim([height_values[0], height_values[-1]])
+ax1.legend(handles[:2], labels[:2])
+
+
+fig3.savefig('OzonePrior.png')
+plt.show()
+
