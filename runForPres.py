@@ -994,7 +994,7 @@ delta_lam = lambBinEdges - minimum[1]
 taylorG = g_tayl(delta_lam,g_0, g_0_1, g_0_2, g_0_3, 0, 0,0)
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3, 0, 0, 0)
 
-fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction),  dpi = 300,tight_layout = True)
+fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction),  dpi = 300, tight_layout = True)
 
 axs.plot(lam,f_func, color = fCol, zorder = 2, linestyle=  'dotted')
 axs.set_yscale('log')
