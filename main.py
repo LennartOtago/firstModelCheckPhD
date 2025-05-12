@@ -121,8 +121,43 @@ MaxH = height_values[-1]
 R_Earth = 6356#6371 # earth radiusin km
 ObsHeight = 500 # in km
 
+def pressFunc(x, b, h0, p0):
+    return np.exp(-b * (x -h0)  + np.log(p0))
+
+popt, pcov = scy.optimize.curve_fit(pressFunc, height_values[:,0], pressure_values, p0=[1.5e-1, 8, pressure_values[0]])
+print(popt)
+
+tests = 1000
+
+means = np.zeros(3)
+sigmas = np.zeros(3)
+means[0] = popt[0]
+means[1] = popt[1]
+means[2] = popt[2]
+
+sigmaP =  4# * 2
+sigmaH = 0.2*3
+sigmaGrad2 = 0.0001*5#0.01 #* 5
+sigmas[0] = sigmaGrad2
+sigmas[1] = sigmaH
+sigmas[2] = sigmaP
+
+PriorSamp = np.random.multivariate_normal(means, np.eye(3) * sigmas, tests)
 
 
+fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True,dpi = 300)
+ZeroP = np.zeros(tests)
+for i in range(0,tests):
+    ZeroP[i] = pressFunc(0, *PriorSamp[i,:])
+
+axs.hist(ZeroP, bins=n_bins)
+
+axs.set_xlabel(r'pressure in hPa ')
+
+plt.show()
+
+np.savetxt('height_values.txt', height_values, fmt = '%.30f', delimiter= '\t')
+np.savetxt('pressure_values.txt', pressure_values, fmt = '%.30f', delimiter= '\t')
 
 ''' do svd for one specific set up for linear case and then exp case'''
 
@@ -475,7 +510,7 @@ plt.show()
 np.savetxt('ForWardMatrix.txt', A, header = 'Forward Matrix A', fmt = '%.15f', delimiter= '\t')
 np.savetxt('height_values.txt', height_values, fmt = '%.15f', delimiter= '\t')
 np.savetxt('tan_height_values.txt', tang_heights_lin, fmt = '%.15f', delimiter= '\t')
-
+np.savetxt('height_values.txt', height_values, fmt = '%.15f', delimiter= '\t')
 np.savetxt('pressure_values.txt', pressure_values, fmt = '%.15f', delimiter= '\t')
 np.savetxt('temp_values.txt', temp_values, fmt = '%.15f', delimiter= '\t')
 
