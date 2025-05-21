@@ -447,15 +447,32 @@ plt.show()
 
 ##find affine map
 FirstSamp = len(y)
-relMapErrDat = 4
-Results = np.random.multivariate_normal(MargInteg, CondVar,size=FirstSamp)
+relMapErrDat = 0.1
+#Results = np.random.multivariate_normal(MargInteg, CondVar,size=FirstSamp)
+#Results[0] = MargInteg
+#Results = np.random.multivariate_normal(VMR_O3[:,0], CondVar,size=FirstSamp)
 currMap = np.eye(len(y))
-RealMap, relMapErr, LinDataY, NonLinDataY, testO3 = genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, gamma0, VMR_O3, Results, AscalConstKmToCm, A_lin, temp_values, pressure_values, ind, scalingConst, relMapErrDat, wvnmbr, S, E,g_doub_prime)
+RealMap, relMapErr, LinDataY, NonLinDataY, testO3 = genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, gamma0, MargInteg, CondVar, AscalConstKmToCm, A_lin, temp_values, pressure_values, ind, scalingConst, relMapErrDat, wvnmbr, S, E,g_doub_prime)
+
+
+
 np.savetxt('RealMap.txt',RealMap, fmt = '%.30f', delimiter= '\t')
 
 linTestDat = np.matmul(A,VMR_O3 * theta_scale_O3)
-MapLinTestDat = np.matmul( RealMap @ A,VMR_O3 * theta_scale_O3)
+MapLinTestDat = np.matmul( RealMap @  A,VMR_O3 * theta_scale_O3)
 nonLinTestDat = np.matmul( A/2 * nonLinA,VMR_O3 * theta_scale_O3)
+
+# fig4, ax4 = plt.subplots(dpi=300)
+# # for test in range(len(y)):
+# #     ax4.plot(RealMap @ LinDataY[test], tang_heights_lin, linestyle='dotted', marker='*', markersize=7, zorder=2, color='k')
+# #     ax4.plot(NonLinDataY[test], tang_heights_lin, linestyle='dotted', marker='o', markersize=10, zorder=1, color='r')
+# test = 25
+# ax4.plot(RealMap @ LinDataY[test], tang_heights_lin, linestyle='dotted', marker='*', markersize=7, zorder=2, color='k')
+# ax4.plot(NonLinDataY[test], tang_heights_lin, linestyle='dotted', marker='o', markersize=10, zorder=1, color='r')
+# ax4.plot(nonLinTestDat, tang_heights_lin, linestyle='dotted', marker='o', markersize=5, zorder=1, color='g')
+# ax4.plot(RealMap @ linTestDat, tang_heights_lin, linestyle='dotted', marker='o', markersize=2, zorder=1, color='blue')
+#
+# plt.show()
 
 binCol = 'C0'
 postCol = 'C1'
@@ -750,51 +767,51 @@ axs[1].set_xlabel('number of samples')
 plt.savefig('ScatterplusHisto.png')
 plt.show()
 ##
-# dimMargO3 = 2
-# gridSize = 25
-# index = 'first'
-# dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
-# margPDFO3 = np.zeros((dimMargO3, gridSize))
-# univarGridO3 = np.zeros((dimMargO3, gridSize))
-# for i in range(0, dimMargO3):
-#     margPDFO3[i] =  np.loadtxt(dir + index +'margPDFMargO3' + str(i) + '.txt')
-#     univarGridO3[i] = np.loadtxt(dir + index +'uniVarGridMargO3' + str(i) + '.txt')
-#
-# #Create 2D map
-# TTMarg = np.zeros((gridSize,gridSize))
-# for i in range(0, gridSize):
-#     for j in range(0, gridSize):
-#         TTMarg[i,j] = margPDFO3[0,i] * margPDFO3[1,j]
-#
-# #viridis = mpl.cm.get_cmap('viridis', 12)
-# viridis = mpl.colormaps.get_cmap('viridis')
-# from mpl_toolkits.axes_grid1 import make_axes_locatable
-# fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} , dpi =300)
-# #im = axs[0].imshow(TTMarg, zorder = 0)
-# #axs[0].pcolormesh(univarGridO3[0],univarGridO3[1],TTMarg)
-# #axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
-# for i in range(0,len(gammas[burnIn:])):
-# #for i in range(0, 10):
-#     gamVal = np.interp(gammas[burnIn+i],univarGridO3[0],margPDFO3[0])
-#     lamVal = np.interp(lambdas[burnIn + i], univarGridO3[1], margPDFO3[1])
-#     colVal = (gamVal*lamVal)/np.max(TTMarg)
-#     #print(colVal)
-#     sc = axs[0].scatter(gammas[burnIn+i], lambdas[burnIn + i], marker='.', color=viridis(colVal), s=0.15)
-# cbar = plt.colorbar(sc)
-# label = cbar.ax.get_yticks()
-# newlabel = [np.round(lab * np.max(TTMarg),3) for lab in label]
-# cbar.ax.set_yticks(label)
-# cbar.ax.set_yticklabels(newlabel)
-# cbar.set_label(r'$\pi(\lambda, \gamma| \bm{y})$')
-# #axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
-# axs[0].set_xlabel(r'$\gamma$')
-# axs[0].set_ylabel(r'$\lambda$')
-#
-# axs[1].plot(trace, color = 'k')
-# axs[1].set_ylabel(r'$\pi(\lambda, \gamma| \bm{y})$')
-# axs[1].set_xlabel('number of samples')
-# plt.savefig('ScatterplusHistoPlusTT.png')
-# plt.show()
+dimMargO3 = 2
+gridSize = 25
+index = 'first'
+dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
+margPDFO3 = np.zeros((dimMargO3, gridSize))
+univarGridO3 = np.zeros((dimMargO3, gridSize))
+for i in range(0, dimMargO3):
+    margPDFO3[i] =  np.loadtxt(dir + index +'margPDFMargO3' + str(i) + '.txt')
+    univarGridO3[i] = np.loadtxt(dir + index +'uniVarGridMargO3' + str(i) + '.txt')
+
+#Create 2D map
+TTMarg = np.zeros((gridSize,gridSize))
+for i in range(0, gridSize):
+    for j in range(0, gridSize):
+        TTMarg[i,j] = margPDFO3[0,i] * margPDFO3[1,j]
+
+#viridis = mpl.cm.get_cmap('viridis', 12)
+viridis = mpl.colormaps.get_cmap('viridis')
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} , dpi =300)
+#im = axs[0].imshow(TTMarg, zorder = 0)
+#axs[0].pcolormesh(univarGridO3[0],univarGridO3[1],TTMarg)
+#axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
+for i in range(0,len(gammas[burnIn:])):
+#for i in range(0, 10):
+    gamVal = np.interp(gammas[burnIn+i],univarGridO3[0],margPDFO3[0])
+    lamVal = np.interp(lambdas[burnIn + i], univarGridO3[1], margPDFO3[1])
+    colVal = (gamVal*lamVal)/np.max(TTMarg)
+    #print(colVal)
+    sc = axs[0].scatter(gammas[burnIn+i], lambdas[burnIn + i], marker='.', color=viridis(colVal), s=0.15)
+cbar = plt.colorbar(sc)
+label = cbar.ax.get_yticks()
+newlabel = [np.round(lab * np.max(TTMarg),3) for lab in label]
+cbar.ax.set_yticks(label)
+cbar.ax.set_yticklabels(newlabel)
+cbar.set_label(r'$\pi(\lambda, \gamma| \bm{y})$')
+#axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
+axs[0].set_xlabel(r'$\gamma$')
+axs[0].set_ylabel(r'$\lambda$')
+
+axs[1].plot(trace, color = 'k')
+axs[1].set_ylabel(r'$\pi(\lambda, \gamma| \bm{y})$')
+axs[1].set_xlabel('number of samples')
+plt.savefig('ScatterplusHistoPlusTT.png')
+plt.show()
 
 ##
 BinHist = 30#n_bins
@@ -1085,7 +1102,10 @@ fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 3
 
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
 for i in range(0,test):
-    delt = np.random.gamma(shape = 1, scale = 1e10)
+    delt = np.random.gamma(shape=1, scale=1e10)
+    while delt < 0:
+        delt = np.random.gamma(shape = 1, scale = 1e10)
+    print(delt)
     priorTest = np.random.multivariate_normal(np.zeros(len(L)), delt * L)
     ax1.plot( priorTest ,height_values , markeredgecolor =binCol , color = binCol ,zorder=2, marker = '.', markersize =4, linewidth =0.75, label = 'prior sample', alpha = 0.25)
 

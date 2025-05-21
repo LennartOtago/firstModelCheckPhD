@@ -57,6 +57,52 @@ def generate_L(neigbours):
 
     return L
 
+def temp_func(x):
+    h0 = 11
+    h1 = 20.1
+    h2 = 32.2
+    h3 = 47.4
+    h4 = 51.4
+    h5 = 71.8
+    h6 = 86
+    a0 = -6.5
+    a1 = 1
+    a2 = 2.8
+    a3 = -2.8
+    a4 = -2
+    b0 = 288.15
+
+    a = np.ones(x.shape)
+    b = np.ones(x.shape)
+
+    a[x < h0] = a0
+    a[h0 <= x] = 0
+    a[h1 <= x] = a1
+    a[h2 <= x] = a2
+    a[h3 <= x] = 0
+    a[h4 <= x ] = a3
+    a[h5 <= x ] = a4
+    a[h6 <= x ] = 0
+
+    b[x < h0] = b0
+    b[h0 <= x] = b0 + h0 * a0
+    b[h1 <= x] = b0 + h0 * a0
+    b[h2 <= x] = a1 * (h2-h1) + b0 + h0 * a0
+    b[h3 <= x ] = a2 * (h3-h2) + a1 * (h2-h1) + b0 + h0 * a0
+    b[h4 <= x ] = a2 * (h3-h2) + a1 * (h2-h1) + b0 + h0 * a0
+    b[h5 <= x ] = a3 * (h5-h4) + a2 * (h3-h2) + a1 * (h2-h1) + b0 + h0 * a0
+    b[h6 <= x ] = a4 * (h6-h5) + a3 * (h5-h4) + a2 * (h3-h2) + a1 * (h2-h1) + b0 + h0 * a0
+
+    h = np.ones(x.shape)
+    h[x < h0] = 0
+    h[h0 <= x] = h0
+    h[h1 <= x] = h1
+    h[h2 <= x] = h2
+    h[h3 <= x] = h3
+    h[h4 <= x] = h4
+    h[h5 <= x] = h5
+    h[h6 <= x] = h6
+    return a * (x - h) + b
 
 def get_temp_values(height_values):
     """ used to be based on the ISA model see omnicalculator.com/physics/altitude-temperature
@@ -101,9 +147,9 @@ def get_temp(height_value):
         temp_value = np.around(270.76, 2)
     if 51 <= height_value < 71:
         temp_value = np.around(270.76 - (height_value - 51) * 2.8 ,2)
-    if 71 <= height_value < 85:
+    if 71 <= height_value < 84.852:
         temp_value = np.around(214.76 - (height_value -71) * 2.0 ,2)
-    if  85 <= height_value:
+    if  84.852 <= height_value :
         temp_value = 186.8
 
     return temp_value

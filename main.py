@@ -77,8 +77,15 @@ press = df['Pressure (hPa)'].values #in hectpascal or millibars
 O3 = df['Ozone (VMR)'].values
 O3[O3<0] = 0
 
+dat = np.loadtxt('/Users/lennart/PycharmProjects/openData/testProf.txt')
+#dat = np.loadtxt('/home/lennartgolks/PycharmProjects/openData/testProf.txt')
+press = dat[0,:]
+O3 = dat[1,:]
+O3[O3 < 0] = 0
+
+
 minInd = 5
-maxInd = 47#51#54#47
+maxInd = 50#47#51#54#47
 skipInd = 1
 pressure_values = press[minInd:maxInd][::skipInd]#press[minInd:maxInd]
 VMR_O3 = O3[minInd:maxInd][::skipInd]#O3[minInd:maxInd]
@@ -95,26 +102,45 @@ def pressure_to_height(p0, pplus, x):
     R = constants.gas_constant
     R_Earth = 6356#6371  # earth radiusin km6356#
     grav = 9.81 * ((R_Earth)/(R_Earth + x))**2
-    temp = get_temp(x)
+    #temp = get_temp(x)
+    temp = temp_func(x)
     dP = pplus - p0
     #return - np.log(p0/pplus) /(-28.97 * grav / R /temp )
     #return ( np.log(pplus) -np.log(p0))/ (-28.97 * grav / R / temp)
-    return (dP/p0) /(-28.97 * grav / R /temp )
+    M = 28.97
+    return (dP/p0) /(-M * grav / R /temp ), temp
 
+# til max 84.8520 geopotential height
+#geopotential to geometric
+#H = Z * R_Earth/(Z + R_Earth)
+#H = Z * R_Earth/(Z + R_Earth)
+R_Earth = 6356
+H = 11
+print(H * R_Earth/(R_Earth -H ))
+Z = 91
+R_Earth = 6356
+print( Z * R_Earth/(Z + R_Earth))
 calc_press = np.zeros((len(press)+1,1))
 calc_press[0] = 1013.25
+calc_temp = np.zeros((len(press),1))
+calc_temp[0] = 288.15
 calc_press[1:] = press.reshape((len(press),1)) #hPa
+calc_press = np.copy(press) #hPa
+calc_press[0] = 1013.25
 actual_heights = np.zeros(len(press)+1)
-
+actual_heights = np.zeros(len(press))
 for i in range(1,len(calc_press)):
-    dx = pressure_to_height(calc_press[i-1], calc_press[i], actual_heights[i-1])
+    dx, calc_temp[i-1] = pressure_to_height(calc_press[i-1], calc_press[i], actual_heights[i-1])
     actual_heights[i] = actual_heights[i - 1] + dx
 
+calc_temp[-1] = temp_func( actual_heights[-1])
+
 """ analayse forward map without any real data values"""
-heights = actual_heights[1:]
+heights = actual_heights#[1:]
 SpecNumLayers = len(VMR_O3)
 #height_values = heights[minInd:maxInd].reshape((SpecNumLayers,1))
 height_values = np.around(heights[minInd:maxInd][::skipInd].reshape((SpecNumLayers,1)),2)
+temp_values =  np.around(calc_temp[minInd:maxInd][::skipInd],2)
 
 MinH = height_values[0]
 MaxH = height_values[-1]
@@ -124,8 +150,18 @@ ObsHeight = 500 # in km
 def pressFunc(x, b, h0, p0):
     return np.exp(-b * (x -h0)  + np.log(p0))
 
+def pressFuncFullFit(x, b1, b2, h0, p0):
+    b = np.ones(len(x))
+    b[x<=h0] = b1
+    b[x>h0] = b2
+    return np.exp(-b * (x -h0)  + np.log(p0))
+
+
 popt, pcov = scy.optimize.curve_fit(pressFunc, height_values[:,0], pressure_values, p0=[1.5e-1, 8, pressure_values[0]])
 print(popt)
+poptFull, pcov = scy.optimize.curve_fit(pressFuncFullFit, actual_heights,calc_press, p0=[1.5e-1,1.5e-1, 8, pressure_values[0]])
+print(poptFull)
+
 
 tests = 1000
 
@@ -134,11 +170,13 @@ sigmas = np.zeros(3)
 means[0] = popt[0]
 means[1] = popt[1]
 means[2] = popt[2]
+##means[3] = popt[3]
 
 sigmaP =  4# * 2
 sigmaH = 0.2*3
 sigmaGrad2 = 0.0001*5#0.01 #* 5
 sigmas[0] = sigmaGrad2
+#sigmas[1] = sigmaGrad2
 sigmas[1] = sigmaH
 sigmas[2] = sigmaP
 
@@ -148,16 +186,43 @@ PriorSamp = np.random.multivariate_normal(means, np.eye(3) * sigmas, tests)
 fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True,dpi = 300)
 ZeroP = np.zeros(tests)
 for i in range(0,tests):
-    ZeroP[i] = pressFunc(0, *PriorSamp[i,:])
+    ZeroP[i] = pressFunc([0], *PriorSamp[i,:])
 
 axs.hist(ZeroP, bins=n_bins)
 
 axs.set_xlabel(r'pressure in hPa ')
 
 plt.show()
+##
+fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True,dpi = 300)
+axs.plot( pressure_values,height_values,marker = 'o',markerfacecolor = 'C1', color = 'C1' , label = 'true profile', zorder=0,linewidth = 3, markersize =15)
+axs.plot( calc_press,actual_heights,marker = 'o',markerfacecolor = 'C2', color = 'C2' , label = 'true profile', zorder=1,linewidth = 3, markersize =10)
 
-np.savetxt('height_values.txt', height_values, fmt = '%.30f', delimiter= '\t')
-np.savetxt('pressure_values.txt', pressure_values, fmt = '%.30f', delimiter= '\t')
+Sol = pressFunc(height_values[:, 0], *popt)
+axs.plot(Sol, height_values, markeredgecolor='C3', color='C3', zorder=2, marker='.', markersize=2, linewidth=1 )
+
+Sol = pressFuncFullFit(actual_heights, *poptFull)
+axs.plot(Sol, actual_heights, markeredgecolor='C4', color='C4', zorder=2, marker='.', markersize=2, linewidth=1 )
+
+axs.set_xlabel(r'pressure in hPa')
+
+axs.set_ylabel(r'height in km')
+
+plt.show()
+
+fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True,dpi = 300)
+
+axs.plot( calc_temp,actual_heights,marker = 'o',markerfacecolor = 'C2', color = 'C2' , label = 'true profile', zorder=0,linewidth = 3, markersize =10)
+axs.plot( temp_func(actual_heights),actual_heights,marker = 'o',markerfacecolor = 'C1', color = 'C1' , label = 'true profile', zorder=1,linewidth = 2, markersize =5)
+
+axs.set_xlabel(r'Temperature in K')
+
+axs.set_ylabel(r'height in km')
+
+plt.show()
+##
+#np.savetxt('height_values.txt', height_values, fmt = '%.30f', delimiter= '\t')
+#np.savetxt('pressure_values.txt', pressure_values, fmt = '%.30f', delimiter= '\t')
 
 ''' do svd for one specific set up for linear case and then exp case'''
 
@@ -221,9 +286,9 @@ neigbours[neigbours >= len(height_values)] = np.nan
 neigbours[neigbours < 0] = np.nan
 
 L = generate_L(neigbours)
-startInd = 35
-L[startInd::, startInd::] = L[startInd::, startInd::] * 5
-L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
+startInd =38# 35
+#L[startInd::, startInd::] = L[startInd::, startInd::] * 10
+#L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
 ##
 delHeights = height_values[1:] - height_values[0:-1]
 newL = generate_L(neigbours)
@@ -268,10 +333,10 @@ N_A = constants.Avogadro # in mol^-1
 k_b_cgs = constants.Boltzmann #* 1e7#in J K^-1
 R_gas = N_A * k_b_cgs # in ..cm^3
 
-# https://www.grc.nasa.gov/www/k-12/airplane/atmosmet.html
-temperature = get_temp_values(heights)
-#temp_values = temperature[minInd:maxInd]
-temp_values = temperature[minInd:maxInd][::skipInd]
+# # https://www.grc.nasa.gov/www/k-12/airplane/atmosmet.html
+# temperature = get_temp_values(heights)
+# #temp_values = temperature[minInd:maxInd]
+# temp_values = temperature[minInd:maxInd][::skipInd]
 
 #x = VMR_O3 * N_A * pressure_values /(R_gas * temp_values)#* 1e-13
 #https://hitran.org/docs/definitions-and-units/
@@ -387,7 +452,7 @@ np.savetxt('E.txt', E, fmt = '%.15f', delimiter= '\t')
 fig, axs = plt.subplots(tight_layout=True, figsize=set_size(PgWidthPt, fraction=fraction))
 #plt.plot(press/1013.25,heights, label = 'pressure in hPa/' + str(np.around(max(press),3)) )
 #plt.plot(Source/max(Source),height_values, label = r'Source in $\frac{W}{m^2 sr}\frac{1}{\frac{1}{cm}}$/' + str(np.around(max(Source[0]),5)) )
-plt.plot(temperature,heights, color = 'darkred')# label = r'Source in K/' + str(np.around(max(temperature[0]),3)) )
+plt.plot(calc_temp,heights, color = 'darkred')# label = r'Source in K/' + str(np.around(max(temperature[0]),3)) )
 
 plt.plot(temp_values,height_values, color = 'red')# label = r'Source in K/' + str(np.around(max(temperature[0]),3)) )
 
@@ -458,7 +523,7 @@ nonLinY = (OrgData + noise).reshape((SpecNumMeas,1))
 y = (Ax + noise).reshape((SpecNumMeas,1))
 np.savetxt('nonLinDataY.txt',nonLinY, fmt = '%.15f', delimiter= '\t')
 np.savetxt('dataY.txt',y, fmt = '%.15f', delimiter= '\t')
-np.savetxt('AMat.txt',A, fmt = '%.15f', delimiter= '\t')
+np.savetxt('AMat.txt',A, fmt = '%.30f', delimiter= '\t')
 np.savetxt('ALinMat.txt',A_lin, fmt = '%.15f', delimiter= '\t')
 np.savetxt('nonLinA.txt',nonLinA, fmt = '%.15f', delimiter= '\t')
 np.savetxt('gamma0.txt',[gam0], fmt = '%.15f', delimiter= '\t')
@@ -469,11 +534,11 @@ np.savetxt('gamma0.txt',[gam0], fmt = '%.15f', delimiter= '\t')
 
 y = np.copy(nonLinY)
 
-new_temp_values = np.mean(temp_values) * np.ones((SpecNumLayers,1))
-AO3, theta_scale_O3 = composeAforO3(A_lin, new_temp_values, pressure_values, ind, new_temp_values)
-A = 2*AO3
-ATA = np.matmul(A.T,A)
-Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
+#new_temp_values = np.mean(temp_values) * np.ones((SpecNumLayers,1))
+#AO3, theta_scale_O3 = composeAforO3(A_lin, new_temp_values, pressure_values, ind, new_temp_values)
+#A = 2*AO3
+#ATA = np.matmul(A.T,A)
+#Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 
 APress, press_scale = composeAforPress(2*A_lin, temp_values, VMR_O3, ind)
 np.savetxt('AP.txt', APress, fmt = '%.15f', delimiter= '\t')
@@ -485,37 +550,43 @@ AxPT = np.matmul(APressTemp, pressure_values/temp_values[:,0])
 AxT = np.matmul(ATemp, 1/temp_values[:,0])
 AxP = np.matmul(APress, pressure_values)
 fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
-ax1.plot(Ax, tang_heights_lin, color = 'g')
+ax1.plot(Ax, tang_heights_lin, color = 'g', label = 'noise free')
 ax1.plot(AxPT, tang_heights_lin, color = 'blue')
 ax1.plot(AxP, tang_heights_lin,  color = 'orange')
 ax1.plot(AxT, tang_heights_lin, color = 'm')
 ax1.scatter(y, tang_heights_lin, color = 'r')
-ax1.plot(y, tang_heights_lin, color = 'r')
+ax1.plot(y, tang_heights_lin, color = 'r', label = 'noisy')
 ax1.scatter(nonLinY, tang_heights_lin, color = 'k')
 ax1.plot(nonLinY, tang_heights_lin, color = 'k')
+plt.legend()
 plt.show()
 
 #y = np.loadtxt('dataY.txt').reshape((SpecNumMeas,1))
 ATy = np.matmul(A.T, y)
 
 fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
-ax1.plot(Ax, tang_heights_lin)
+
 ax1.scatter(y, tang_heights_lin)
-ax1.plot(y, tang_heights_lin)
+ax1.plot(y, tang_heights_lin, label = 'noisy')
+ax1.plot(Ax, tang_heights_lin, label = 'noise free')
+plt.legend()
 plt.show()
 #print(1/np.var(y))
 
 
 #np.savetxt('dataY.txt', y, header = 'Data y including noise', fmt = '%.15f')
 np.savetxt('ForWardMatrix.txt', A, header = 'Forward Matrix A', fmt = '%.15f', delimiter= '\t')
-np.savetxt('height_values.txt', height_values, fmt = '%.15f', delimiter= '\t')
+np.savetxt('height_values.txt', height_values, fmt = '%.30f', delimiter= '\t')
 np.savetxt('tan_height_values.txt', tang_heights_lin, fmt = '%.15f', delimiter= '\t')
-np.savetxt('height_values.txt', height_values, fmt = '%.15f', delimiter= '\t')
-np.savetxt('pressure_values.txt', pressure_values, fmt = '%.15f', delimiter= '\t')
+
+np.savetxt('pressure_values.txt', pressure_values, fmt = '%.30f', delimiter= '\t')
 np.savetxt('temp_values.txt', temp_values, fmt = '%.15f', delimiter= '\t')
 
-np.savetxt('VMR_O3.txt', VMR_O3, fmt = '%.15f', delimiter= '\t')
+np.savetxt('VMR_O3.txt', VMR_O3, fmt = '%.30f', delimiter= '\t')
 np.savetxt('theta_scale_O3.txt', [theta_scale_O3], fmt = '%.15f')
+
+np.savetxt('calc_press.txt', calc_press[:maxInd], fmt = '%.30f', delimiter= '\t')
+np.savetxt('actual_heights.txt', actual_heights[:maxInd], fmt = '%.30f', delimiter= '\t')
 
 ## change data length
 
@@ -1018,7 +1089,7 @@ xTLxMargRes = np.sqrt(np.matmul(np.matmul(newPostMean.T, L), newPostMean))
 
 print('Post Mean in ' + str(MargTime) + ' s')
 
-
+print('Post Mean has ' + str(len(MargX[MargX <0]) ) + ' entries smaller than zeror')
 
 ##
 "Fitting prob distr to hyperparameter histogram"
@@ -1264,7 +1335,7 @@ line3 = ax2.scatter(y, tang_heights_lin, label = r'data $\bm{y}$', zorder = 0, m
 ax1 = ax2.twiny()
 #ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 1.5, markersize =7)
-
+ax1.axhline(height_values[startInd])
 # edgecolor = [0, 158/255, 115/255]
 #line1 = ax1.plot(VMR_O3,height_values, color = [0, 158/255, 115/255], linewidth = 10, zorder=0)
 for n in range(0,paraSamp,20):

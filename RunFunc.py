@@ -135,12 +135,14 @@ def composeAforO3withTemp(A_lin, temp, press, ind, wvnmbr, g_doub_prime, E, S, n
     #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
     return A, theta_scale
 
-def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, gamma0, VMR_O3, Results, AscalConstKmToCm, A_lin, temp_values, pressure_values, ind, scalingConst, relMapErrDat, wvnmbr, S, E,g_doub_prime):
+def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, gamma0, newCondMean, CondVar, AscalConstKmToCm, A_lin, temp_values, pressure_values, ind, scalingConst, relMapErrDat, wvnmbr, S, E,g_doub_prime):
     '''Find map from linear to non-linear data'''
 
     SpecNumMeas, SpecNumLayers = A_lin.shape
-    relMapErr = relMapErrDat
-    while np.mean(relMapErr) >= relMapErrDat:
+    relMapErr = np.copy(relMapErrDat)
+    while np.max(relMapErr) >= relMapErrDat:
+        Results = np.random.multivariate_normal(newCondMean, CondVar, size=SpecNumMeas)
+        Results[0] = newCondMean
         testDat = SpecNumMeas
         A_O3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, wvnmbr, g_doub_prime, E, S)
 
@@ -154,20 +156,23 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
 
             O3_Prof = np.copy(Results[ProfRand])
             O3_Prof[O3_Prof < 0] = 0
-            nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
+            nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, O3_Prof, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
             noise = np.random.normal(0, np.sqrt(1 / gamma0), SpecNumMeas)
             # noise = np.zeros(SpecNumMeas)
 
-            LinDataY[test] = np.matmul( currMap @ (A_O3 * 2), O3_Prof.reshape((SpecNumLayers, 1)) * theta_scale_O3).reshape(
-                SpecNumMeas) #+ noise
+            #LinDataY[test] = np.matmul( currMap @ (A_O3 * 2), O3_Prof.reshape((SpecNumLayers, 1)) * theta_scale_O3).reshape(SpecNumMeas) #+ noise
+            LinDataY[test] = np.matmul((A_O3 * 2),
+                                       O3_Prof.reshape((SpecNumLayers, 1)) * theta_scale_O3).reshape(
+                SpecNumMeas)
             NonLinDataY[test] = np.matmul(A_O3 * nonLinA,
                                           O3_Prof.reshape((SpecNumLayers, 1)) * theta_scale_O3).reshape(
                 SpecNumMeas) #+ noise
             #currMap = np.eye(SpecNumMeas)
 
 
-        RealMap = LinModelSolve(LinDataY, NonLinDataY, SpecNumMeas)
 
+        RealMap = LinModelSolve(LinDataY, NonLinDataY, SpecNumMeas)
+        currMap = np.copy(RealMap) #@ np.copy(currMap)
 
         #test map do find error
         testNum = 10# len(Results)#100
@@ -180,17 +185,18 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
         for k in range(0, testNum):
             currO3 = testO3[k]
             noise = np.random.normal(0, np.sqrt(1 / gamma0), SpecNumMeas)
-            nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
+            nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, currO3 , AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
 
             testDataY[k] = np.matmul(currMap @ (A_O3 * 2), currO3.reshape((SpecNumLayers, 1)) * theta_scale_O3).reshape(SpecNumMeas)# + noise
             testNonLinY[k] = np.matmul(A_O3 * nonLinA, currO3.reshape((SpecNumLayers, 1)) * theta_scale_O3).reshape(
                 SpecNumMeas) #+ noise
-            testNonLinY[k] = testDataY[k] #+ noise
+            #testNonLinY[k] = testDataY[k] #+ noise
 
-        relMapErr = testSolvedMap(RealMap, gamma0, testNum, SpecNumMeas, testNonLinY, testDataY)
-        print('mean realtive Error: ' + str(np.mean(relMapErr)))
-        currMap = RealMap @ np.copy(currMap)
-        relMapErr = 1
+
+        relMapErr = testSolvedMap(currMap, gamma0, testNum, SpecNumMeas, testNonLinY, testDataY)
+        print('max realtive Error: ' + str(np.max(relMapErr)))
+
+        #relMapErr = 1
     return currMap, relMapErr, LinDataY, NonLinDataY, testO3
 
 def LinModelSolve(LinDataY, NonLinDataY, SpecNumMeas):
@@ -203,6 +209,7 @@ def LinModelSolve(LinDataY, NonLinDataY, SpecNumMeas):
 
             for i in range(0, SpecNumMeas):
                 RealMap[i,:] = np.linalg.solve(LinDataY, NonLinDataY[:, i])
+                #RealMap[i, :] = np.linalg.solve(NonLinDataY, LinDataY[:, i])
 
         except np.linalg.LinAlgError:
             RealMap = None
@@ -217,8 +224,8 @@ def testSolvedMap(RealMap, gamma0, testNum, SpecNumMeas, testNonLinY, testDataY)
 
         noise = np.random.multivariate_normal(np.zeros(SpecNumMeas), np.sqrt(1 / gamma0) * np.eye(SpecNumMeas))
 
-        mappedDat = (RealMap @ testDataY[k]) #+ noise
-        relMapErr[k] = np.linalg.norm((testNonLinY[k]) - mappedDat) / np.linalg.norm((testNonLinY[k])) * 100
+        mappedDat = testDataY[k]#(RealMap @ testDataY[k]) #+ noise
+        relMapErr[k] = np.linalg.norm(testNonLinY[k] - mappedDat) / np.linalg.norm(testNonLinY[k]) * 100
 
 
     return relMapErr
