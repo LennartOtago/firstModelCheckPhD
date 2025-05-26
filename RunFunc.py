@@ -142,7 +142,10 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
     relMapErr = np.copy(relMapErrDat)
     while np.max(relMapErr) >= relMapErrDat:
         Results = np.random.multivariate_normal(newCondMean, CondVar, size=SpecNumMeas)
-        Results[0] = newCondMean
+        for i in range(len(Results)):
+            #print(i)
+            while any(Results[i] < 0):
+                Results[i] = np.random.multivariate_normal(newCondMean, CondVar)
         testDat = SpecNumMeas
         A_O3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, wvnmbr, g_doub_prime, E, S)
 

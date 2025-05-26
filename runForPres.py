@@ -507,7 +507,7 @@ DatCol =  'gray'
 fig4, ax4 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True, dpi = 300)
 ax4.plot(linTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'linear $\bm{A}_L\bm{x}$', markersize = 18 , zorder = 0, color = DatCol )
 relErr = np.linalg.norm( MapLinTestDat -  nonLinTestDat) / np.linalg.norm(MapLinTestDat) * 100
-ax4.plot(MapLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'mappped $\bm{A}_L\bm{x}$' + f', rel. Err.: {relErr:.1f} \%', markersize = 7, zorder = 2, color ='k')
+ax4.plot(MapLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'mappped $\bm{MA}_L\bm{x}$' + f', rel. Err.: {relErr:.1f} \%', markersize = 7, zorder = 2, color ='k')
 ax4.plot(nonLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = 'o', label = r'non-linear $\bm{A_{NL}x}$', markersize = 10, zorder = 1, color = 'r')
 ax4.legend()
 ax4.set_ylabel('(tangent) height in km')
@@ -911,7 +911,7 @@ xTLxMargRes = np.sqrt(np.matmul(np.matmul(currX.T, L), currX))
 
 
 
-fig, axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+fig, axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction) ,tight_layout = True, dpi = 300)
 axs.scatter(NormLCurve,xTLxCurve, zorder = 0, color =  DatCol, s = 3.5, marker ='s', label = 'reg. solution')
 axs.scatter(NormRes, xTLxRes, color = ResCol, s = 3, marker = "+",label = r'posterior samples ')# ,mfc = 'black' , markeredgecolor='r',markersize=10,linestyle = 'None')
 axs.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 50, label = 'posterior mean',zorder=2)
