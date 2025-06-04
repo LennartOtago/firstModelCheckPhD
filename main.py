@@ -378,7 +378,7 @@ N_A = constants.Avogadro # in mol^-1
 R = constants.gas_constant
 
 
-mol_M = 48 #g/mol for Ozone
+#mol_M = 48 #g/mol for Ozone
 #ind = 293
 ind = 623
 #pick wavenumber in cm^-1
@@ -1196,6 +1196,7 @@ axs.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 50, labe
 #E$_{\mathbf{x},\mathbf{\theta}| \mathbf{y}}[\mathbf{x}_{\lambda}]$
 #axs.axvline(x = knee_point)
 axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'max. curvature', s= 50,zorder=1)
+
 # #zoom in
 # x1, x2, y1, y2 = NormLCurveZoom[0], NormLCurveZoom[-31], xTLxCurveZoom[0], xTLxCurveZoom[-1] # specify the limits
 # axins = axs.inset_axes([0.1,0.05,0.55,0.45])

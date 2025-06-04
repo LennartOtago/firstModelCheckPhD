@@ -6,6 +6,7 @@ import matplotlib as mpl
 import time
 import matplotlib.pyplot as plt
 import scipy as scy
+from puwr import tauint
 
 
 fraction = 1.5
@@ -75,11 +76,18 @@ lowC_L = scy.linalg.cholesky(L, lower = True)
 ### check Amat
 
 Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
+nonLinAx = np.matmul( A/2 * nonLinA,VMR_O3 * theta_scale_O3)
 fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
 ax1.plot(Ax, tang_heights_lin)
+ax1.plot(nonLinAx, tang_heights_lin)
 ax1.scatter(y, tang_heights_lin, color = 'r')
 plt.show()
 
+
+
+
+relDiff = np.linalg.norm( nonLinAx -  y) / np.linalg.norm(nonLinAx) * 100
+print(f'rel difference between data and noise free data is {relDiff:.2f}')
 
 ##
 
@@ -283,7 +291,12 @@ print('acceptance ratio: ' + str(k/(number_samples+burnIn)))
 deltas = lambdas * gammas
 np.savetxt('FirstSamples.txt', np.vstack((gammas[burnIn::], deltas[burnIn::], lambdas[burnIn::])).T, header = 'gammas \t deltas \t lambdas \n Acceptance Ratio: ' + str(k/number_samples) + '\n Elapsed Time: ' + str(elapsed), fmt = '%.15f \t %.15f \t %.15f')
 
+##
 
+#FirstSampl = [[gammas[burnIn::]], [deltas[burnIn::]], [lambdas[burnIn::]]]
+firstgammean, firstgamdelta, firstgamtint, firstgamd_tint = tauint([[gammas[burnIn::]]], 0)
+firstdelmean, firstdeldelta, firstdeltint, firstdeld_tint = tauint([[deltas[burnIn::]]], 0)
+firstlammean, firstlamdelta, firstlamtint, firstlamd_tint = tauint([[lambdas[burnIn::]]], 0)
 
 ##
 startTime = time.time()
@@ -447,7 +460,7 @@ plt.show()
 
 ##find affine map
 FirstSamp = len(y)
-relMapErrDat = 0.1
+relMapErrDat = 4
 #Results = np.random.multivariate_normal(MargInteg, CondVar,size=FirstSamp)
 #Results[0] = MargInteg
 #Results = np.random.multivariate_normal(VMR_O3[:,0], CondVar,size=FirstSamp)
@@ -473,23 +486,23 @@ nonLinTestDat = np.matmul( A/2 * nonLinA,testO3[randInt] * theta_scale_O3)
 # ax4.plot(RealMap @ linTestDat, tang_heights_lin, linestyle='dotted', marker='o', markersize=2, zorder=1, color='blue')
 #
 # plt.show()
-
+##
 binCol = 'C0'
 postCol = 'C1'
 priorCol = 'k'
 #TrueCol = 'C2'
-
+alpha = 0.75
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
 
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
 
-#line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr = np.sqrt(np.diag(CondVar)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
-#ax1.errorbar(MargInteg,height_values[:,0],  yerr = np.zeros(len(height_values)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', label = r'posterior $\mu \pm \sigma$ ', markersize =3, linewidth =1, capsize = 3)
+line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr = np.sqrt(np.diag(CondVar)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
+ax1.errorbar(MargInteg,height_values[:,0],  yerr = np.zeros(len(height_values)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', label = r'posterior $\bm{\mu}_{\bm{x}|\bm{y}} \pm \bm{\Sigma}_{\bm{x}|\bm{y}}$', markersize =3, linewidth =1, capsize = 3)
 ax1.plot(testO3[randInt], height_values, markeredgecolor=binCol, color=binCol, zorder=1, marker='.', markersize=2,
-         linewidth=0.5, label='posterior sample', alpha = 0.5)
+         linewidth=0.5, label='posterior sample', alpha = alpha)
 for i in range(1,FirstSamp):
     ax1.plot(testO3[i], height_values, markeredgecolor=binCol, color=binCol, zorder=1, marker='.', markersize=4,
-             linewidth=0.75, alpha = 0.5)
+             linewidth=0.75, alpha = alpha)
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
 
@@ -507,7 +520,7 @@ DatCol =  'gray'
 fig4, ax4 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True, dpi = 300)
 ax4.plot(linTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'linear $\bm{A}_L\bm{x}$', markersize = 18 , zorder = 0, color = DatCol )
 relErr = np.linalg.norm( MapLinTestDat -  nonLinTestDat) / np.linalg.norm(MapLinTestDat) * 100
-ax4.plot(MapLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'mappped $\bm{MA}_L\bm{x}$' + f', rel. Err.: {relErr:.1f} \%', markersize = 7, zorder = 2, color ='k')
+ax4.plot(MapLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'mappped $\bm{MA}_L\bm{x}$' + f', rel. Err.: {relErr:.2f} \%', markersize = 7, zorder = 2, color ='k')
 ax4.plot(nonLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = 'o', label = r'non-linear $\bm{A_{NL}x}$', markersize = 10, zorder = 1, color = 'r')
 ax4.legend()
 ax4.set_ylabel('(tangent) height in km')
@@ -591,6 +604,10 @@ print('acceptance ratio: ' + str(k/(number_samples+burnIn)))
 deltas = lambdas * gammas
 np.savetxt('AffineSamples.txt', np.vstack((gammas[burnIn::], deltas[burnIn::], lambdas[burnIn::])).T, header = 'gammas \t deltas \t lambdas \n Acceptance Ratio: ' + str(k/number_samples) + '\n Elapsed Time: ' + str(elapsed), fmt = '%.15f \t %.15f \t %.15f')
 
+
+secgammean, secgamdelta, secgamtint, secgamd_tint = tauint([[gammas[burnIn::]]], 0)
+secdelmean, secdeldelta, secdeltint, secdeld_tint = tauint([[deltas[burnIn::]]], 0)
+seclammean, seclamdelta, seclamtint, seclamd_tint = tauint([[lambdas[burnIn::]]], 0)
 
 
 ##
@@ -685,6 +702,8 @@ for BinHist in range(BinHistStart+1,100):
         break
     oldRelErr = np.copy(newRelErr)
 
+
+np.savetxt('BinHistNum.txt',[BinHist], fmt = '%.30f', delimiter= '\t')
 MargInteg= np.copy(newMargInteg)
 
 #CondVar = scy.integrate.trapezoid(gamInt) * scy.integrate.trapezoid(VarB.T) / (theta_scale_O3) ** 2
@@ -757,61 +776,103 @@ trace = [MinLogMargPost(np.array([lambdas[burnIn+ i],gammas[burnIn+ i]])) for i 
 
 fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} , dpi =300)
 
-axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 0.1)
+axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', s = 0.1)#color = binCol,
+axs[0].scatter(gam0,lam0, marker='X', s = 20, color = 'red')
 axs[0].set_xlabel(r'$\gamma$')
 axs[0].set_ylabel(r'$\lambda$')
 
-axs[1].plot(trace, color = 'k')
-axs[1].set_ylabel(r'$\pi(\lambda, \gamma| \bm{y})$')
+axs[1].plot(trace, color = 'k', linewidth = 0.1)
+axs[1].set_ylabel(r'$\ln {\pi(\lambda, \gamma| \bm{y})}$')
 axs[1].set_xlabel('number of samples')
 plt.savefig('ScatterplusHisto.png')
 plt.show()
 ##
-# dimMargO3 = 2
-# gridSize = 25
-# index = 'first'
-# dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
-# margPDFO3 = np.zeros((dimMargO3, gridSize))
-# univarGridO3 = np.zeros((dimMargO3, gridSize))
-# for i in range(0, dimMargO3):
-#     margPDFO3[i] =  np.loadtxt(dir + index +'margPDFMargO3' + str(i) + '.txt')
-#     univarGridO3[i] = np.loadtxt(dir + index +'uniVarGridMargO3' + str(i) + '.txt')
-#
-# #Create 2D map
-# TTMarg = np.zeros((gridSize,gridSize))
-# for i in range(0, gridSize):
-#     for j in range(0, gridSize):
-#         TTMarg[i,j] = margPDFO3[0,i] * margPDFO3[1,j]
-#
-# #viridis = mpl.cm.get_cmap('viridis', 12)
-# viridis = mpl.colormaps.get_cmap('viridis')
-# from mpl_toolkits.axes_grid1 import make_axes_locatable
-# fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} , dpi =300)
-# #im = axs[0].imshow(TTMarg, zorder = 0)
-# #axs[0].pcolormesh(univarGridO3[0],univarGridO3[1],TTMarg)
-# #axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
+dimMargO3 = 2
+gridSize = 100
+gmresCol = [204/255, 121/255, 167/255]
+index = 'first'
+dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
+margPDFO3 = np.zeros((dimMargO3, gridSize))
+univarGridO3 = np.zeros((dimMargO3, gridSize))
+for i in range(0, dimMargO3):
+    margPDFO3[i] =  np.loadtxt(dir + index +'margPDFMargO3' + str(i) + '.txt')
+    univarGridO3[i] = np.loadtxt(dir + index +'uniVarGridMargO3' + str(i) + '.txt')
+
+#Create 2D map
+TTMarg = np.zeros((gridSize,gridSize))
+for i in range(0, gridSize):
+    for j in range(0, gridSize):
+        TTMarg[i,j] = margPDFO3[0,i] * margPDFO3[1,j]
+
+#viridis = mpl.cm.get_cmap('viridis', 12)
+viridis = mpl.colormaps.get_cmap('viridis')
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} , dpi =300)
+#im = axs[0].imshow(TTMarg, zorder = 0)
+#axs[0].pcolormesh(univarGridO3[0],univarGridO3[1],TTMarg)
+#axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
+
+gamVal = np.interp(gammas[burnIn :], univarGridO3[0], margPDFO3[0])
+lamVal = np.interp(lambdas[burnIn :], univarGridO3[1], margPDFO3[1])
+
 # for i in range(0,len(gammas[burnIn:])):
 # #for i in range(0, 10):
 #     gamVal = np.interp(gammas[burnIn+i],univarGridO3[0],margPDFO3[0])
 #     lamVal = np.interp(lambdas[burnIn + i], univarGridO3[1], margPDFO3[1])
 #     colVal = (gamVal*lamVal)/np.max(TTMarg)
-#     #print(colVal)
 #     sc = axs[0].scatter(gammas[burnIn+i], lambdas[burnIn + i], marker='.', color=viridis(colVal), s=0.15)
-# cbar = plt.colorbar(sc)
-# label = cbar.ax.get_yticks()
-# newlabel = [np.round(lab * np.max(TTMarg),3) for lab in label]
-# cbar.ax.set_yticks(label)
-# cbar.ax.set_yticklabels(newlabel)
-# cbar.set_label(r'$\pi(\lambda, \gamma| \bm{y})$')
-# #axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
-# axs[0].set_xlabel(r'$\gamma$')
-# axs[0].set_ylabel(r'$\lambda$')
-#
-# axs[1].plot(trace, color = 'k')
-# axs[1].set_ylabel(r'$\pi(\lambda, \gamma| \bm{y})$')
-# axs[1].set_xlabel('number of samples')
-# plt.savefig('ScatterplusHistoPlusTT.png')
-# plt.show()
+
+sc = axs[0].scatter(gammas[burnIn:], lambdas[burnIn:], marker='.', s=0.15, cmap = 'viridis', c = lamVal*gamVal)
+axs[0].scatter(gam0,lam0, marker='X', s = 30, color = gmresCol)
+cbar = plt.colorbar(sc)
+#label = cbar.ax.get_yticks()
+#newlabel = [np.round(lab * np.max(TTMarg),3) for lab in label]
+#cbar.ax.set_yticks(label)
+#cbar.ax.set_yticklabels(newlabel)
+cbar.set_label(r'$\pi(\lambda, \gamma| \bm{y})$')
+#axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
+axs[0].set_xlabel(r'$\gamma$')
+axs[0].set_ylabel(r'$\lambda$')
+
+axs[1].plot(trace, color = 'k', linewidth = 0.1)
+axs[1].set_ylabel(r'$\ln {\pi(\lambda, \gamma| \bm{y})}$')
+axs[1].set_xlabel('number of samples')
+plt.savefig('ScatterplusHistoPlusTT.png')
+plt.show()
+
+##
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator
+
+fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, dpi = 300,tight_layout=True)
+
+
+PlotX, PlotY = np.meshgrid(univarGridO3[0], univarGridO3[1])
+#lotZ = PlotX * PlotY
+
+
+# Plot the surface.
+surf = ax.plot_surface(PlotX, PlotY,  TTMarg, cmap=cm.cool,
+                       linewidth=0, antialiased=False)
+
+# # Customize the z axis.
+# ax.set_zlim(-1.01, 1.01)
+# ax.zaxis.set_major_locator(LinearLocator(10))
+# # A StrMethodFormatter is used automatically
+# ax.zaxis.set_major_formatter('{x:.02f}')
+
+# Add a color bar which maps values to colors.
+#fig.colorbar(surf, shrink=0.5, aspect=5)
+
+#ax.tick_params(axis='x', which='both',  bottom=False, labelbottom=False)
+#ax.tick_params(axis='y', which='both',  left=False, labelleft=False)
+#ax.tick_params(axis='z',  left=False, bottom=False, right=False, top=False, labeltop=False)
+ax.axes.xaxis.set_ticklabels([])
+ax.axes.yaxis.set_ticklabels([])
+ax.axes.zaxis.set_ticklabels([])
+plt.savefig('PosterMargTT.png')
+plt.show()
+
 
 ##
 BinHist = 30#n_bins
@@ -908,14 +969,15 @@ for i in range(0,sampSize):
 currX = MargInteg* theta_scale_O3
 NormMargRes = np.linalg.norm( np.matmul(A,currX) - y[0::,0])
 xTLxMargRes = np.sqrt(np.matmul(np.matmul(currX.T, L), currX))
-
+##
 
 
 fig, axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction) ,tight_layout = True, dpi = 300)
-axs.scatter(NormLCurve,xTLxCurve, zorder = 0, color =  DatCol, s = 3.5, marker ='s', label = 'reg. solution')
+axs.scatter(NormLCurveZoom,xTLxCurveZoom, zorder = 0, color =  DatCol, s = 3.5, marker ='s', label = 'reg. solution')
 axs.scatter(NormRes, xTLxRes, color = ResCol, s = 3, marker = "+",label = r'posterior samples ')# ,mfc = 'black' , markeredgecolor='r',markersize=10,linestyle = 'None')
 axs.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 50, label = 'posterior mean',zorder=2)
 axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'max. curvature', s= 50,zorder=1)
+#axs.add_patch(mpl.patches.Rectangle((NormLCurveZoom[0], xTLxCurveZoom[-1]), abs(NormLCurveZoom[-1]-NormLCurveZoom[0]), abs(xTLxCurveZoom[-1]-xTLxCurveZoom[0]),facecolor='none'))
 
 axs.set_xscale('log')
 axs.set_yscale('log')
