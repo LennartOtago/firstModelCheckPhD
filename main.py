@@ -682,13 +682,12 @@ np.savetxt('f_func.txt', f_func, fmt = '%.15f')
 np.savetxt('g_func.txt', g_func, fmt = '%.15f')
 np.savetxt('lam.txt', lam, fmt = '%.15f')
 
-
 ##
 ''' check taylor series in f(lambda) and g(lambda)
 around lam0 from gmres = '''
 
 #taylor series arounf lam_0
-
+lam0 = 1.75*minimum[1]
 B = (ATA + lam0 * L)
 
 LowTri = np.linalg.cholesky(B)
@@ -708,9 +707,6 @@ for i in range(len(B)):
     UpTri = LowTri.T
     B_inv_L[:, i] = lu_solve(LowTri, UpTri,  L[:, i])
 
-#relative_tol_L = rtol
-#CheckB_inv_L = np.matmul(B, B_inv_L)
-#print(np.linalg.norm(L- CheckB_inv_L)/np.linalg.norm(L)<relative_tol_L)
 
 B_inv_L_2 = np.matmul(B_inv_L, B_inv_L)
 B_inv_L_3 = np.matmul(B_inv_L_2, B_inv_L)
@@ -722,9 +718,9 @@ B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
 f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
 f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
 f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
-f_0_4 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
-f_0_5 = 0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
-f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
+f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+f_0_5 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
+f_0_6 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
 
 
 
@@ -735,111 +731,20 @@ g_0_4 = 0#-1 /24 * np.trace(B_inv_L_4)
 g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
 g_0_6 = 0#-1 /720 * np.trace(B_inv_L_6)
 
-
-##
 f_0 = f(ATy, y, B_inv_A_trans_y0)
-
-fCol = [0, 144/255, 178/255]
-gCol = [230/255, 159/255, 0]
-#gCol = [240/255, 228/255, 66/255]
-#gCol = [86/255, 180/255, 233/255]
-gmresCol = [204/255, 121/255, 167/255]
-
-lambBinEdges = np.linspace(lam0-lam0/2, lam0 +lam0/2, 50 )
-delta_lam = lambBinEdges - minimum[1]
-taylorG = g_tayl(delta_lam,g(A, L, minimum[1]), g_0_1, g_0_2, g_0_3, g_0_4, g_0_5, g_0_6)
-taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3, f_0_4, f_0_5, f_0_6)
-
-
-fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)#, dpi = dpi)
-
-axs.plot(lam,f_func, color = fCol, zorder = 2, linestyle=  'dotted')
-axs.set_yscale('log')
-axs.set_xlabel('$\lambda$')
-axs.set_ylabel('$f(\lambda)$')#, color = fCol)
-axs.tick_params(axis = 'y',  colors=fCol, which = 'both')
-
-ax2 = axs.twinx() # ax1 and ax2 share y-axis
-ax2.plot(lam,g_func, color = gCol, zorder = 2, linestyle=  'dashed')
-#ax2.scatter(minimum[1],g(A, L, minimum[1]), color = gmresCol, zorder=0, marker = 's')
-
-#ax2.scatter(np.mean(lambdas),g(A, L, np.mean(lambdas) ), color = MTCCol, zorder=5)
-#ax2.scatter(lamPyT,g(A, L, lamPyT) , color = pyTCol, zorder=6, marker = 'D')
-#ax2.annotate('T-Walk $\lambda$ sample mean',(lamPyT+1e6,g(A_lin, L, lamPyT) +50), color = 'k')
-ax2.set_ylabel('$g(\lambda)$')#,color = gCol)
-ax2.tick_params(axis = 'y', colors= gCol)
-axs.set_xscale('log')
-axins = axs.inset_axes([0.05,0.5,0.4,0.45])
-axins.plot(lam,f_func, color = fCol, zorder=3, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
-
-axins.axvline( minimum[1], color = gmresCol, label = r'$\pi(\lambda_0|\bm{y}, \gamma)$')
-
-axins.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
-axs.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 2, label = 'Taylor series' )
-
-
-axins.set_ylim(0.95 * taylorF[0],1.5 * taylorF[-1])
-axins.set_xlabel('$\lambda$')
-axins.set_yscale('log')
-axins.set_xscale('log')
-
-
-
-axins.tick_params(axis='y', which='both',  left=False, labelleft=False)
-
-axins.tick_params(axis='y', which='both', length=0)
-
-axin2 = axins.twinx()
-axin2.spines['top'].set_visible(False)
-axin2.spines['right'].set_visible(False)
-axin2.spines['bottom'].set_visible(False)
-axin2.spines['left'].set_visible(False)
-
-
-axin2.tick_params(axis = 'y', which = 'both',labelright=False, right=False)
-axin2.tick_params(axis='y', which='both', length=0)
-
-
-# #axin2.set_xticks([np.mean(lambdas) -np.sqrt(np.var(lambdas)) , np.mean(lambdas), np.mean(lambdas) + np.sqrt(np.var(lambdas)) ] )
-axin2.plot(lam,g_func, color = gCol, zorder=3, linestyle=  'dashed', linewidth = 3,label = '$g(\lambda)$')
-
-axin2.plot(lambBinEdges, taylorG, color = 'k', linewidth = 1, zorder = 2 )
-
-ax2.plot(lambBinEdges, taylorG , color = 'k', linewidth = 1, zorder = 1)
-ax2.axvline( minimum[1], color = gmresCol)
-
-axin2.set_ylim(0.8 * taylorG[0],1.05 * taylorG[-1])
-axin2.set_xlim(min(lambBinEdges),max(lambBinEdges))
-axin2.set_xscale('log')
-
-#mark_inset(axs, axins, loc1=3, loc2=4, fc="none", ec="0.5")
-lines2, lab2 = axin2.get_legend_handles_labels()
-lines, lab0 = axins.get_legend_handles_labels()
-#axs.spines['top'].set_visible(False)
-axs.spines['right'].set_visible(False)
-#axs.spines['left'].set_color(fCol)
-axs.spines['left'].set_color('k')
-ax2.spines['top'].set_visible(False)
-ax2.spines['right'].set_color('k')
-#ax2.spines['right'].set_color(gCol)
-ax2.spines['bottom'].set_visible(False)
-ax2.spines['left'].set_visible(False)
-
-
-axs.legend(np.append(lines2,lines),np.append(lab2,lab0), loc = 'lower right')
-
-axins.set_xlim(min(lambBinEdges),max(lambBinEdges))
-fig.savefig('f_and_g_paper.png', bbox_inches='tight')
-plt.show()
-
+g_0 = g(A, L,minimum[1] )
+delG = (np.log(g(A, L, 1.2e4)) - np.log(g_0))/ (np.log(1.2e4) - np.log(minimum[1]))
 
 
 ##
 
 '''do the sampling'''
+
+
 number_samples = 20000
 burnIn = 100
-f_0 = f(ATy, y, B_inv_A_trans_y0)
+
+
 #wLam = 2e2#5.5e2
 #wgam = 1e-5
 #wdelt = 1e-1
@@ -852,6 +757,9 @@ shape = SpecNumMeas/2 + alphaD + alphaG
 
 #f_new = f_0
 #g_old = g(A, L,  lambdas[0])
+g_0 = g(A, L, lam0)
+delG = (np.log(g(A, L, 1.2e4)) - np.log(g_0))/ (np.log(1.2e4) - np.log(lam0))
+
 
 def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
     wLam = lam0 * 0.8#8e3#7e1
@@ -887,8 +795,10 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
         delta_lam_t = lambdas[t] - lam0
         delta_lam_p = lam_p - lam0
         delta_f = f_0_1 * delta_lam + f_0_2 * (delta_lam_p**2 - delta_lam_t**2) + f_0_3 *(delta_lam_p**3 - delta_lam_t**3) #+ f_0_4 * delta_lam**4 + f_0_5 * delta_lam**5
-        delta_g = g_0_1 * delta_lam + g_0_2 * (delta_lam_p**2 - delta_lam_t**2) + g_0_3 * (delta_lam_p**3 - delta_lam_t**3) #+ g_0_4 * delta_lam**4 + g_0_5 * delta_lam**5
-
+        #delta_g = g_0_1 * delta_lam + g_0_2 * (delta_lam_p**2 - delta_lam_t**2) + g_0_3 * (delta_lam_p**3 - delta_lam_t**3) #+ g_0_4 * delta_lam**4 + g_0_5 * delta_lam**5
+        Glam_p = (np.log(lam_p) - np.log(lam0)) * delG + np.log(g_0)
+        Gcurr = (np.log(lambdas[t]) - np.log(lam0)) * delG + np.log(g_0)
+        delta_g = np.exp(Glam_p) - np.exp(Gcurr)
         log_MH_ratio = ((SpecNumLayers)/ 2) * (np.log(lam_p) - np.log(lambdas[t])) - 0.5 * (delta_g + gammas[t] * delta_f) - betaD * gammas[t] * delta_lam
 
         #accept or rejeict new lam_p
@@ -967,7 +877,176 @@ axs[2].set_ylabel(r'$\pi(\bm{\theta}|\bm{y})$')
 axs[2].set_xlabel('number of samples')
 plt.savefig('HistoPlot.png')
 plt.show()
+##
+''' check taylor series in f(lambda) and g(lambda)
+around lam0 from gmres = '''
 
+#taylor series arounf lam_0
+B = (ATA + lam0 * L)
+
+LowTri = np.linalg.cholesky(B)
+UpTri = LowTri.T
+# check if L L.H = B
+B_inv_A_trans_y0 = lu_solve(LowTri, UpTri,  ATy[0::, 0])
+
+
+
+np.savetxt('B_inv_A_trans_y0.txt', B_inv_A_trans_y, fmt = '%.15f', delimiter= '\t')
+
+
+B_inv_L = np.zeros(np.shape(B))
+
+for i in range(len(B)):
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    B_inv_L[:, i] = lu_solve(LowTri, UpTri,  L[:, i])
+
+#relative_tol_L = rtol
+#CheckB_inv_L = np.matmul(B, B_inv_L)
+#print(np.linalg.norm(L- CheckB_inv_L)/np.linalg.norm(L)<relative_tol_L)
+
+B_inv_L_2 = np.matmul(B_inv_L, B_inv_L)
+B_inv_L_3 = np.matmul(B_inv_L_2, B_inv_L)
+B_inv_L_4 = np.matmul(B_inv_L_2, B_inv_L_2)
+B_inv_L_5 = np.matmul(B_inv_L_4, B_inv_L)
+B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
+
+
+f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
+f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
+f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+f_0_5 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
+f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
+
+
+
+g_0_1 = np.trace(B_inv_L)
+g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
+g_0_3 = 1 /6 * np.trace(B_inv_L_3)
+g_0_4 = 0#-1 /24 * np.trace(B_inv_L_4)
+g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
+g_0_6 = 0#-1 /720 * np.trace(B_inv_L_6)
+
+
+
+f_0 = f(ATy, y, B_inv_A_trans_y0)
+
+fCol = [0, 144/255, 178/255]
+gCol = [230/255, 159/255, 0]
+#gCol = [240/255, 228/255, 66/255]
+#gCol = [86/255, 180/255, 233/255]
+gmresCol = [204/255, 121/255, 167/255]
+
+#lambBinEdges = np.linspace(100, 1e4, 50 )
+delta_lam = lambBinEdges - lam0
+#taylorG = g_tayl(delta_lam,g(A, L, minimum[1]), g_0_1, g_0_2, g_0_3, g_0_4, g_0_5, g_0_6)
+taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,f_0_4, f_0_5, f_0_6)
+taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2,f_0_3,0, 0, 0)
+g_0 = g(A, L,minimum[1] )
+delG = (np.log(g(A, L, 1.2e4)) - np.log(g_0))/ (np.log(1.2e4) - np.log(minimum[1]))
+GApprox = (np.log(lambBinEdges) - np.log(minimum[1])) * delG  + np.log(g_0)
+taylorG = np.exp(GApprox)
+
+
+fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)#, dpi = dpi)
+
+axs.plot(lam,f_func, color = fCol, zorder = 2, linestyle=  'dotted')
+axs.set_yscale('log')
+axs.set_xlabel('$\lambda$')
+axs.set_ylabel('$f(\lambda)$')#, color = fCol)
+axs.tick_params(axis = 'y',  colors=fCol, which = 'both')
+
+ax2 = axs.twinx() # ax1 and ax2 share y-axis
+ax2.plot(lam,g_func, color = gCol, zorder = 2, linestyle=  'dashed')
+#ax2.scatter(minimum[1],g(A, L, minimum[1]), color = gmresCol, zorder=0, marker = 's')
+
+#ax2.scatter(np.mean(lambdas),g(A, L, np.mean(lambdas) ), color = MTCCol, zorder=5)
+#ax2.scatter(lamPyT,g(A, L, lamPyT) , color = pyTCol, zorder=6, marker = 'D')
+#ax2.annotate('T-Walk $\lambda$ sample mean',(lamPyT+1e6,g(A_lin, L, lamPyT) +50), color = 'k')
+ax2.set_ylabel('$g(\lambda)$')#,color = gCol)
+ax2.tick_params(axis = 'y', colors= gCol)
+axs.set_xscale('log')
+axins = axs.inset_axes([0.05,0.5,0.4,0.45])
+axins.plot(lam,f_func, color = fCol, zorder=3, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+
+axins.axvline( lam0, color = gmresCol, label = r'$\pi(\lambda_0|\bm{y}, \gamma)$')
+
+axins.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+axs.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 2, label = 'Taylor series' )
+
+
+axins.set_ylim(0.95 * taylorF[0],2 * taylorF[-1])
+axins.set_xlabel('$\lambda$')
+axins.set_yscale('log')
+axins.set_xscale('log')
+
+
+
+axins.tick_params(axis='y', which='both',  left=False, labelleft=False)
+
+axins.tick_params(axis='y', which='both', length=0)
+
+axin2 = axins.twinx()
+axin2.spines['top'].set_visible(False)
+axin2.spines['right'].set_visible(False)
+axin2.spines['bottom'].set_visible(False)
+axin2.spines['left'].set_visible(False)
+
+
+axin2.tick_params(axis = 'y', which = 'both',labelright=False, right=False)
+axin2.tick_params(axis='y', which='both', length=0)
+
+
+# #axin2.set_xticks([np.mean(lambdas) -np.sqrt(np.var(lambdas)) , np.mean(lambdas), np.mean(lambdas) + np.sqrt(np.var(lambdas)) ] )
+axin2.plot(lam,g_func, color = gCol, zorder=3, linestyle=  'dashed', linewidth = 3,label = '$g(\lambda)$')
+
+axin2.plot(lambBinEdges, taylorG, color = 'k', linewidth = 1, zorder = 2 )
+
+ax2.plot(lambBinEdges, taylorG , color = 'k', linewidth = 1, zorder = 1)
+ax2.axvline( minimum[1], color = gmresCol)
+
+axin2.set_ylim(0.8 * taylorG[0],1.05 * taylorG[-1])
+axin2.set_xlim(min(lambBinEdges),max(lambBinEdges))
+axin2.set_xscale('log')
+
+#mark_inset(axs, axins, loc1=3, loc2=4, fc="none", ec="0.5")
+lines2, lab2 = axin2.get_legend_handles_labels()
+lines, lab0 = axins.get_legend_handles_labels()
+#axs.spines['top'].set_visible(False)
+axs.spines['right'].set_visible(False)
+#axs.spines['left'].set_color(fCol)
+axs.spines['left'].set_color('k')
+ax2.spines['top'].set_visible(False)
+ax2.spines['right'].set_color('k')
+#ax2.spines['right'].set_color(gCol)
+ax2.spines['bottom'].set_visible(False)
+ax2.spines['left'].set_visible(False)
+
+
+axs.legend(np.append(lines2,lines),np.append(lab2,lab0), loc = 'lower right')
+
+axins.set_xlim(min(lambBinEdges),max(lambBinEdges))
+fig.savefig('f_and_g_paper.png', bbox_inches='tight')
+plt.show()
+
+# print max rel F taylor F error
+f_Checkfunc = np.zeros(len(lambBinEdges))
+for j in range(len(lambBinEdges)):
+
+    B = (ATA + lambBinEdges[j] * L)
+
+    #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    # check if L L.H = B
+    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+    f_Checkfunc[j] = f(ATy, y, B_inv_A_trans_y)
+
+relFErr = max(abs(f_Checkfunc - taylorF)/abs(f_Checkfunc))
+ErrLam = lambBinEdges[abs(f_Checkfunc - taylorF)/abs(f_Checkfunc) == relFErr][0]
+print(f'relative F error {relFErr *100} at {ErrLam}')
 
 ###draw paramter samples
 paraSamp = 200#n_bins

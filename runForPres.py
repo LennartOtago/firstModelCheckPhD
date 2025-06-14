@@ -142,7 +142,7 @@ print(minimum)
 around lam0 from gmres = '''
 
 #taylor series arounf lam_0
-
+lam0 = 1.75*minimum[1]
 B = (ATA + lam0 * L)
 
 LowTri = np.linalg.cholesky(B)
@@ -178,18 +178,69 @@ f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
 g_0_1 = np.trace(B_inv_L)
 g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
 g_0_3 = 1 /6 * np.trace(B_inv_L_3)
-g_0_4 = 0#-1 /24 * np.trace(B_inv_L_4)
+g_0_4 = -1 /24 * np.trace(B_inv_L_4)
 g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
 g_0_6 = 0#-1 /720 * np.trace(B_inv_L_6)
 
 
 f_0 = f(ATy, y, B_inv_A_trans_y0)
+g_0 = g(A, L, lam0)
+delG = (np.log(g(A, L, 1e4)) - np.log(g_0)) / (np.log(1e4) - np.log(lam0))
+# lambBinEdges = np.linspace(500, 1.4e4, 100)
+# g_func = [g(A, L,  lam) for lam in lambBinEdges]
+#
+# fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction),  dpi = 300, tight_layout = True)
+#
+# delG = np.log(g(A, L,  max(lambBinEdges - minimum[1])) ) - np.log(g(A, L, minimum[1]))
+# GApprox = (np.log(lambBinEdges) - np.log(minimum[1] )) * delG / (np.log(max(lambBinEdges - minimum[1]))- np.log(minimum[1]) ) + np.log(g_0)
+#
+# axs.plot(lambBinEdges,g_func, color = 'C1', zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+# axs.plot(lambBinEdges,np.exp(GApprox), color = 'red', zorder=2, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+#
+#
+# axs.set_xlim(min(lambBinEdges),max(lambBinEdges))
+# axs.set_ylim(min(np.exp(GApprox)),max(np.exp(GApprox)))
+# #axs.set_ylim(min(taylorFFunc),max(taylorFFunc))
+# axs.set_yscale('log')
+# axs.set_xscale('log')
+# plt.show()
 
+
+# f_func = np.zeros(len(lambBinEdges))
+# for j in range(len(lambBinEdges)):
+#
+#     B = (ATA + lambBinEdges[j] * L)
+#
+#     #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
+#     LowTri = np.linalg.cholesky(B)
+#     UpTri = LowTri.T
+#     # check if L L.H = B
+#     B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+#     f_func[j] = f(ATy, y, B_inv_A_trans_y)
+#
+# def f_tayl( delta_lam, f_0, f_1, f_2, f_3, f_4, f_5, f_6):
+#     """calculate taylor series for """
+#
+#     return f_0 + f_1 * delta_lam + f_2 * delta_lam**2 + f_3 * delta_lam**3 + f_4 * delta_lam**4 + f_5 * delta_lam**5 + f_6 * delta_lam**6
+#
+#
+#
+# taylorFFunc = f_tayl( lambBinEdges - minimum[1], f_0, f_0_1, f_0_2, 0, 0, 0, 0)
+# fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction),  dpi = 300, tight_layout = True)
+#
+# axs.plot(lambBinEdges,f_func, color = 'C1', zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+# axs.plot(lambBinEdges,taylorFFunc, color = 'red', zorder=2, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+#
+# axs.set_xlim(min(lambBinEdges),max(lambBinEdges))
+# axs.set_ylim(min(taylorFFunc),max(taylorFFunc))
+# axs.set_yscale('log')
+# axs.set_xscale('log')
+# plt.show()
 
 ##
 
 '''do the sampling'''
-number_samples = 20000
+number_samples = 10000
 burnIn = 100
 f_0 = f(ATy, y, B_inv_A_trans_y0)
 #wLam = 2e2#5.5e2
@@ -205,7 +256,7 @@ shape = SpecNumMeas/2 + alphaD + alphaG
 #f_new = f_0
 #g_old = g(A, L,  lambdas[0])
 
-def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
+def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
     wLam = lam0 * 0.8#8e3#7e1
 
     alphaG = 1
@@ -232,15 +283,24 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
         # # draw new lambda
         lam_p = normal(lambdas[t], wLam)
 
-        while lam_p < 0:
+        while lam_p < 0 :#or lam_p > 1e4:
                 lam_p = normal(lambdas[t], wLam)
 
         delta_lam = lam_p - lambdas[t]
         delta_lam_t = lambdas[t] - lam0
         delta_lam_p = lam_p - lam0
-        delta_f = f_0_1 * delta_lam + f_0_2 * (delta_lam_p**2 - delta_lam_t**2) + f_0_3 *(delta_lam_p**3 - delta_lam_t**3) #+ f_0_4 * delta_lam**4 + f_0_5 * delta_lam**5
-        delta_g = g_0_1 * delta_lam + g_0_2 * (delta_lam_p**2 - delta_lam_t**2) + g_0_3 * (delta_lam_p**3 - delta_lam_t**3) #+ g_0_4 * delta_lam**4 + g_0_5 * delta_lam**5
 
+        delta_f = f_0_1 * delta_lam + f_0_2 * (delta_lam_p**2 - delta_lam_t**2) + f_0_3 *(delta_lam_p**3 - delta_lam_t**3) #+ f_0_4 * (delta_lam_p**4 - delta_lam_t**4) #+ f_0_5 * delta_lam**5
+        #delta_g = g_0_1 * delta_lam + g_0_2 * (delta_lam_p**2 - delta_lam_t**2) + g_0_3 * (delta_lam_p**3 - delta_lam_t**3) #+ g_0_4 * (delta_lam_p**4 - delta_lam_t**4) #+ g_0_5 * delta_lam**5
+        #delta_g = g(A, L, lam_p) - g(A, L, lambdas[t])
+
+
+        Glam_p = (np.log(lam_p) - np.log(lam0)) * delG  + np.log(g_0)
+        Gcurr = (np.log(lambdas[t]) - np.log(lam0)) * delG + np.log(g_0)
+        # taylorG = g_tayl(lamb - minimum[1], g_0, g_0_1, g_0_2, g_0_3, g_0_5, 0 ,0)
+        # taylorG = g(A, L, lamb)
+        #taylorG = np.exp(GApprox)
+        delta_g = np.exp(Glam_p) - np.exp(Gcurr)
         log_MH_ratio = ((SpecNumLayers)/ 2) * (np.log(lam_p) - np.log(lambdas[t])) - 0.5 * (delta_g + gammas[t] * delta_f) - betaD * gammas[t] * delta_lam
 
         #accept or rejeict new lam_p
@@ -261,8 +321,9 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
 
             #f_new = f(ATy, y, B_inv_A_trans_y)
             delta_lam_p = lam_p - lam0
-            delta_f = f_0_1 * delta_lam_p + f_0_2 * delta_lam_p ** 2 + f_0_3 * delta_lam_p ** 3
+            delta_f = f_0_1 * delta_lam_p + f_0_2 * delta_lam_p ** 2 + f_0_3 * delta_lam_p ** 3#+ f_0_4 * delta_lam_p ** 4
             f_new = f_0 + delta_f
+            #f_new = np.copy( f_p)
             # g_old = np.copy(g_new)
             rate = f_new / 2 + betaG + betaD * lam_p  # lambdas[t+1]
             if rate <= 0:
@@ -281,7 +342,8 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
 
 
 startTime = time.time()
-lambdas ,gammas, k = MHwG(number_samples, burnIn, lam0, gam0, f_0)
+#first_number_samples = 100000
+lambdas ,gammas, k = MHwG(number_samples, burnIn, lam0, gam0, f_0, g_0)
 elapsed = time.time() - startTime
 print('MTC Done in ' + str(elapsed) + ' s')
 
@@ -297,6 +359,8 @@ np.savetxt('FirstSamples.txt', np.vstack((gammas[burnIn::], deltas[burnIn::], la
 firstgammean, firstgamdelta, firstgamtint, firstgamd_tint = tauint([[gammas[burnIn::]]], 0)
 firstdelmean, firstdeldelta, firstdeltint, firstdeld_tint = tauint([[deltas[burnIn::]]], 0)
 firstlammean, firstlamdelta, firstlamtint, firstlamd_tint = tauint([[lambdas[burnIn::]]], 0)
+
+
 
 ##
 startTime = time.time()
@@ -412,12 +476,20 @@ fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fract
 axs[0].bar(gamBinEdges[1::],gamHist*np.diff(gamBinEdges)[0], color = 'k', zorder = 0,width = np.diff(gamBinEdges)[0])#10)
 
 
+
 axs[0].set_xlabel(r'the noise precision $\gamma$')
 
 
 axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = 'k', zorder = 0,width = np.diff(lambBinEdges)[0])#10)
 axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
 plt.savefig('HistoPlot.png')
+plt.show()
+
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) , dpi = 300)
+axs[0].hist(gammas)
+axs[0].set_xlabel(r'the noise precision $\gamma$')
+axs[1].hist(lambdas)
+axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
 plt.show()
 
 ##
@@ -548,7 +620,7 @@ print(minimum)
 around lam0 from gmres = '''
 
 #taylor series arounf lam_0
-
+lam0 = 1.75*minimum[1]
 B = (ATA + lam0 * L)
 
 LowTri = np.linalg.cholesky(B)
@@ -575,7 +647,7 @@ B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
 f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
 f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
 f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
-f_0_4 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+f_0_4 = 0# -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
 f_0_5 = 0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
 f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
 
@@ -584,19 +656,20 @@ f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
 g_0_1 = np.trace(B_inv_L)
 g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
 g_0_3 = 1 /6 * np.trace(B_inv_L_3)
-g_0_4 = 0#-1 /24 * np.trace(B_inv_L_4)
+g_0_4 = -1 /24 * np.trace(B_inv_L_4)
 g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
 g_0_6 = 0#-1 /720 * np.trace(B_inv_L_6)
 
 
 f_0 = f(ATy, y, B_inv_A_trans_y0)
-
+g_0 = g(A, L, lam0)
+delG = (np.log(g(A, L, 1e4)) - np.log(g_0))/ (np.log(1e4) - np.log(lam0))
 
 ## do sampling again
 
 
 startTime = time.time()
-lambdas ,gammas, k = MHwG(number_samples, burnIn, lam0, gam0, f_0)
+lambdas ,gammas, k = MHwG(number_samples, burnIn, lam0, gam0, f_0, g_0)
 elapsed = time.time() - startTime
 print('MTC Done in ' + str(elapsed) + ' s')
 print('acceptance ratio: ' + str(k/(number_samples+burnIn)))
@@ -788,7 +861,7 @@ plt.savefig('ScatterplusHisto.png')
 plt.show()
 ##
 dimMargO3 = 2
-gridSize = 100
+gridSize = 25
 gmresCol = [204/255, 121/255, 167/255]
 index = 'first'
 dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
@@ -841,37 +914,37 @@ plt.savefig('ScatterplusHistoPlusTT.png')
 plt.show()
 
 ##
-from matplotlib import cm
-from matplotlib.ticker import LinearLocator
-
-fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, dpi = 300,tight_layout=True)
-
-
-PlotX, PlotY = np.meshgrid(univarGridO3[0], univarGridO3[1])
-#lotZ = PlotX * PlotY
-
-
-# Plot the surface.
-surf = ax.plot_surface(PlotX, PlotY,  TTMarg, cmap=cm.cool,
-                       linewidth=0, antialiased=False)
-
-# # Customize the z axis.
-# ax.set_zlim(-1.01, 1.01)
-# ax.zaxis.set_major_locator(LinearLocator(10))
-# # A StrMethodFormatter is used automatically
-# ax.zaxis.set_major_formatter('{x:.02f}')
-
-# Add a color bar which maps values to colors.
-#fig.colorbar(surf, shrink=0.5, aspect=5)
-
-#ax.tick_params(axis='x', which='both',  bottom=False, labelbottom=False)
-#ax.tick_params(axis='y', which='both',  left=False, labelleft=False)
-#ax.tick_params(axis='z',  left=False, bottom=False, right=False, top=False, labeltop=False)
-ax.axes.xaxis.set_ticklabels([])
-ax.axes.yaxis.set_ticklabels([])
-ax.axes.zaxis.set_ticklabels([])
-plt.savefig('PosterMargTT.png')
-plt.show()
+# from matplotlib import cm
+# from matplotlib.ticker import LinearLocator
+#
+# fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, dpi = 300,tight_layout=True)
+#
+#
+# PlotX, PlotY = np.meshgrid(univarGridO3[0], univarGridO3[1])
+# #lotZ = PlotX * PlotY
+#
+#
+# # Plot the surface.
+# surf = ax.plot_surface(PlotX, PlotY,  TTMarg, cmap=cm.cool,
+#                        linewidth=0, antialiased=False)
+#
+# # # Customize the z axis.
+# # ax.set_zlim(-1.01, 1.01)
+# # ax.zaxis.set_major_locator(LinearLocator(10))
+# # # A StrMethodFormatter is used automatically
+# # ax.zaxis.set_major_formatter('{x:.02f}')
+#
+# # Add a color bar which maps values to colors.
+# #fig.colorbar(surf, shrink=0.5, aspect=5)
+#
+# #ax.tick_params(axis='x', which='both',  bottom=False, labelbottom=False)
+# #ax.tick_params(axis='y', which='both',  left=False, labelleft=False)
+# #ax.tick_params(axis='z',  left=False, bottom=False, right=False, top=False, labeltop=False)
+# ax.axes.xaxis.set_ticklabels([])
+# ax.axes.yaxis.set_ticklabels([])
+# ax.axes.zaxis.set_ticklabels([])
+# plt.savefig('PosterMargTT.png')
+# plt.show()
 
 
 ##
@@ -1065,7 +1138,13 @@ def f_tayl( delta_lam, f_0, f_1, f_2, f_3, f_4, f_5, f_6):
 
 
 f_0 = f(ATy, y, B_inv_A_trans_y0)
-g_0 = g(A, L, minimum[1])
+g_0 = g(A, L, lam0)
+
+#f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+
+#g_0_4 = -1 /24 * np.trace(B_inv_L_4)
+
+
 fCol = [0, 144/255, 178/255]
 gCol = [230/255, 159/255, 0]
 gmresCol = [204/255, 121/255, 167/255]
@@ -1073,9 +1152,11 @@ gmresCol = [204/255, 121/255, 167/255]
 # find min ind and max ind for lambda
 minInd = np.argmin(abs(lam - lambBinEdges[0]))
 maxInd = np.argmin(abs(lam - lambBinEdges[-1]))
-delta_lam = lambBinEdges - minimum[1]
-taylorG = g_tayl(delta_lam,g_0, g_0_1, g_0_2, g_0_3, 0, 0,0)
-taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3, 0, 0, 0)
+delta_lam = lambBinEdges - lam0
+#taylorG = g_tayl(delta_lam,g_0, g_0_1, g_0_2, g_0_3,g_0_4, 0,0)
+GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + np.log(g_0)
+taylorG = np.exp(GApprox)
+taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,0, 0, 0)
 
 fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction),  dpi = 300, tight_layout = True)
 
@@ -1159,9 +1240,66 @@ fig.savefig('f_and_g_phd.png', bbox_inches='tight')
 plt.show()
 
 
+# print max rel F taylor F error
+def piFunc(lamb):
+    gam =  minimum[0]
+
+    B = (ATA + lamb * L)
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    B_inv_A_trans_ymax = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+    F = f(ATy, y, B_inv_A_trans_ymax)
+    G = g(A, L, lamb)
+    return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 *G + 0.5 * gam * F + (betaD * lamb * gam + betaG * gam) - 440
+
+
+f_Checkfunc = np.zeros(len(lambBinEdges))
+g_Checkfunc = np.zeros(len(lambBinEdges))
+ComplPiFunc = np.zeros(len(lambBinEdges))
+for j in range(len(lambBinEdges)):
+
+    B = (ATA + lambBinEdges[j] * L)
+
+    #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    # check if L L.H = B
+    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+    f_Checkfunc[j] = f(ATy, y, B_inv_A_trans_y)
+    g_Checkfunc[j] = g(A, L, lambBinEdges[j])
+    ComplPiFunc[j] = piFunc(lambBinEdges[j])
+
+relFErr = max(abs(f_Checkfunc - taylorF)/abs(f_Checkfunc))
+ErrFLam = lambBinEdges[abs(f_Checkfunc - taylorF)/abs(f_Checkfunc) == relFErr][0]
+print(f'relative F error {relFErr *100} at {ErrFLam}')
+
+relGErr = max(abs(g_Checkfunc - taylorG)/abs(g_Checkfunc))
+ErrGLam = lambBinEdges[abs(g_Checkfunc - taylorG)/abs(g_Checkfunc) == relGErr][0]
+print(f'relative G error {relGErr *100} at {ErrGLam}')
+def piFuncTayl(lamb):
+    gam =  minimum[0]
+    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, f_0_2 ,f_0_3,0, 0, 0)
+
+    GApprox = (np.log(lamb) - np.log(lam0)) * delG + np.log(g_0)
+    taylorG = np.exp(GApprox)
+    return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 * taylorG + 0.5 * gam * taylorF + (betaD * lamb * gam + betaG * gam) - 440
+
+
+piErr = max(abs(np.exp(-piFuncTayl(lambBinEdges)) - np.exp(-ComplPiFunc))/np.exp(-ComplPiFunc))
+ErrExpLam = lambBinEdges[abs(np.exp(-piFuncTayl(lambBinEdges)) - np.exp(-ComplPiFunc))/np.exp(-ComplPiFunc) == piErr ][0]
+print(f'relative error function {piErr*100:.2f} at {ErrExpLam}')
+
+
+logpiErr = max(abs(piFuncTayl(lambBinEdges) - ComplPiFunc)/abs(ComplPiFunc ))
+ErrPiLam = lambBinEdges[abs(piFuncTayl(lambBinEdges) - ComplPiFunc)/abs(ComplPiFunc ) == logpiErr ][0]
+print(f'relative log error function {logpiErr *100:.2f} at {ErrPiLam}')
+
+
 ## prior for Ozone
 
-test = 20
+test = 10
 
 
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
@@ -1170,9 +1308,12 @@ ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color
 for i in range(0,test):
     delt = np.random.gamma(shape=1, scale=1e10)
     while delt < 0:
-        delt = np.random.gamma(shape = 1, scale = 1e10)
-    print(delt)
+        delt = np.random.gamma(shape=1, scale=1e10)
     priorTest = np.random.multivariate_normal(np.zeros(len(L)), delt * L)
+    #while any(priorTest < 0) :
+
+    #priorTest = np.random.multivariate_normal(np.zeros(len(L)), delt * L)
+    #print(i)
     ax1.plot( priorTest ,height_values , markeredgecolor =binCol , color = binCol ,zorder=2, marker = '.', markersize =4, linewidth =0.75, label = 'prior sample', alpha = 0.25)
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
@@ -1186,3 +1327,317 @@ ax1.legend(handles[:2], labels[:2])
 fig3.savefig('OzonePrior.png')
 plt.show()
 
+
+## error analysis for f and g
+
+f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+
+g_0_4 = -1 /24 * np.trace(B_inv_L_4)
+g_0_5 = 1 /120 * np.trace(B_inv_L_5)
+g_0_6 = -1 /720 * np.trace(B_inv_L_6)
+
+f_0_5 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
+
+
+#gErr = abs( g_0_5 * np.max(lambBinEdges - minimum[1])**5)
+#gErr = abs( g_0_6 * np.max(lambBinEdges - minimum[1])**6)
+gErr = abs( g_0_4 * np.max(lambBinEdges - minimum[1])**4)
+#gErr = abs( g_0_3 * np.max(lambBinEdges - minimum[1])**3)
+
+#fErr = abs(f_0_5 * np.max(lambBinEdges - minimum[1])**5)
+fErr = abs(f_0_4 * np.max(lambBinEdges - minimum[1])**4)
+
+
+fErr = abs(f_0_3 * np.max(lambBinEdges - minimum[1])**3)
+
+
+
+f_0 = f(ATy, y, B_inv_A_trans_y0)
+g_0 = g(A, L, minimum[1])
+
+relGErr = abs(gErr) / abs(g_0) * 100
+relFErr = abs(fErr)/ abs(f_0) * 100
+
+print(abs(f_0_5 * (max(lambBinEdges)- minimum[1])**5))
+print(abs(10-11)/abs(10))
+print(abs(np.exp(10)  - np.exp(11)) / abs(np.exp(10)))
+print(abs(np.exp(10)  - np.exp(11)) / abs(np.exp(10)))
+
+lamMax =minimum[1] + np.max(lambBinEdges - minimum[1])
+
+B = (ATA + lamMax * L)
+LowTri = np.linalg.cholesky(B)
+UpTri = LowTri.T
+B_inv_A_trans_ymax = lu_solve(LowTri, UpTri,  ATy[0::, 0])
+
+
+f_max = f(ATy, y, B_inv_A_trans_ymax)
+taylorF = f_tayl(np.max(lambBinEdges - minimum[1]), f_0, f_0_1, f_0_2, f_0_3,f_0_4, 0, 0)
+gam =  minimum[0]
+lamb =  minimum[1]
+
+def piFuncTayl(lamb):
+    gam =  minimum[0]
+    taylorF = f_tayl(lamb - minimum[1], f_0, f_0_1, f_0_2 ,0,0, 0, 0)
+    delG = np.log(g(A, L, max(lambBinEdges - minimum[1]))) - np.log(g(A, L, minimum[1]))
+    GApprox = (np.log(lamb) - np.log(minimum[1])) * delG / (
+                np.log(max(lambBinEdges - minimum[1])) - np.log(minimum[1])) + np.log(g_0)
+    #taylorG = g_tayl(lamb - minimum[1], g_0, g_0_1, g_0_2, g_0_3, g_0_5, 0 ,0)
+    #taylorG = g(A, L, lamb)
+    taylorG = np.exp(GApprox)
+    return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 * taylorG + 0.5 * gam * taylorF + (betaD * lamb * gam + betaG * gam) - 440
+
+def piFunc(lamb):
+    gam =  minimum[0]
+
+    B = (ATA + lamb * L)
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    B_inv_A_trans_ymax = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+    F = f(ATy, y, B_inv_A_trans_ymax)
+    G = g(A, L, lamb)
+    return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 *G + 0.5 * gam * F + (betaD * lamb * gam + betaG * gam) - 440
+
+
+currLam = minimum[1] + np.max(lambBinEdges - minimum[1])#= minimum[1] + 5000
+B = (ATA + currLam * L)
+LowTri = np.linalg.cholesky(B)
+UpTri = LowTri.T
+CurrB_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+F = f(ATy, y, CurrB_inv_A_trans_y)
+
+#taylor series arounf lam_0
+lamMode = minimum[1]
+B = (ATA + lamMode * L)
+
+LowTri = np.linalg.cholesky(B)
+UpTri = LowTri.T
+# check if L L.H = B
+B_inv_A_trans_y0 = lu_solve(LowTri, UpTri,  ATy[0::, 0])
+
+
+B_inv_L = np.zeros(np.shape(B))
+
+for i in range(len(B)):
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    B_inv_L[:, i] = lu_solve(LowTri, UpTri,  L[:, i])
+
+B_inv_L_2 = np.matmul(B_inv_L, B_inv_L)
+B_inv_L_3 = np.matmul(B_inv_L_2, B_inv_L)
+B_inv_L_4 = np.matmul(B_inv_L_2, B_inv_L_2)
+B_inv_L_5 = np.matmul(B_inv_L_4, B_inv_L)
+B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
+
+f_0 = f(ATy, y, B_inv_A_trans_y0)
+f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
+f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
+f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+f_0_5 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
+
+taylorF = f_tayl(currLam - minimum[1], f_0, f_0_1,  f_0_2,0,0, 0, 0)
+
+piErr = abs(np.exp(-piFuncTayl(currLam)) - np.exp(-piFunc(currLam)))/np.exp(-piFunc(currLam)) * 100
+print(f'relative error function {piErr:.2f}')
+
+logpiErr = abs(piFuncTayl(currLam) - piFunc(currLam))/abs(piFunc(currLam) )* 100
+
+logpiErr = abs(piFuncTayl(currLam) - piFunc(currLam))/abs(piFunc(currLam) )* 100
+
+
+print(f'relative log error function {logpiErr:.2f}')
+
+print(f'realtive F error direct { abs(taylorF - F)/abs(F) *100}')
+
+G = g(A, L, currLam)
+
+delG = np.log(g(A, L,  max(lambBinEdges - minimum[1])) ) - np.log(g(A, L, minimum[1]))
+GApprox = (np.log(currLam) -np.log(minimum[1] )) * delG / (np.log(max(lambBinEdges - minimum[1]))- np.log(minimum[1]) ) + np.log(g_0)
+taylorG = np.exp(GApprox)
+print(f'realtive G error direct { abs(taylorG - G)/abs(G) *100}')
+gam =  minimum[0]
+lamb = currLam
+pre = -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam)+ (betaD * lamb * gam + betaG * gam)
+print(f'abs both error direct { abs((pre+ 0.5 * taylorG + 0.5 * gam *  taylorF - 440) - (pre +0.5 * G + 0.5 * gam * F -440))}')
+print(f'realtive both error direct { abs(0.5 * (taylorG-G) +  0.5 * gam *(taylorF - F) )/abs(pre +0.5*G + 0.5 * gam * F -440) *100}')
+print(f'realtive both error direct { abs( 0.5 * gam *(taylorF - F) )/abs(pre +0.5*G + 0.5 * gam * F -440) *100}')
+##
+# fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction),  dpi = 300, tight_layout = True)
+# delta_lam = lambBinEdges - minimum[1]
+# taylorFFunc = f_tayl(delta_lam, f_0, f_0_1, f_0_2,0,0, 0, 0)
+# taylorFGunc = g_tayl(delta_lam, g_0, g_0_1, 0,0, 0,0,  0)
+# delG = np.log(g(A, L,  max(lambBinEdges - minimum[1])) ) - np.log(g(A, L, minimum[1]))
+# GApprox = (np.log(lambBinEdges) -np.log(minimum[1] )) * delG / (np.log(max(lambBinEdges - minimum[1]))- np.log(minimum[1]) ) + np.log(g_0)
+# # axs.plot(lambBinEdges,taylorFFunc, color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+# # axs.plot(lam,f_func, color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+# axs.plot(np.log(lambBinEdges),np.log(taylorFGunc), color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+# axs.plot(np.log(lam),np.log(g_func), color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+#
+# axs.plot(np.log(lambBinEdges),GApprox, color = 'red', zorder=2, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+#
+# # axs.plot(lambBinEdges, [piFuncTayl(lamb) for lamb in lambBinEdges ], color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+# # axs.plot(lambBinEdges, [piFunc(lamb) for lamb in lambBinEdges ] ,color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+#
+# axs.set_xlim(min(np.log(lambBinEdges)),max(np.log(lambBinEdges)))
+# axs.set_ylim(min(np.log(taylorFGunc)),max(np.log(taylorFGunc)))
+# #axs.set_ylim(min(taylorFFunc),max(taylorFFunc))
+# # axs.set_yscale('log')
+# # axs.set_xscale('log')
+#
+# plt.show()
+#
+fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction),  dpi = 300, tight_layout = True)
+delta_lam = lambBinEdges - minimum[1]
+taylorFFunc = f_tayl(delta_lam, f_0, f_0_1, f_0_2,0,0, 0, 0)
+taylorFGunc = g_tayl(delta_lam, g_0, g_0_1, 0,0, 0,0,  0)
+delG = np.log(g(A, L,  max(lambBinEdges - minimum[1])) ) - np.log(g(A, L, minimum[1]))
+GApprox = (np.log(lambBinEdges) -np.log(minimum[1] )) * delG / (np.log(max(lambBinEdges - minimum[1]))- np.log(minimum[1]) ) + np.log(g_0)
+
+# axs.plot(lambBinEdges,taylorFGunc, color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+# axs.plot(lam,g_func, color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+# axs.plot(lambBinEdges,np.exp(GApprox), color = 'red', zorder=2, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+
+axs.plot(lambBinEdges,taylorFFunc, color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+axs.plot(lam,f_func, color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+
+# axs.plot(lambBinEdges, [piFuncTayl(lamb) for lamb in lambBinEdges ], color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+# axs.plot(lambBinEdges, [piFunc(lamb) for lamb in lambBinEdges ] ,color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+
+axs.set_xlim(min(lambBinEdges),max(lambBinEdges))
+#axs.set_ylim(min(taylorFGunc),max(taylorFGunc))
+axs.set_ylim(min(taylorFFunc),max(taylorFFunc))
+axs.set_yscale('log')
+axs.set_xscale('log')
+
+plt.show()
+
+
+fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction),  dpi = 300, tight_layout = True)
+
+axs.plot(lambBinEdges, np.exp([-piFuncTayl(lamb) for lamb in lambBinEdges ]), color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+axs.plot(lambBinEdges, np.exp([-piFunc(lamb) for lamb in lambBinEdges ] ),color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+
+axs.set_yscale('log')
+axs.set_xscale('log')
+plt.show()
+
+
+
+##
+
+lambHist, lambBinEdges = np.histogram(lambdas, bins= 20, density= True)
+delBinLam = lambBinEdges[1] - lambBinEdges[0]
+print(abs(delBinLam)/ minimum[1])
+delta_lam = lambBinEdges - minimum[1]
+
+
+
+
+##
+'''
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  find out what gridsize is enough
+  #%%%%%%%%%%%%%%%%
+'''
+
+
+
+def calcCondMean(lambdas, nBins):
+
+    lambHist, lambBinEdges = np.histogram(lambdas, bins=nBins, density=True)
+    MargResults = np.zeros((nBins, len(theta)))
+    B_inv_Res = np.zeros((nBins, len(theta)))
+    IDiag = np.eye(len(L))
+
+    for p in range(0, nBins):
+
+        SetLambda = lambBinEdges[p] + (lambBinEdges[p] + lambBinEdges[p + 1]) / 2
+        SetB = ATA + SetLambda * L
+
+        LowTri = np.linalg.cholesky(SetB)
+        UpTri = LowTri.T
+        B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+        MargResults[p, :] = B_inv_A_trans_y * lambHist[p] / np.sum(lambHist)
+        B_inv_Res[p, :] = B_inv_A_trans_y
+
+        B_inv = np.zeros(SetB.shape)
+        # startTime = time.time()
+        LowTri = np.linalg.cholesky(SetB)
+        UpTri = LowTri.T
+        for j in range(len(B)):
+            B_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
+
+
+    return np.sum(MargResults,0)
+
+## monte carlo error
+startNum = 5
+endNum = 100
+means = np.zeros((endNum - startNum, len(VMR_O3)))
+for i in range(startNum,endNum):
+    means[i-startNum] = calcCondMean(lambdas, i)/theta_scale_O3
+
+NormMeans = np.copy(means)/means[-1,:]
+
+##
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+norm = np.zeros(endNum - startNum)
+for i in range(startNum,endNum):
+    #norm[i-startNum] = np.linalg.norm(means[i-startNum] - VMR_O3[:,0])/np.linalg.norm(VMR_O3[:,0])
+
+    norm[i - startNum] = np.linalg.norm(means[i - startNum] - means[-1,:])/ np.linalg.norm(means[-1,:])
+    #ax1.plot(range(startNum,endNum),NormMeans[:,i])
+ax1.plot(range(startNum,endNum),norm )
+
+np.linspace(startNum,endNum)
+ax1.plot(np.linspace(startNum,endNum),norm[0] *startNum/np.linspace(startNum,endNum), linestyle = '--')
+
+ax1.set_yscale('log')
+ax1.set_xscale('log')
+ax1.set_xlabel('number of Bins')
+ax1.set_ylabel('relative Error')
+plt.show()
+##
+startNum = 1
+endNum = 100
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300, tight_layout = True)
+lamMeans= np.zeros(endNum - startNum)
+gamMeans= np.zeros(endNum - startNum)
+for i in range(startNum,endNum):
+    lambHist, lambBinEdges = np.histogram(lambdas, bins=i)
+    lamMeans[i - startNum] = np.sum(lambHist * (lambBinEdges[:-1] + (lambBinEdges[1:] - lambBinEdges[:-1])/2) ) / np.sum(lambHist)
+    gamHist, gamBinEdges = np.histogram(gammas, bins=i)
+    gamMeans[i - startNum] = np.sum(gamHist * (gamBinEdges[:-1] + (gamBinEdges[1:] - gamBinEdges[:-1])/2) ) / np.sum(gamHist)
+relLamErr =  abs(lamMeans - lamMeans[-1] ) /abs(lamMeans[-1])
+relGamErr =  abs(gamMeans - gamMeans[-1] ) /abs(gamMeans[-1])
+ax1.plot(range(startNum,endNum-1),relLamErr[:-1])
+ax1.plot(range(startNum,endNum-1),relGamErr[:-1])
+ax1.plot(np.linspace(startNum,endNum),0.5e-2 /np.linspace(startNum,endNum), linestyle = '--', color = 'k')
+
+ax1.set_xlabel('number of Bins')
+ax1.set_ylabel('relative Error')
+ax1.set_yscale('log')
+ax1.set_xscale('log')
+plt.show()
+##
+gamMeans= np.zeros(endNum - startNum)
+for i in range(startNum,endNum):
+    gamHist, gamBinEdges = np.histogram(gammas, bins=i, density=True)
+    gamMeans[i - startNum] = np.sum(gamHist * (gamBinEdges[:-1] + (gamBinEdges[1:] - gamBinEdges[:-1])/2) ) / np.sum(gamHist)
+ax1.plot(range(startNum,endNum),gamMeans/gamMeans[-1])
+
+plt.show()
+##
+fig3, ax1 = plt.subplots(2,figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+ax1[0].hist(lambdas ,bins = 200)
+ax1[1].hist(gammas ,bins = 200)
+plt.show()
+
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+# for i in range(startNum,endNum):
+#     ax1.plot(  means[i-startNum,:],height_values)
+# plt.show()
