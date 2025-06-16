@@ -76,8 +76,9 @@ print(df.columns)
 press = df['Pressure (hPa)'].values #in hectpascal or millibars
 O3 = df['Ozone (VMR)'].values
 O3[O3<0] = 0
-
-dat = np.loadtxt('/Users/lennart/PycharmProjects/openData/testProf.txt')
+dir = '/home/lennartgolks/PycharmProjects/'
+#dir = '/Users/lennart/PycharmProjects/'
+dat = np.loadtxt(dir + 'openData/testProf.txt')
 #dat = np.loadtxt('/home/lennartgolks/PycharmProjects/openData/testProf.txt')
 press = dat[0,:]
 O3 = dat[1,:]
@@ -194,7 +195,7 @@ axs.set_xlabel(r'pressure in hPa ')
 
 plt.show()
 ##
-fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True,dpi = 300)
+fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 axs.plot( pressure_values,height_values,marker = 'o',markerfacecolor = 'C1', color = 'C1' , label = 'true profile', zorder=0,linewidth = 3, markersize =15)
 axs.plot( calc_press,actual_heights,marker = 'o',markerfacecolor = 'C2', color = 'C2' , label = 'true profile', zorder=1,linewidth = 3, markersize =10)
 
@@ -210,7 +211,7 @@ axs.set_ylabel(r'height in km')
 
 plt.show()
 
-fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True,dpi = 300)
+fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 
 axs.plot( calc_temp,actual_heights,marker = 'o',markerfacecolor = 'C2', color = 'C2' , label = 'true profile', zorder=0,linewidth = 3, markersize =10)
 axs.plot( temp_func(actual_heights),actual_heights,marker = 'o',markerfacecolor = 'C1', color = 'C1' , label = 'true profile', zorder=1,linewidth = 2, markersize =5)

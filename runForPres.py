@@ -32,7 +32,7 @@ DatCol =  'gray' # 'k'"#332288"#"#009E73"
 dir = '/home/lennartgolks/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
-#dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
+dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
 
 A_lin_dx = np.loadtxt(dir + 'A_lin_dx.txt')
 tang_heights_lin = np.loadtxt(dir +'tan_height_values.txt')
@@ -471,7 +471,7 @@ print('MTC Done in ' + str(elapsed) + ' s')
 #BinHist = 30#n_bins
 lambHist, lambBinEdges = np.histogram(lambdas, bins= BinHist, density= True)
 gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
-fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) , dpi = 300)
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction))
 
 axs[0].bar(gamBinEdges[1::],gamHist*np.diff(gamBinEdges)[0], color = 'k', zorder = 0,width = np.diff(gamBinEdges)[0])#10)
 
@@ -482,10 +482,10 @@ axs[0].set_xlabel(r'the noise precision $\gamma$')
 
 axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = 'k', zorder = 0,width = np.diff(lambBinEdges)[0])#10)
 axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
-plt.savefig('HistoPlot.png')
+plt.savefig('HistoPlot.png', dpi = dpi)
 plt.show()
 
-fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) , dpi = 300)
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction))
 axs[0].hist(gammas)
 axs[0].set_xlabel(r'the noise precision $\gamma$')
 axs[1].hist(lambdas)
@@ -495,7 +495,7 @@ plt.show()
 ##
 TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
 
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 
 #line3 = ax2.scatter(y, tang_heights_lin, label = r'data $\mathbf{y}$', zorder = 0, marker = '*', color =DatCol )#,linewidth = 5
 
@@ -526,7 +526,7 @@ ax1.set_ylim([height_values[0], height_values[-1]])
 # ax1.xaxis.set_label_position('bottom')
 # ax1.spines[:].set_visible(False)
 
-fig3.savefig('FirstRecRes.png')
+fig3.savefig('FirstRecRes.png', dpi = dpi)
 plt.show()
 
 
@@ -564,7 +564,7 @@ postCol = 'C1'
 priorCol = 'k'
 #TrueCol = 'C2'
 alpha = 0.75
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
 
@@ -582,14 +582,14 @@ ax1.set_ylabel('height in km')
 handles, labels = ax1.get_legend_handles_labels()
 ax1.legend()
 ax1.set_ylim([height_values[0], height_values[-1]])
-fig3.savefig('FirstTestRes.png')
+fig3.savefig('FirstTestRes.png', dpi = dpi)
 plt.show()
 
 ##
 
 DatCol =  'gray'
 
-fig4, ax4 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True, dpi = 300)
+fig4, ax4 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 ax4.plot(linTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'linear $\bm{A}_L\bm{x}$', markersize = 18 , zorder = 0, color = DatCol )
 relErr = np.linalg.norm( MapLinTestDat -  nonLinTestDat) / np.linalg.norm(MapLinTestDat) * 100
 ax4.plot(MapLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'mappped $\bm{MA}_L\bm{x}$' + f', rel. Err.: {relErr:.2f} \%', markersize = 7, zorder = 2, color ='k')
@@ -599,7 +599,7 @@ ax4.set_ylabel('(tangent) height in km')
 ax4.set_xlabel(r'spectral radiance in $\frac{\text{W} \text{cm}}{\text{m}^2 \text{sr}} $',labelpad=10)# color =dataCol,
 #ax4.xaxis.set_ticks_position('top')
 #ax4.xaxis.set_label_position('top')
-plt.savefig('SampMapAssesment.png')
+plt.savefig('SampMapAssesment.png', dpi = dpi)
 plt.show()
 
 
@@ -793,7 +793,7 @@ print('MTC Done in ' + str(elapsed) + ' s')
 #BinHist = 30#n_bins
 lambHist, lambBinEdges = np.histogram(lambdas, bins= BinHist, density= True)
 gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
-fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300 )#, dpi = dpi)
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) )
 
 axs[0].bar(gamBinEdges[1::],gamHist*np.diff(gamBinEdges)[0], color = 'k', zorder = 0,width = np.diff(gamBinEdges)[0])#10)
 
@@ -803,13 +803,13 @@ axs[0].set_xlabel(r'the noise precision $\gamma$')
 
 axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = 'k', zorder = 0,width = np.diff(lambBinEdges)[0])#10)
 axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter')
-plt.savefig('SecHistoPlot.png')
+plt.savefig('SecHistoPlot.png', dpi = dpi)
 plt.show()
 
 ##
 TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
 
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 
 
 #ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
@@ -838,7 +838,7 @@ ax1.legend()
 # ax1.xaxis.set_label_position('bottom')
 # ax1.spines[:].set_visible(False)
 
-fig3.savefig('SecRecRes.png')
+fig3.savefig('SecRecRes.png', dpi = dpi)
 plt.show()
 
 ## make nice scatter plot with trace
@@ -847,7 +847,7 @@ plt.show()
 trace = [MinLogMargPost(np.array([lambdas[burnIn+ i],gammas[burnIn+ i]])) for i in range(number_samples)]
 
 
-fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} , dpi =300)
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]})
 
 axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', s = 0.1)#color = binCol,
 axs[0].scatter(gam0,lam0, marker='X', s = 20, color = 'red')
@@ -857,14 +857,14 @@ axs[0].set_ylabel(r'$\lambda$')
 axs[1].plot(trace, color = 'k', linewidth = 0.1)
 axs[1].set_ylabel(r'$\ln {\pi(\lambda, \gamma| \bm{y})}$')
 axs[1].set_xlabel('number of samples')
-plt.savefig('ScatterplusHisto.png')
+plt.savefig('ScatterplusHisto.png', dpi = dpi)
 plt.show()
 ##
 dimMargO3 = 2
 gridSize = 25
 gmresCol = [204/255, 121/255, 167/255]
 index = 'first'
-dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
+
 margPDFO3 = np.zeros((dimMargO3, gridSize))
 univarGridO3 = np.zeros((dimMargO3, gridSize))
 for i in range(0, dimMargO3):
@@ -880,7 +880,7 @@ for i in range(0, gridSize):
 #viridis = mpl.cm.get_cmap('viridis', 12)
 viridis = mpl.colormaps.get_cmap('viridis')
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} , dpi =300)
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} )
 #im = axs[0].imshow(TTMarg, zorder = 0)
 #axs[0].pcolormesh(univarGridO3[0],univarGridO3[1],TTMarg)
 #axs[0].scatter(gammas[burnIn:],lambdas[burnIn:], marker = '.', color = binCol, s = 2)
@@ -910,7 +910,7 @@ axs[0].set_ylabel(r'$\lambda$')
 axs[1].plot(trace, color = 'k', linewidth = 0.1)
 axs[1].set_ylabel(r'$\ln {\pi(\lambda, \gamma| \bm{y})}$')
 axs[1].set_xlabel('number of samples')
-plt.savefig('ScatterplusHistoPlusTT.png')
+plt.savefig('ScatterplusHistoPlusTT.png', dpi = dpi)
 plt.show()
 
 ##
@@ -952,7 +952,7 @@ BinHist = 30#n_bins
 lambHist, lambBinEdges = np.histogram(lambdas, bins= BinHist, density= True)
 gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
 
-fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300 )#, dpi = dpi)
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction))
 #axs[0].set_xlim([0.1e-7, 5e-7])
 #axs[0].bar(gamBinEdges[1::],gamHist*np.diff(gamBinEdges)[0], color = 'k', zorder = 0,width = np.diff(gamBinEdges)[0])#10)
 axs[0].hist(gammas, color = 'k', zorder = 0, bins = BinHist)
@@ -960,7 +960,7 @@ axs[0].set_xlabel(r'the noise precision $\gamma$')
 axs[1].hist(lambdas, color = 'k', zorder = 0, bins = BinHist)
 #axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = 'k', zorder = 0,width = np.diff(lambBinEdges)[0])#10)
 axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter')
-plt.savefig('FinalHistoPlot.png')
+plt.savefig('FinalHistoPlot.png', dpi = dpi)
 plt.show()
 
 
@@ -1045,7 +1045,7 @@ xTLxMargRes = np.sqrt(np.matmul(np.matmul(currX.T, L), currX))
 ##
 
 
-fig, axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction) ,tight_layout = True, dpi = 300)
+fig, axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction) ,tight_layout = True)
 axs.scatter(NormLCurveZoom,xTLxCurveZoom, zorder = 0, color =  DatCol, s = 3.5, marker ='s', label = 'reg. solution')
 axs.scatter(NormRes, xTLxRes, color = ResCol, s = 3, marker = "+",label = r'posterior samples ')# ,mfc = 'black' , markeredgecolor='r',markersize=10,linestyle = 'None')
 axs.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 50, label = 'posterior mean',zorder=2)
@@ -1059,7 +1059,7 @@ axs.set_xlabel(r'$|| \bm{Ax} - \bm{y}||$')
 handles, labels = axs.get_legend_handles_labels()
 axs.legend()
 #axs.legend(handles = [handles[0],handles[1],handles[2]],loc = 'upper right',  frameon =True)
-plt.savefig('LCurvePhD.png')
+plt.savefig('LCurvePhD.png', dpi = dpi)
 
 plt.show()
 
@@ -1072,7 +1072,7 @@ np.savetxt('RegSol.txt',x_opt / theta_scale_O3, fmt = '%.15f', delimiter= '\t')
 np.savetxt('SecO3Mean.txt',MargInteg, fmt = '%.15f', delimiter= '\t')
 np.savetxt('SecO3Var.txt',CondVar, fmt = '%.15f', delimiter= '\t')
 
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 #ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
 #line3 = ax1.plot(MargInteg,height_values[:,0], markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.',  label = r'$\text{E}_{\mathbf{x},\mathbf{\theta}|\mathbf{y}} [\mathbf{x}]$', markersize =3, linewidth =1)#, markerfacecolor = 'none'
@@ -1090,7 +1090,7 @@ ax1.set_ylim([height_values[0], height_values[-1]])
 ax1.legend()
 
 
-fig3.savefig('SecRecResinclReg.png')
+fig3.savefig('SecRecResinclReg.png', dpi = dpi)
 plt.show()
 
 
@@ -1158,7 +1158,7 @@ GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + np.log(g_0)
 taylorG = np.exp(GApprox)
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,0, 0, 0)
 
-fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction),  dpi = 300, tight_layout = True)
+fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 
 axs.plot(lam,f_func, color = fCol, zorder = 2, linestyle=  'dotted')
 axs.set_yscale('log')
@@ -1236,9 +1236,9 @@ lines, lab0 = axins.get_legend_handles_labels()
 axins.set_xlim(min(lambBinEdges),max(lambBinEdges))
 axs.legend(np.append(lines2,lines),np.append(lab2,lab0), loc = 'lower right')
 
-fig.savefig('f_and_g_phd.png', bbox_inches='tight')
+fig.savefig('f_and_g_phd.png', bbox_inches='tight', dpi = dpi)
 plt.show()
-
+##
 
 # print max rel F taylor F error
 def piFunc(lamb):
@@ -1302,7 +1302,7 @@ print(f'relative log error function {logpiErr *100:.2f} at {ErrPiLam}')
 test = 10
 
 
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), dpi = 300)
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
 for i in range(0,test):
@@ -1324,7 +1324,7 @@ ax1.set_ylim([height_values[0], height_values[-1]])
 ax1.legend(handles[:2], labels[:2])
 
 
-fig3.savefig('OzonePrior.png')
+fig3.savefig('OzonePrior.png', dpi = dpi)
 plt.show()
 
 
