@@ -152,6 +152,9 @@ ObsHeight = 500 # in km
 def pressFunc(x, b, h0, p0):
     return np.exp(-b * (x -h0)  + np.log(p0))
 
+def pressFunc(x, b, p0):
+    return np.exp(-b * x  + np.log(p0))
+
 def pressFuncFullFit(x, b1, b2, h0, p0):
     b = np.ones(len(x))
     b[x<=h0] = b1
@@ -159,10 +162,26 @@ def pressFuncFullFit(x, b1, b2, h0, p0):
     return np.exp(-b * (x -h0)  + np.log(p0))
 
 
-popt, pcov = scy.optimize.curve_fit(pressFunc, height_values[:,0], pressure_values, p0=[1.5e-1, 8, pressure_values[0]])
+popt, pcov = scy.optimize.curve_fit(pressFunc, height_values[:,0], pressure_values, p0=[1.5e-1, pressure_values[0]])
+#popt, pcov = scy.optimize.curve_fit(pressFunc,  actual_heights,calc_press, p0=[1.5e-1, pressure_values[0]])
+
 print(popt)
 poptFull, pcov = scy.optimize.curve_fit(pressFuncFullFit, actual_heights,calc_press, p0=[1.5e-1,1.5e-1, 8, pressure_values[0]])
+poptFull, pcov = scy.optimize.curve_fit(pressFuncFullFit, height_values[:,0],pressure_values, p0=[1.5e-1,1.5e-1, 8, pressure_values[0]])
+
 print(poptFull)
+
+fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
+
+
+axs.plot(pressFunc(height_values[:,0], *popt),height_values[:,0], label = 'not full')
+axs.plot(pressFuncFullFit(height_values[:,0], *poptFull),height_values[:,0], label = 'full')
+axs.plot(pressure_values,height_values[:,0], label = 'true')
+
+
+axs.set_xlabel(r'pressure in hPa ')
+axs.legend()
+plt.show()
 
 
 tests = 1000
