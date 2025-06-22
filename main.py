@@ -38,7 +38,6 @@ n_bins = 20
 burnIn = 50
 betaG = 1e-10
 betaD = 1e-10
-#for change
 #Colors
 #pyTCol = [230/255,159/255, 0/255]
 pyTCol = [213/255,94/255, 0/255]
@@ -78,7 +77,7 @@ press = df['Pressure (hPa)'].values #in hectpascal or millibars
 O3 = df['Ozone (VMR)'].values
 O3[O3<0] = 0
 dir = '/home/lennartgolks/PycharmProjects/'
-#dir = '/Users/lennart/PycharmProjects/'
+dir = '/Users/lennart/PycharmProjects/'
 dat = np.loadtxt(dir + 'openData/testProf.txt')
 #dat = np.loadtxt('/home/lennartgolks/PycharmProjects/openData/testProf.txt')
 press = dat[0,:]
@@ -186,11 +185,11 @@ plt.show()
 
 tests = 1000
 
-means = np.zeros(3)
-sigmas = np.zeros(3)
+means = np.zeros(2)
+sigmas = np.zeros(2)
 means[0] = popt[0]
 means[1] = popt[1]
-means[2] = popt[2]
+#means[2] = popt[2]
 ##means[3] = popt[3]
 
 sigmaP =  4# * 2
@@ -198,16 +197,16 @@ sigmaH = 0.2*3
 sigmaGrad2 = 0.0001*5#0.01 #* 5
 sigmas[0] = sigmaGrad2
 #sigmas[1] = sigmaGrad2
-sigmas[1] = sigmaH
-sigmas[2] = sigmaP
+sigmas[1] = sigmaP
+#sigmas[2] = sigmaP
 
-PriorSamp = np.random.multivariate_normal(means, np.eye(3) * sigmas, tests)
+PriorSamp = np.random.multivariate_normal(means, np.eye(2) * sigmas, tests)
 
 
 fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True,dpi = 300)
 ZeroP = np.zeros(tests)
 for i in range(0,tests):
-    ZeroP[i] = pressFunc([0], *PriorSamp[i,:])
+    ZeroP[i] = pressFunc(0, *PriorSamp[i,:])
 
 axs.hist(ZeroP, bins=n_bins)
 
@@ -441,7 +440,8 @@ Q = g_doub_prime[ind,0] * np.exp(- HitrConst2 * E[ind,0]/ temp_values)
 Q_ref = g_doub_prime[ind,0] * np.exp(- HitrConst2 * E[ind,0]/ 296)
 LineInt = S[ind,0] * Q_ref / Q * np.exp(- HitrConst2 * E[ind,0]/ temp_values)/ np.exp(- HitrConst2 * E[ind,0]/ 296) * (1 - np.exp(- HitrConst2 * wvnmbr[ind,0]/ temp_values))/ (1- np.exp(- HitrConst2 * wvnmbr[ind,0]/ 296))
 LineIntScal =  Q_ref / Q * np.exp(- HitrConst2 * E[ind,0]/ temp_values)/ np.exp(- HitrConst2 * E[ind,0]/ 296) * (1 - np.exp(- HitrConst2 * wvnmbr[ind,0]/ temp_values))/ (1- np.exp(- HitrConst2 * wvnmbr[ind,0]/ 296))
-#
+
+
 # fig, axs = plt.subplots(tight_layout=True)
 # plt.plot(LineInt,height_values)
 # plt.show()
@@ -466,7 +466,7 @@ np.savetxt('num_mole.txt', [num_mole], fmt = '%.15f', delimiter= '\t')
 np.savetxt('wvnmbr.txt', wvnmbr, fmt = '%.15f', delimiter= '\t')
 np.savetxt('g_doub_prime.txt', g_doub_prime, fmt = '%.15f', delimiter= '\t')
 np.savetxt('E.txt', E, fmt = '%.15f', delimiter= '\t')
-
+np.savetxt('LineIntScal.txt', LineIntScal, fmt = '%.30f', delimiter= '\t')
 
 
 
@@ -708,7 +708,7 @@ np.savetxt('lam.txt', lam, fmt = '%.15f')
 around lam0 from gmres = '''
 
 #taylor series arounf lam_0
-lam0 = 1.75*minimum[1]
+lam0 = 1.5*minimum[1]
 B = (ATA + lam0 * L)
 
 LowTri = np.linalg.cholesky(B)
@@ -779,7 +779,7 @@ shape = SpecNumMeas/2 + alphaD + alphaG
 #f_new = f_0
 #g_old = g(A, L,  lambdas[0])
 g_0 = g(A, L, lam0)
-delG = (np.log(g(A, L, 1.2e4)) - np.log(g_0))/ (np.log(1.2e4) - np.log(lam0))
+delG = (np.log(g(A, L, 1e4)) - np.log(g_0))/ (np.log(1e4) - np.log(lam0))
 
 
 def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
@@ -936,8 +936,8 @@ B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
 f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
 f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
 f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
-f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
-f_0_5 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
+f_0_4 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+f_0_5 = 0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
 f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
 
 
@@ -964,9 +964,9 @@ delta_lam = lambBinEdges - lam0
 #taylorG = g_tayl(delta_lam,g(A, L, minimum[1]), g_0_1, g_0_2, g_0_3, g_0_4, g_0_5, g_0_6)
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,f_0_4, f_0_5, f_0_6)
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2,f_0_3,0, 0, 0)
-g_0 = g(A, L,minimum[1] )
-delG = (np.log(g(A, L, 1.2e4)) - np.log(g_0))/ (np.log(1.2e4) - np.log(minimum[1]))
-GApprox = (np.log(lambBinEdges) - np.log(minimum[1])) * delG  + np.log(g_0)
+g_0 = g(A, L,lam0 )
+delG = (np.log(g(A, L, 1e4)) - np.log(g_0))/ (np.log(1e4) - np.log(lam0))
+GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + np.log(g_0)
 taylorG = np.exp(GApprox)
 
 

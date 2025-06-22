@@ -36,7 +36,7 @@ DatCol =  'gray' # 'k'"#332288"#"#009E73"
 dir = '/home/lennartgolks/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
-dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
+#dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
 
 A_lin_dx = np.loadtxt(dir + 'A_lin_dx.txt')
 tang_heights_lin = np.loadtxt(dir +'tan_height_values.txt')
