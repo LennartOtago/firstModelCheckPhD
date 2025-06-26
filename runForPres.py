@@ -36,7 +36,7 @@ DatCol =  'gray' # 'k'"#332288"#"#009E73"
 dir = '/home/lennartgolks/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
-#dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
+dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
 
 A_lin_dx = np.loadtxt(dir + 'A_lin_dx.txt')
 tang_heights_lin = np.loadtxt(dir +'tan_height_values.txt')
@@ -1193,7 +1193,7 @@ def piFunc(lamb):
 
     F = f(ATy, y, B_inv_A_trans_ymax)
     G = g(A, L, lamb)
-    return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 *G + 0.5 * gam * F + (betaD * lamb * gam + betaG * gam) - 440
+    return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 *G + 0.5 * gam * F + (betaD * lamb * gam + betaG * gam) #- 440
 
 
 f_Checkfunc = np.zeros(len(lambBinEdges))
@@ -1226,10 +1226,11 @@ def piFuncTayl(lamb):
 
     GApprox = (np.log(lamb) - np.log(lam0)) * delG + np.log(g_0)
     taylorG = np.exp(GApprox)
-    return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 * taylorG + 0.5 * gam * taylorF + (betaD * lamb * gam + betaG * gam) - 440
+    return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 * taylorG + 0.5 * gam * taylorF + (betaD * lamb * gam + betaG * gam) #- 440
+const = 400
+normPiTayl = np.exp(-piFuncTayl(lambBinEdges)+const)/ np.sum(np.exp(-piFuncTayl(lambBinEdges)+const))
+normPiFunc = np.exp((-ComplPiFunc+const))/np.sum( np.exp(-ComplPiFunc+const))
 
-normPiTayl = np.exp(-piFuncTayl(lambBinEdges))/ np.sum(np.exp(-piFuncTayl(lambBinEdges)))
-normPiFunc = np.exp(-ComplPiFunc)/np.sum( np.exp(-ComplPiFunc))
 piErr = max(abs(normPiTayl - normPiFunc)/normPiFunc)
 ErrExpLam = lambBinEdges[abs(normPiTayl - normPiFunc)/normPiFunc == piErr ][0]
 print(f'relative error function {piErr*100:.2f} at {ErrExpLam}')
