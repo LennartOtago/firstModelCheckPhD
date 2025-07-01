@@ -1140,41 +1140,9 @@ axs.legend(np.append(lines2,lines),np.append(lab2,lab0), loc = 'lower right')
 fig.savefig('f_and_g_phd.png', bbox_inches='tight', dpi = dpi)
 plt.show()
 ##
-
-# #taylor series arounf lam_0
-# lam0 =1.5* minimum[1]
-# B = (ATA + lam0 * L)
-#
-# LowTri = np.linalg.cholesky(B)
-# UpTri = LowTri.T
-# # check if L L.H = B
-# B_inv_A_trans_y0 = lu_solve(LowTri, UpTri,  ATy[0::, 0])
-#
-#
-#
-# B_inv_L = np.zeros(np.shape(B))
-#
-# for i in range(len(B)):
-#     LowTri = np.linalg.cholesky(B)
-#     UpTri = LowTri.T
-#     B_inv_L[:, i] = lu_solve(LowTri, UpTri,  L[:, i])
-#
-# B_inv_L_2 = np.matmul(B_inv_L, B_inv_L)
-# B_inv_L_3 = np.matmul(B_inv_L_2, B_inv_L)
-# B_inv_L_4 = np.matmul(B_inv_L_2, B_inv_L_2)
-# B_inv_L_5 = np.matmul(B_inv_L_4, B_inv_L)
-# B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
-#
-#
-# f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
-# f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
-# f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
-#
-# f_0 = f(ATy, y, B_inv_A_trans_y0)
-# g_0 = g(A, L, lam0)
-
-
+gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist)
 lambHist, lambBinEdges = np.histogram(lambdas, bins=BinHist)
+const = 400
 delta_lam = lambBinEdges - lam0
 #taylorG = g_tayl(delta_lam,g_0, g_0_1, g_0_2, g_0_3,g_0_4, 0,0)
 GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + np.log(g_0)
@@ -1183,8 +1151,8 @@ taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,0, 0, 0)
 f_0_4 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
 
 # print max rel F taylor F error
-def piFunc(lamb):
-    gam =  minimum[0]
+def piFunc(lamb, gam):
+    #gam =  minimum[0]
 
     B = (ATA + lamb * L)
     LowTri = np.linalg.cholesky(B)
@@ -1195,10 +1163,19 @@ def piFunc(lamb):
     G = g(A, L, lamb)
     return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 *G + 0.5 * gam * F + (betaD * lamb * gam + betaG * gam) #- 440
 
+def piFuncTayl(lamb, gam):
+    #gam =  minimum[0]
+    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, f_0_2 ,f_0_3,f_0_4, 0, 0)
+
+    GApprox = (np.log(lamb) - np.log(lam0)) * delG + np.log(g_0)
+    taylorG = np.exp(GApprox)
+    return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 * taylorG + 0.5 * gam * taylorF + (betaD * lamb * gam + betaG * gam) #- 440
 
 f_Checkfunc = np.zeros(len(lambBinEdges))
 g_Checkfunc = np.zeros(len(lambBinEdges))
-ComplPiFunc = np.zeros(len(lambBinEdges))
+ComplPiFunc = np.zeros(len(gamBinEdges))
+maxPiErr = 0
+maxlogPiErr = 0
 for j in range(len(lambBinEdges)):
 
     B = (ATA + lambBinEdges[j] * L)
@@ -1211,53 +1188,70 @@ for j in range(len(lambBinEdges)):
 
     f_Checkfunc[j] = f(ATy, y, B_inv_A_trans_y)
     g_Checkfunc[j] = g(A, L, lambBinEdges[j])
-    ComplPiFunc[j] = piFunc(lambBinEdges[j])
+    for i in range(len(gamBinEdges)):
+        ComplPiFunc[i] = piFunc(lambBinEdges[j], gamBinEdges[i])
+
+    normPiTayl = np.exp(-piFuncTayl(lambBinEdges[j], gamBinEdges) + const) #/ np.sum(np.exp(-piFuncTayl(lambBinEdges[j], gamBinEdges) + const))
+    normPiFunc = np.exp((-ComplPiFunc + const))# / np.sum(np.exp(-ComplPiFunc + const))
+    piErr = max(abs(normPiTayl - normPiFunc)/normPiFunc)
+    if piErr > maxPiErr:
+        maxPiErr = np.copy(piErr)
+        maxErrExpLam = lambBinEdges[j]
+        maxErrExpgam = gamBinEdges[abs(normPiTayl - normPiFunc) / normPiFunc == piErr][0]
+
+    logpiErr = max(abs(piFuncTayl(lambBinEdges[j], gamBinEdges) - ComplPiFunc) / abs(ComplPiFunc))
+    if logpiErr > maxlogPiErr:
+        maxlogPiErr = np.copy(logpiErr)
+        maxErrPiLam = lambBinEdges[j]
+        maxErrPiGam = gamBinEdges[abs(piFuncTayl(lambBinEdges[j], gamBinEdges) - ComplPiFunc) / abs(ComplPiFunc) == logpiErr][0]
+
 
 relFErr = max(abs(f_Checkfunc - taylorF)/abs(f_Checkfunc))
+absFErr = max(abs(f_Checkfunc - taylorF))
 ErrFLam = lambBinEdges[abs(f_Checkfunc - taylorF)/abs(f_Checkfunc) == relFErr][0]
-print(f'relative F error {relFErr *100} at {ErrFLam}')
+print(f'relative F error {relFErr *100} at {ErrFLam} with abs Err {absFErr}')
 
 relGErr = max(abs(g_Checkfunc - taylorG)/abs(g_Checkfunc))
+absGErr = max(abs(g_Checkfunc - taylorG))
 ErrGLam = lambBinEdges[abs(g_Checkfunc - taylorG)/abs(g_Checkfunc) == relGErr][0]
-print(f'relative G error {relGErr *100} at {ErrGLam}')
-def piFuncTayl(lamb):
-    gam =  minimum[0]
-    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, f_0_2 ,f_0_3,f_0_4, 0, 0)
-
-    GApprox = (np.log(lamb) - np.log(lam0)) * delG + np.log(g_0)
-    taylorG = np.exp(GApprox)
-    return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 * taylorG + 0.5 * gam * taylorF + (betaD * lamb * gam + betaG * gam) #- 440
-const = 400
-normPiTayl = np.exp(-piFuncTayl(lambBinEdges)+const)/ np.sum(np.exp(-piFuncTayl(lambBinEdges)+const))
-normPiFunc = np.exp((-ComplPiFunc+const))/np.sum( np.exp(-ComplPiFunc+const))
-
-piErr = max(abs(normPiTayl - normPiFunc)/normPiFunc)
-ErrExpLam = lambBinEdges[abs(normPiTayl - normPiFunc)/normPiFunc == piErr ][0]
-print(f'relative error function {piErr*100:.2f} at {ErrExpLam}')
+print(f'relative G error {relGErr *100} at {ErrGLam} with abs Err {absGErr}')
 
 
-logpiErr = max(abs(piFuncTayl(lambBinEdges) - ComplPiFunc)/abs(ComplPiFunc ))
-ErrPiLam = lambBinEdges[abs(piFuncTayl(lambBinEdges) - ComplPiFunc)/abs(ComplPiFunc ) == logpiErr ][0]
-print(f'relative log error function {logpiErr *100:.2f} at {ErrPiLam}')
+# normPiTayl = np.exp(-piFuncTayl(lambBinEdges)+const)/ np.sum(np.exp(-piFuncTayl(lambBinEdges)+const))
+# normPiFunc = np.exp((-ComplPiFunc+const))/np.sum( np.exp(-ComplPiFunc+const))
+# 
+# piErr = max(abs(normPiTayl - normPiFunc)/normPiFunc)
+# ErrExpLam = lambBinEdges[abs(normPiTayl - normPiFunc)/normPiFunc == piErr ][0]
+print(f'relative error function {piErr*100:.2f} at lam: {maxErrExpLam} and gam: {maxErrExpgam}')
+print(f'relative log error function {logpiErr *100:.2f} at lam: {maxErrPiLam} and gam: {maxErrPiGam}')
+PiTayl = np.exp(-piFuncTayl(maxErrExpLam, maxErrExpgam) + const) #/ np.sum(np.exp(-piFuncTayl(maxErrExpLam, maxErrExpgam) + const))
+PiFunc = np.exp((-piFunc(maxErrExpLam, maxErrExpgam) + const)) #/ np.sum(np.exp(-ComplPiFunc + const))
+abspiErr = abs(PiTayl - PiFunc)
+PiTaylMode = np.exp(-piFunc(lam0, gam0) + const)
+print(f'abs error {abspiErr} at lam: {maxErrExpLam} and gam: {maxErrExpgam}')
+##
+# logpiErr = max(abs(piFuncTayl(lambBinEdges) - ComplPiFunc)/abs(ComplPiFunc ))
+# ErrPiLam = lambBinEdges[abs(piFuncTayl(lambBinEdges) - ComplPiFunc)/abs(ComplPiFunc ) == logpiErr ][0]
+# print(f'relative log error function {logpiErr *100:.2f} at {ErrPiLam}')
 
 fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 
-axs.plot(lambBinEdges, normPiTayl, color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
-axs.plot(lambBinEdges,normPiFunc,color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3)
+axs.plot(lambBinEdges, normPiTayl/np.sum(normPiTayl), color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+axs.plot(lambBinEdges,normPiFunc/np.sum(normPiFunc),color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3)
 
-#axs.set_yscale('log')
-#axs.set_xscale('log')
+axs.set_yscale('log')
+axs.set_xscale('log')
 axs.legend()
 plt.show(block = True)
 ##
-fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
-
-axs.plot(lambBinEdges, -piFuncTayl(lambBinEdges), color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
-axs.plot(lambBinEdges, -ComplPiFunc,color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
-
-#axs.set_yscale('log')
-#axs.set_xscale('log')
-plt.show(block = True)
+# fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
+#
+# axs.plot(lambBinEdges, -piFuncTayl(lambBinEdges), color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+# axs.plot(lambBinEdges, -ComplPiFunc,color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+#
+# #axs.set_yscale('log')
+# #axs.set_xscale('log')
+# plt.show(block = True)
 
 ##
 startNum = 1
