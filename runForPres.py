@@ -286,7 +286,7 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
         # # draw new lambda
         lam_p = normal(lambdas[t], wLam)
 
-        while lam_p < 0 :#or lam_p > 1e4:
+        while lam_p < 0 or lam_p > 1e4:
                 lam_p = normal(lambdas[t], wLam)
 
         delta_lam = lam_p - lambdas[t]
@@ -809,7 +809,10 @@ axs[0].set_xlabel(r'$\gamma$')
 axs[0].set_ylabel(r'$\lambda$')
 
 axs[1].plot(trace, color = 'k', linewidth = 0.1)
-axs[1].set_ylabel(r'$\ln {\pi(\lambda, \gamma| \bm{y})}$')
+axs[1].set_ylabel(r'$-\ln {\pi(\lambda, \gamma| \bm{y})}$')
+#axs[1].set_yscale('log')
+axs[1].invert_yaxis()
+
 axs[1].set_xlabel('number of samples')
 plt.savefig('ScatterplusHistoPlusTT.png', dpi = dpi)
 plt.show()
@@ -1099,7 +1102,7 @@ ax2.spines['left'].set_visible(False)
 
 axins = axs.inset_axes([0.05,0.5,0.4,0.45])
 axins.plot(lam,f_func, color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
-axins.axvline( minimum[1], color = gmresCol, label = r'$\pi(\lambda_0|\bm{y}, \gamma)$')
+axins.axvline( minimum[1], color = gmresCol, label = r'$\lambda_0$')
 
 axins.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
 
@@ -1165,7 +1168,7 @@ def piFunc(lamb, gam):
 
 def piFuncTayl(lamb, gam):
     #gam =  minimum[0]
-    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, f_0_2 ,f_0_3,f_0_4, 0, 0)
+    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, f_0_2 ,f_0_3,0, 0, 0)
 
     GApprox = (np.log(lamb) - np.log(lam0)) * delG + np.log(g_0)
     taylorG = np.exp(GApprox)
@@ -1200,7 +1203,9 @@ for j in range(len(lambBinEdges)):
         maxErrExpgam = gamBinEdges[abs(normPiTayl - normPiFunc) / normPiFunc == piErr][0]
 
     logpiErr = max(abs(piFuncTayl(lambBinEdges[j], gamBinEdges) - ComplPiFunc) / abs(ComplPiFunc))
+    #print(logpiErr*100)
     if logpiErr > maxlogPiErr:
+
         maxlogPiErr = np.copy(logpiErr)
         maxErrPiLam = lambBinEdges[j]
         maxErrPiGam = gamBinEdges[abs(piFuncTayl(lambBinEdges[j], gamBinEdges) - ComplPiFunc) / abs(ComplPiFunc) == logpiErr][0]
@@ -1229,6 +1234,26 @@ PiFunc = np.exp((-piFunc(maxErrExpLam, maxErrExpgam) + const)) #/ np.sum(np.exp(
 abspiErr = abs(PiTayl - PiFunc)
 PiTaylMode = np.exp(-piFunc(lam0, gam0) + const)
 print(f'abs error {abspiErr} at lam: {maxErrExpLam} and gam: {maxErrExpgam}')
+
+
+##
+
+f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+upperErrBond = max(abs(f_0_4) * (lambBinEdges-lam0)**4)
+lamErrUpBond = lambBinEdges[abs(f_0_4) * (lambBinEdges-lam0)**4 == upperErrBond][0]
+ApprF = abs(f_tayl(lamErrUpBond - lam0 , f_0, f_0_1, f_0_2 ,f_0_3,0, 0, 0))
+print(upperErrBond/ApprF*100)
+print(upperErrBond/f_Checkfunc[-1]*100)
+#upperErrBond = 30136983
+for j in range(len(lambBinEdges)):
+    for i in range(len(gamBinEdges)):
+        ComplPiFunc[i] = piFunc(lambBinEdges[j], gamBinEdges[i])
+
+    logpiErr = max(abs(piFuncTayl(lambBinEdges[j], gamBinEdges) - ComplPiFunc)) #/ abs(ComplPiFunc))
+    #print(logpiErr)
+    print(np.max((0.5 * gamBinEdges* upperErrBond)/ComplPiFunc)*100)
+upperErrBond / piFuncTayl(lamErrUpBond, gamBinEdges)
+
 ##
 # logpiErr = max(abs(piFuncTayl(lambBinEdges) - ComplPiFunc)/abs(ComplPiFunc ))
 # ErrPiLam = lambBinEdges[abs(piFuncTayl(lambBinEdges) - ComplPiFunc)/abs(ComplPiFunc ) == logpiErr ][0]
