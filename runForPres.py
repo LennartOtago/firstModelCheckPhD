@@ -7,7 +7,13 @@ import time
 import matplotlib.pyplot as plt
 import scipy as scy
 from puwr import tauint
+import os
+cwd = os.getcwd()
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
+from pathlib import Path
+path = Path(cwd) # Path("/here/your/path/file.txt")
+parentDir = str( path.parent.absolute())
 
 fraction = 1.5
 dpi = 300
@@ -37,7 +43,7 @@ dir = '/home/lennartgolks/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/firstModelCheckPhD/'
 dir = '/Users/lennart/PycharmProjects/TTDecomposition/'
 dir = '/home/lennartgolks/PycharmProjects/TTDecomposition/'
-
+dir = parentDir + '/TTDecomposition/'
 A_lin_dx = np.loadtxt(dir + 'A_lin_dx.txt')
 tang_heights_lin = np.loadtxt(dir +'tan_height_values.txt')
 height_values = np.loadtxt(dir +'height_values.txt')
@@ -973,8 +979,8 @@ np.savetxt('RegSol.txt',x_opt / theta_scale_O3, fmt = '%.15f', delimiter= '\t')
 
 ##
 
-np.savetxt('SecO3Mean.txt',MargInteg, fmt = '%.15f', delimiter= '\t')
-np.savetxt('SecO3Var.txt',CondVar, fmt = '%.15f', delimiter= '\t')
+np.savetxt('SecO3Mean.txt',MargInteg, fmt = '%.30f', delimiter= '\t')
+np.savetxt('SecO3Var.txt',CondVar, fmt = '%.30f', delimiter= '\t')
 
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 #ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
