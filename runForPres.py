@@ -249,6 +249,13 @@ delG = (np.log(g(A, L, 1e4)) - np.log(g_0)) / (np.log(1e4) - np.log(lam0))
 ##
 
 '''do the sampling'''
+
+index = 'sec'
+gridSize = 25
+univarGridO3 = np.zeros((2, gridSize))
+for i in range(0, 2):
+    univarGridO3[i] = np.loadtxt(parentDir + '/TTDecomposition/'+index +'uniVarGridMargO3' + str(i) + '.txt')
+
 number_samples = 10000
 burnIn = 100
 f_0 = f(ATy, y, B_inv_A_trans_y0)
@@ -292,7 +299,7 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
         # # draw new lambda
         lam_p = normal(lambdas[t], wLam)
 
-        while lam_p < 0 or lam_p > 1e4:
+        while lam_p < univarGridO3[1][0] or lam_p > univarGridO3[1][-1]:
                 lam_p = normal(lambdas[t], wLam)
 
         delta_lam = lam_p - lambdas[t]
@@ -343,6 +350,8 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
 
 
         gammas[t+1] = np.random.gamma(shape = shape, scale = 1/rate)
+        while gammas[t+1] < univarGridO3[0][0] or gammas[t+1] > univarGridO3[0][-1]:
+                gammas[t+1] = np.random.gamma(shape = shape, scale = 1/rate)
 
         #deltas[t+1] = lambdas[t+1] * gammas[t+1]
 
@@ -373,7 +382,7 @@ firstlammean, firstlamdelta, firstlamtint, firstlamd_tint = tauint([[lambdas[bur
 
 ##
 startTime = time.time()
-BinHistStart = 10
+BinHistStart = 25
 
 lambHist, lambBinEdges = np.histogram(lambdas, bins=BinHistStart, density=True)
 gamHist, gamBinEdges = np.histogram(gammas, bins=BinHistStart, density=True)
@@ -635,11 +644,13 @@ np.savetxt('AffineSamples.txt', np.vstack((gammas[burnIn::], deltas[burnIn::], l
 secgammean, secgamdelta, secgamtint, secgamd_tint = tauint([[gammas[burnIn::]]], 0)
 secdelmean, secdeldelta, secdeltint, secdeld_tint = tauint([[deltas[burnIn::]]], 0)
 seclammean, seclamdelta, seclamtint, seclamd_tint = tauint([[lambdas[burnIn::]]], 0)
+secTauInt = [secgamtint,secdeltint,seclamtint]
+secdTauInt = [secgamd_tint,secdeld_tint,seclamd_tint]
 
-
+np.savetxt('secTauInt.txt',[secTauInt,secdTauInt], fmt = '%.15f', delimiter= '\t', header = 'gamma, delta, lambda')
 ##
 startTime = time.time()
-BinHistStart = 10
+BinHistStart = 25
 
 lambHist, lambBinEdges = np.histogram(lambdas, bins=BinHistStart, density=True)
 gamHist, gamBinEdges = np.histogram(gammas, bins=BinHistStart, density=True)
@@ -689,8 +700,6 @@ np.savetxt('BinHistNum.txt',[BinHist], fmt = '%.30f', delimiter= '\t')
 #CondVar = scy.integrate.trapezoid(gamInt) * scy.integrate.trapezoid(VarB.T) / (theta_scale_O3) ** 2
 CondVar =np.sum(gamInt) * np.sum(VarB,0)  / (theta_scale_O3) ** 2
 
-MargTime = time.time() - startTime
-print('Post Mean in ' + str(MargTime) + ' s')
 relErrO3 = np.linalg.norm(MargInteg -VMR_O3[:,0]) / np.linalg.norm(MargInteg) * 100
 print('rel Error to ground Truth:' + str(relErrO3))
 
@@ -1110,7 +1119,7 @@ axins = axs.inset_axes([0.05,0.5,0.4,0.45])
 axins.plot(lam,f_func, color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
 axins.axvline( minimum[1], color = gmresCol, label = r'$\lambda_0$')
 
-axins.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
+axins.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 1, label = 'approximation' )
 
 axins.set_ylim(0.95 * taylorF[0],1.5 * taylorF[-1])
 axins.set_xlabel('$\lambda$')
