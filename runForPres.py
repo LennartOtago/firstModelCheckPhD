@@ -73,6 +73,16 @@ temp_values = np.loadtxt(dir +'temp_values.txt').reshape((len(VMR_O3), 1))
 wvnmbr = np.loadtxt(dir +'wvnmbr.txt').reshape((909,1))
 E = np.loadtxt(dir +'E.txt').reshape((909,1))
 g_doub_prime = np.loadtxt(dir +'g_doub_prime.txt').reshape((909,1))
+
+
+index = 'sec'
+gridSize = 25
+univarGridO3 = np.zeros((2, gridSize))
+for i in range(0, 2):
+    univarGridO3[i] = np.loadtxt(parentDir + '/TTDecomposition/'+index +'uniVarGridMargO3' + str(i) + '.txt')
+
+
+
 AscalConstKmToCm = 1e3
 ind = 623
 f_broad = 1
@@ -98,6 +108,8 @@ plt.show(block=True)
 relDiff = np.linalg.norm( nonLinAx -  y) / np.linalg.norm(nonLinAx) * 100
 print(f'rel difference between data and noise free data is {relDiff:.2f}')
 
+delHeights = height_values[1:] - height_values[0:-1]
+print(delHeights)
 ##
 
 """start the mtc algo with first guesses of noise and lumping const delta"""
@@ -194,7 +206,7 @@ g_0_6 = 0#-1 /720 * np.trace(B_inv_L_6)
 
 f_0 = f(ATy, y, B_inv_A_trans_y0)
 g_0 = g(A, L, lam0)
-delG = (np.log(g(A, L, 1e4)) - np.log(g_0)) / (np.log(1e4) - np.log(lam0))
+delG = (np.log(g(A, L, univarGridO3[1][-1])) - np.log(g_0)) / (np.log(univarGridO3[1][-1]) - np.log(lam0))
 # lambBinEdges = np.linspace(500, 1.4e4, 100)
 # g_func = [g(A, L,  lam) for lam in lambBinEdges]
 #
@@ -250,11 +262,6 @@ delG = (np.log(g(A, L, 1e4)) - np.log(g_0)) / (np.log(1e4) - np.log(lam0))
 
 '''do the sampling'''
 
-index = 'sec'
-gridSize = 25
-univarGridO3 = np.zeros((2, gridSize))
-for i in range(0, 2):
-    univarGridO3[i] = np.loadtxt(parentDir + '/TTDecomposition/'+index +'uniVarGridMargO3' + str(i) + '.txt')
 
 number_samples = 10000
 burnIn = 100
@@ -991,6 +998,20 @@ np.savetxt('RegSol.txt',x_opt / theta_scale_O3, fmt = '%.15f', delimiter= '\t')
 np.savetxt('SecO3Mean.txt',MargInteg, fmt = '%.30f', delimiter= '\t')
 np.savetxt('SecO3Var.txt',CondVar, fmt = '%.30f', delimiter= '\t')
 
+FirstSamp = 100#len(y)
+Results = np.random.multivariate_normal(MargInteg, CondVar,size=FirstSamp)
+rejI = 0
+totI = 0
+
+for i in range(FirstSamp):
+    totI += 1
+    while any(Results[i] < 0):
+        rejI += 1
+        Results[i] = np.random.multivariate_normal(MargInteg, CondVar)
+
+testTruncMean = np.mean(Results, axis = 0)
+testTruncVar = np.var(Results, axis = 0)
+
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 #ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
@@ -999,6 +1020,9 @@ line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr =3* np.sqrt(np.diag(CondV
 ax1.errorbar(MargInteg,height_values[:,0],  yerr = np.zeros(len(height_values)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', label = r'posterior $\mu \pm 3\sigma$ ', markersize =3, linewidth =1, capsize = 3)
 ax1.plot(x_opt / theta_scale_O3,height_values[:,0],marker = 'v',markerfacecolor = RegCol, color = RegCol , label = r'reg. solution', zorder=2 ,linewidth = 2, markersize =8)
 
+line3 = ax1.errorbar(testTruncMean,height_values[:,0], xerr = np.sqrt(testTruncVar), markeredgecolor =postCol, color = postCol ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)
+for i in range(1,10):
+    ax1.plot(Results[i], height_values, markeredgecolor =binCol , color = binCol ,zorder=2, marker = '.', markersize =2, linewidth =0.1, alpha = alpha)
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
 

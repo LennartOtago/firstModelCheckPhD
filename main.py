@@ -99,6 +99,15 @@ scalingConstkm = 1e-3
 #     temp = get_temp(x)
 #     return p0 * np.exp(-28.97 * grav / R * dx/temp )
 
+def height_pressure(x, dx, p0):
+    R = constants.gas_constant
+    R_Earth = 6356#6371  # earth radiusin km6356#
+    grav = 9.81 * ((R_Earth)/(R_Earth + x))**2
+    temp = temp_func(x)
+    #dP = pplus - p0
+    M = 28.97
+    return dx * (-M * grav / R /temp ) * p0, temp
+
 def pressure_to_height(p0, pplus, x):
     R = constants.gas_constant
     R_Earth = 6356#6371  # earth radiusin km6356#
@@ -140,11 +149,43 @@ calc_temp[-1] = temp_func( actual_heights[-1])
 heights = actual_heights#[1:]
 SpecNumLayers = len(VMR_O3)
 #height_values = heights[minInd:maxInd].reshape((SpecNumLayers,1))
-height_values = np.around(heights[minInd:maxInd][::skipInd].reshape((SpecNumLayers,1)),2)
-temp_values =  np.around(calc_temp[minInd:maxInd][::skipInd],2)
+#height_values = np.around(heights[minInd:maxInd][::skipInd].reshape((SpecNumLayers,1)),2)
+#temp_values =  np.around(calc_temp[minInd:maxInd][::skipInd],2)
 
-MinH = height_values[0]
-MaxH = height_values[-1]
+MinH = min(heights[minInd:maxInd])
+MaxH = max(heights[minInd:maxInd])
+##
+height_values = np.linspace(MinH, MaxH, SpecNumLayers).reshape(SpecNumLayers)
+VMR_O3 = np.interp(height_values,  heights, O3,).reshape((SpecNumLayers,1))
+new_calc_press  = np.zeros( SpecNumLayers)
+new_calc_press[0]  = calc_press[minInd]
+new_calc_temp = np.zeros( SpecNumLayers)
+for i in range(1, SpecNumLayers):
+    dx = height_values[i - 1] - height_values[i]
+    dp, new_calc_temp[i-1] =  height_pressure(height_values[i - 1], dx, new_calc_press[i - 1] )
+    new_calc_press[i] = new_calc_press[i - 1] - dp
+
+new_calc_temp[-1] = temp_func( height_values[-1])
+height_values = np.around(height_values,2).reshape((SpecNumLayers,1))
+temp_values = np.around(new_calc_temp,2).reshape((SpecNumLayers,1))
+pressure_values = new_calc_press.reshape(SpecNumLayers)
+
+startInd = 21
+EndInd = len(height_values[startInd::2]) + startInd
+height_values[startInd:EndInd] = height_values[startInd::2]
+temp_values[startInd:EndInd] = temp_values[startInd::2]
+pressure_values[startInd:EndInd] = pressure_values[startInd::2]
+VMR_O3[startInd:EndInd] = VMR_O3[startInd::2]
+
+height_values = height_values[:EndInd]
+temp_values = temp_values[:EndInd]
+pressure_values = pressure_values[:EndInd]
+VMR_O3 = VMR_O3[:EndInd]
+SpecNumLayers = len(height_values)
+##
+#temp_values = np.interp(np.linspace(MinH, MaxH, SpecNumLayers).reshape(SpecNumLayers), heights, calc_temp.reshape(len(O3))).reshape((SpecNumLayers,1))
+#pressure_values  = np.interp(np.linspace(MinH, MaxH, SpecNumLayers).reshape(SpecNumLayers), heights, calc_press).reshape(SpecNumLayers)
+
 R_Earth = 6356#6371 # earth radiusin km
 ObsHeight = 500 # in km
 
@@ -203,7 +244,7 @@ sigmas[1] = sigmaP
 PriorSamp = np.random.multivariate_normal(means, np.eye(2) * sigmas, tests)
 
 
-fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True,dpi = 300)
+fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 ZeroP = np.zeros(tests)
 for i in range(0,tests):
     ZeroP[i] = pressFunc(0, *PriorSamp[i,:])
@@ -234,6 +275,7 @@ fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_l
 
 axs.plot( calc_temp,actual_heights,marker = 'o',markerfacecolor = 'C2', color = 'C2' , label = 'true profile', zorder=0,linewidth = 3, markersize =10)
 axs.plot( temp_func(actual_heights),actual_heights,marker = 'o',markerfacecolor = 'C1', color = 'C1' , label = 'true profile', zorder=1,linewidth = 2, markersize =5)
+axs.plot( temp_values,height_values,marker = 'o',markerfacecolor = 'C3', color = 'C3' , label = 'true profile', zorder=1,linewidth = 2, markersize =5)
 
 axs.set_xlabel(r'Temperature in K')
 
@@ -254,10 +296,17 @@ MaxAng = np.arcsin((height_values[-1]+ R_Earth) / (R_Earth + ObsHeight))
 MinAng = np.arcsin((height_values[0] + R_Earth) / (R_Earth + ObsHeight))
 
 
-
+##
 pointAcc = 0.00075#0.00045
 meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
-
+# b = 0.3
+# meas_ang1 = np.array(np.exp(b * np.linspace(0,len(meas_ang)-1 ,len(meas_ang))))
+# meas_ang1 = np.flip(meas_ang[-1] - (meas_ang[-1]-meas_ang[0]) * meas_ang1/np.max(meas_ang1))
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# ax1.scatter(range(len(meas_ang)),meas_ang1)
+# ax1.scatter(range(len(meas_ang)),meas_ang, s = 10)
+# plt.show(block = True)
+##
 SpecNumMeas = len(meas_ang)
 m = SpecNumMeas
 
@@ -306,24 +355,24 @@ neigbours[neigbours >= len(height_values)] = np.nan
 neigbours[neigbours < 0] = np.nan
 
 L = generate_L(neigbours)
-startInd =38# 35
-#L[startInd::, startInd::] = L[startInd::, startInd::] * 10
-#L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
+# 35
+L[startInd::, startInd::] = L[startInd::, startInd::] * 0.5
+L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
 ##
 delHeights = height_values[1:] - height_values[0:-1]
-newL = generate_L(neigbours)
-for i in range(1,len(newL)-1):
-    newL[i, i]= 1/delHeights[i-1]**2 + 1/delHeights[i]**2
-    newL[i, i-1] = -1/delHeights[i-1]**2
-    newL[i,i+1] = -1/delHeights[i]**2
-
-newL[0, 0] = 2 / delHeights[0] ** 2
-newL[1, 0] = -1 / delHeights[0] ** 2
-newL[0, 1] = -1 / delHeights[0] ** 2
-
-newL[-1, -1] = 2 / delHeights[-1] ** 2
-newL[-2,-1] = -1 / delHeights[-1] ** 2
-newL[-1, -2] = -1 / delHeights[-1] ** 2
+# newL = generate_L(neigbours)
+# for i in range(1,len(newL)-1):
+#     newL[i, i]= 1/delHeights[i-1]**2 + 1/delHeights[i]**2
+#     newL[i, i-1] = -1/delHeights[i-1]**2
+#     newL[i,i+1] = -1/delHeights[i]**2
+#
+# newL[0, 0] = 2 / delHeights[0] ** 2
+# newL[1, 0] = -1 / delHeights[0] ** 2
+# newL[0, 1] = -1 / delHeights[0] ** 2
+#
+# newL[-1, -1] = 2 / delHeights[-1] ** 2
+# newL[-2,-1] = -1 / delHeights[-1] ** 2
+# newL[-1, -2] = -1 / delHeights[-1] ** 2
 
 
 #L = np.copy(newL)
@@ -496,6 +545,28 @@ plt.show()
 AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, temp_values)
 A = 2*AO3
 
+##
+
+PgWidthPt = 421/2
+fraction = 1.5
+plt.rcParams.update({'font.size':  10,
+                     'text.usetex': True,
+                     'font.family' : 'serif',
+                     'font.serif'  : 'cm',
+                     'text.latex.preamble': r'\usepackage{bm, amsmath}'})
+U, SingS, Vh = np.linalg.svd(A.T @ A, full_matrices=True)
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+ax1.scatter(range(len(SingS)),np.sqrt(SingS))
+ax1.set_yscale('log')
+ax1.set_ylabel(r'eigenvalues of $\bm{A}$')
+ax2 = ax1.twinx()
+ax2.scatter(range(len(tang_heights_lin)),tang_heights_lin, c = 'C1', marker='*')
+ax2.set_ylabel('tangent height')
+#fig3.savefig('EigAExp.png', dpi = dpi)
+plt.show(block = True)
+
+
+##
 ATA = np.matmul(A.T,A)
 Au, As, Avh = np.linalg.svd(A)
 cond_A =  np.max(As)/np.min(As)
@@ -1428,6 +1499,20 @@ plt.close('all')
 TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
 
 XOPT = x_opt /(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
+postCol = 'C1'
+FirstSamp = 100#len(y)
+Sampls = np.random.multivariate_normal(MargX, MargVar,size=FirstSamp)
+rejI = 0
+totI = 0
+
+for i in range(FirstSamp):
+    totI += 1
+    while any(Sampls[i] < 0):
+        rejI += 1
+        Sampls[i] = np.random.multivariate_normal(MargX, MargVar)
+
+testTruncMean = np.mean(Sampls, axis = 0)
+testTruncVar = np.var(Sampls, axis = 0)
 
 fig3, ax2 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
  # ax1 and ax2 share y-axis
@@ -1448,6 +1533,7 @@ for n in range(0,paraSamp,20):
             f.write('(' + str(Sol[k]) + ' , ' + str(height_values[k]) + ')')
             f.write('\n')
 
+line3 = ax1.errorbar(testTruncMean,height_values[:,0], xerr = np.sqrt(testTruncVar), markeredgecolor =postCol, color = postCol ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)
 # ax1.plot(Sol, height_values, marker='+', color=ResCol, label='posterior samples ', zorder=4, linewidth=0.5,
 # markersize=2, linestyle = 'none')
 #$\mathbf{x} \sim \pi(\mathbf{x} |\mathbf{y}, \mathbf{\theta} ) $' , markerfacecolor = 'none'
