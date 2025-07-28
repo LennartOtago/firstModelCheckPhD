@@ -170,7 +170,7 @@ height_values = np.around(height_values,2).reshape((SpecNumLayers,1))
 temp_values = np.around(new_calc_temp,2).reshape((SpecNumLayers,1))
 pressure_values = new_calc_press.reshape(SpecNumLayers)
 
-startInd = 21
+startInd = 23
 EndInd = len(height_values[startInd::2]) + startInd
 height_values[startInd:EndInd] = height_values[startInd::2]
 temp_values[startInd:EndInd] = temp_values[startInd::2]
@@ -356,8 +356,9 @@ neigbours[neigbours < 0] = np.nan
 
 L = generate_L(neigbours)
 # 35
-L[startInd::, startInd::] = L[startInd::, startInd::] * 0.5
+L[startInd::, startInd::] = L[startInd::, startInd::] * 0.5**2
 L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
+
 ##
 delHeights = height_values[1:] - height_values[0:-1]
 # newL = generate_L(neigbours)
