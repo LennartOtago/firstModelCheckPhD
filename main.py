@@ -348,6 +348,7 @@ neigbours = np.zeros((len(height_values),NOfNeigh))
 # neigbours[-1] = len(height_values)-2, np.nan
 for i in range(0,len(height_values)):
     neigbours[i] = i-1, i+1
+    #neigbours[i] =  i + 1
     #neigbours[i] = i-2, i-1, i+1, i+2#, i+3 i-3,
 
 
@@ -355,9 +356,41 @@ neigbours[neigbours >= len(height_values)] = np.nan
 neigbours[neigbours < 0] = np.nan
 
 L = generate_L(neigbours)
+coL = np.tril(np.triu(np.ones((len(VMR_O3)-1,len(VMR_O3))),0),+1)
+
+for i in range(0,len(VMR_O3)-1):
+        coL[i,i] = -1
+
+# coL[0,0] = -np.sqrt(2)
+# coL[0,1]= np.sqrt(2)
+# coL[-1,-1] = -np.sqrt(2)
+# coL[-2,-1] = np.sqrt(2)
+coL[startInd::, startInd::] = coL[startInd::, startInd::] * 0.5
+TIKH = coL.T@coL
+TIKH[0,0] = 2 * np.copy(TIKH[0,0])
+TIKH[-1,-1] = 2 * np.copy(TIKH[-1,-1])
+#L = np.copy(TIKH)
+##
 # 35
-L[startInd::, startInd::] = L[startInd::, startInd::] * 0.5**2
-L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
+#L[startInd::, startInd::] = L[startInd::, startInd::] * 0.5
+#L[startInd, startInd-1] = - 4/6
+#L[startInd, startInd+1] = -2/6
+#L[startInd, startInd] = -L[startInd, startInd-1] - L[startInd, startInd+1] #-L[startInd, startInd-2] - L[startInd, startInd+2]
+#np.sum(L,axis=1)
+
+# delHeights = height_values[1:] - height_values[0:-1]
+#
+#
+# from scipy.interpolate import UnivariateSpline
+# calcdev = UnivariateSpline( height_values, VMR_O3, k=2, s=0).derivative(n=2)
+# calcdev = np.gradient(VMR_O3[:,0],height_values[:,0], edge_order = 2)
+# #calcdev = scy.misc.derivative(VMR_O3[:,0],n=2)
+# fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
+#
+# axs.plot( calcdev,height_values[:,0],marker = 'o' )
+# axs.plot( L@VMR_O3 /delHeights[0],height_values[:,0])
+#
+# plt.show(block = True)
 
 ##
 delHeights = height_values[1:] - height_values[0:-1]
@@ -555,16 +588,40 @@ plt.rcParams.update({'font.size':  10,
                      'font.family' : 'serif',
                      'font.serif'  : 'cm',
                      'text.latex.preamble': r'\usepackage{bm, amsmath}'})
-U, SingS, Vh = np.linalg.svd(A.T @ A, full_matrices=True)
+U, SingS, Vh = np.linalg.svd(A, full_matrices=True)
+
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-ax1.scatter(range(len(SingS)),np.sqrt(SingS))
+ax1.scatter(range(len(SingS)),SingS)
+ax1.axhline(max(SingS)/60)
 ax1.set_yscale('log')
-ax1.set_ylabel(r'eigenvalues of $\bm{A}$')
-ax2 = ax1.twinx()
-ax2.scatter(range(len(tang_heights_lin)),tang_heights_lin, c = 'C1', marker='*')
-ax2.set_ylabel('tangent height')
+
+ax1.set_ylabel(r'singular values of $\bm{A}$')
+#ax2 = ax1.twinx()
+#ax2.scatter(range(len(tang_heights_lin)),tang_heights_lin, c = 'C1', marker='*')
+#ax2.set_ylabel('tangent height')
 #fig3.savefig('EigAExp.png', dpi = dpi)
 plt.show(block = True)
+
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+#for i in range(0,len(SingS)):
+for i in range(0, len(SingS)):
+    ax1.plot(SingS[i]  * Vh[i],height_values)
+#ax1.plot(   SingS * Vh.T @ VMR_O3   ,height_values)
+#testProfile = np.copy(VMR_O3 )
+#testProfile[-3:] = testProfile[-3:] *2
+#ax1.plot(Vh @testProfile   ,height_values)
+#ax1.plot(testProfile   ,height_values)
+#ax1.plot(VMR_O3   ,height_values)
+
+
+#ax1.plot(A @ testProfile   ,tang_heights_lin)
+#ax1.plot(A @ VMR_O3   ,tang_heights_lin)
+#ax1.set_xscale('log')
+ax1.set_ylabel(r'right Singular Vectors of $\bm{A}$')
+
+#fig3.savefig('EigAExp.png', dpi = dpi)
+plt.show(block = True)
+np.allclose(A, U[:, :len(SingS)] @ np.diag(SingS) @ Vh)
 
 
 ##
@@ -591,6 +648,8 @@ y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
 fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
 ax1.plot(Ax, tang_heights_lin)
 ax1.scatter(y, tang_heights_lin, color = 'r')
+ax1.axhline(height_values[startInd])
+ax1.set_xscale('log')
 plt.show()
 
 
@@ -598,6 +657,12 @@ signal_power = np.sqrt(np.mean(np.abs(Ax) ** 2))
 noise = np.random.normal(0, np.sqrt(1 / gam0), size =y.shape)
 noise_power = np.sqrt(np.mean(np.abs(noise) ** 2))
 snr = signal_power / noise_power
+
+rms_noise = np.sqrt(np.mean(np.random.normal(0, np.sqrt(1 / gam0), size =10000)**2))
+
+ColinsSNR = np.max(Ax)/rms_noise
+
+ColinsSNR1 = np.max(y)/np.sqrt(1 / gam0)
 
 nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
 OrgData = np.matmul(AO3 * nonLinA,VMR_O3 * theta_scale_O3)
@@ -1157,9 +1222,9 @@ for p in range(paraSamp):
     #W = np.random.multivariate_normal(np.zeros(len(A)), np.eye(len(A)))
     W = np.random.normal(loc=0.0, scale=1.0, size=len(A))#.reshape((len(A),1))
     v_1 = np.sqrt(SetGamma) *  A.T @ W
-    # W2 = np.random.multivariate_normal(np.zeros(len(L)), L)
+    W2 = np.random.multivariate_normal(np.zeros(len(L)), L)
     # W2 = lowC_L @ np.random.multivariate_normal(np.zeros(len(L)), np.eye(len(L)) )
-    W2 = lowC_L @ np.random.normal(loc=0.0, scale=1.0, size=len(L))#.reshape((len(L),1))
+    # W2 = lowC_L @ np.random.normal(loc=0.0, scale=1.0, size=len(L))#.reshape((len(L),1))
     v_2 = np.sqrt(SetDelta) * W2
 
     SetB = SetGamma * ATA + SetDelta * L
