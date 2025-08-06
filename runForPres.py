@@ -993,6 +993,40 @@ print('bla')
 
 np.savetxt('RegSol.txt',x_opt / theta_scale_O3, fmt = '%.15f', delimiter= '\t')
 
+
+
+## make lagrange multiplier plot
+import matplotlib.cm as cm
+np.random.seed(5)
+playA = np.random.randint(0,2,size= (2,2))
+playL = np.eye(2)#*2
+#playL[0,1] = -1
+#playL[1,0] = -1
+X  = np.arange(-10, 20, 0.25)
+Y  = np.arange(-10, 20, 0.25)
+playDat = playA @ np.array([1,1]).reshape((2,1)) +  np.random.normal(15,1,size=2).reshape((2,1))
+LagrX, LagrY = np.meshgrid( X, Y)
+
+
+
+Z1 = np.zeros((len(LagrX),len(LagrX)))
+Z2 = np.zeros((len(LagrX),len(LagrX)))
+for i in range(0,len(Y)):
+    for j in range(0, len(Y)):
+        #Z1[i, j] = np.sqrt(LagrX[0][i]**2 +LagrY[0][j]**2)
+        Z1[i,j] = np.array([X[i], Y[j]]).reshape((2,1)).T @ playL @ np.array([X[i], Y[j]]).reshape((2,1))
+        Z2[i,j] = np.sqrt(np.sum((playDat - playA @ np.array([X[i], Y[j]]).reshape((2,1)))**2))
+
+#Z = np.sqrt(LagrX**2 +LagrY**2)
+
+fig, ax = plt.subplots()
+#CS = ax.contour(LagrX, LagrY, np.sqrt(LagrX**2 +LagrY**2))
+CS = ax.contour(LagrX, LagrY, Z1)
+CS = ax.contour(LagrX, LagrY, Z2)
+ax.clabel(CS, fontsize=10)
+ax.set_title('Simplest default with labels')
+plt.show(block = True)
+
 ##
 
 np.savetxt('SecO3Mean.txt',MargInteg, fmt = '%.30f', delimiter= '\t')
@@ -1266,7 +1300,7 @@ print(f'relative G error {relGErr *100} at {ErrGLam} with abs Err {absGErr}')
 # 
 # piErr = max(abs(normPiTayl - normPiFunc)/normPiFunc)
 # ErrExpLam = lambBinEdges[abs(normPiTayl - normPiFunc)/normPiFunc == piErr ][0]
-print(f'relative error function {piErr*100:.2f} at lam: {maxErrExpLam} and gam: {maxErrExpgam}')
+#print(f'relative error function {piErr*100:.2f} at lam: {maxErrExpLam} and gam: {maxErrExpgam}')
 print(f'relative log error function {logpiErr *100:.2f} at lam: {maxErrPiLam} and gam: {maxErrPiGam}')
 PiTayl = np.exp(-piFuncTayl(maxErrExpLam, maxErrExpgam) + const) #/ np.sum(np.exp(-piFuncTayl(maxErrExpLam, maxErrExpgam) + const))
 PiFunc = np.exp((-piFunc(maxErrExpLam, maxErrExpgam) + const)) #/ np.sum(np.exp(-ComplPiFunc + const))
@@ -1291,7 +1325,7 @@ for j in range(len(lambBinEdges)):
     logpiErr = max(abs(piFuncTayl(lambBinEdges[j], gamBinEdges) - ComplPiFunc)) #/ abs(ComplPiFunc))
     #print(logpiErr)
     print(np.max((0.5 * gamBinEdges* upperErrBond)/ComplPiFunc)*100)
-upperErrBond / piFuncTayl(lamErrUpBond, gamBinEdges)
+#upperErrBond / piFuncTayl(lamErrUpBond, gamBinEdges)
 
 ##
 # logpiErr = max(abs(piFuncTayl(lambBinEdges) - ComplPiFunc)/abs(ComplPiFunc ))
