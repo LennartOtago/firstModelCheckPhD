@@ -309,7 +309,7 @@ meas_ang2 = np.array(np.exp(b * np.linspace(0,len(meas_ang)-1 ,len(meas_ang))))
 meas_ang2 = np.flip(meas_ang[0] + (meas_ang[-1]-meas_ang[0]) * meas_ang2/np.max(meas_ang2))
 A_lin_dx2, tang_heights_lin2, extraHeight = gen_forward_map(meas_ang2,height_values,ObsHeight,R_Earth)
 
-pointAcc = 0.002
+pointAcc = 0.00075 * 2
 meas_ang3 = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
 A_lin_dx3, tang_heights_lin3, extraHeight = gen_forward_map(meas_ang3,height_values,ObsHeight,R_Earth)
 
