@@ -76,7 +76,7 @@ g_doub_prime = np.loadtxt(dir +'g_doub_prime.txt').reshape((909,1))
 
 
 index = 'sec'
-gridSize = 25
+gridSize = 30
 univarGridO3 = np.zeros((2, gridSize))
 for i in range(0, 2):
     univarGridO3[i] = np.loadtxt(parentDir + '/TTDecomposition/'+index +'uniVarGridMargO3' + str(i) + '.txt')
@@ -86,9 +86,9 @@ for i in range(0, 2):
 AscalConstKmToCm = 1e3
 ind = 623
 f_broad = 1
-scalingConst = 1e11
-betaD = 1e-10
-betaG = 1e-10
+scalingConst = 1#e11
+betaD = 1e-35
+betaG = 1e-35
 m,n = A_lin.shape
 SpecNumLayers = n
 SpecNumMeas = m
@@ -784,7 +784,7 @@ plt.savefig('ScatterplusHisto.png', dpi = dpi)
 plt.show()
 ##
 dimMargO3 = 2
-gridSize = 25
+#gridSize = 25
 gmresCol = [204/255, 121/255, 167/255]
 index = 'first'
 
@@ -1218,7 +1218,7 @@ plt.show()
 ##
 gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist)
 lambHist, lambBinEdges = np.histogram(lambdas, bins=BinHist)
-const = 400
+const = -400
 delta_lam = lambBinEdges - lam0
 #taylorG = g_tayl(delta_lam,g_0, g_0_1, g_0_2, g_0_3,g_0_4, 0,0)
 GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + np.log(g_0)
@@ -1252,6 +1252,7 @@ g_Checkfunc = np.zeros(len(lambBinEdges))
 ComplPiFunc = np.zeros(len(gamBinEdges))
 maxPiErr = 0
 maxlogPiErr = 0
+
 for j in range(len(lambBinEdges)):
 
     B = (ATA + lambBinEdges[j] * L)
@@ -1269,7 +1270,7 @@ for j in range(len(lambBinEdges)):
 
     normPiTayl = np.exp(-piFuncTayl(lambBinEdges[j], gamBinEdges) + const) #/ np.sum(np.exp(-piFuncTayl(lambBinEdges[j], gamBinEdges) + const))
     normPiFunc = np.exp((-ComplPiFunc + const))# / np.sum(np.exp(-ComplPiFunc + const))
-    piErr = max(abs(normPiTayl - normPiFunc)/normPiFunc)
+    piErr = max(abs(normPiTayl - normPiFunc)/abs(normPiFunc))
     if piErr > maxPiErr:
         maxPiErr = np.copy(piErr)
         maxErrExpLam = lambBinEdges[j]

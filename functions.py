@@ -235,7 +235,7 @@ def composeAforO3(A_lin, temp, press, ind, set_temp):
     v_0 = wvnmbr[ind][0]
 
     f_broad = 1
-    scalingConst = 1e11
+    scalingConst = 1#e11
     Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp)
     Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
@@ -391,6 +391,10 @@ def add_noise(signal, snr):
 
 def corr_add_noise(Ax, percent):
     return Ax + np.random.normal(0, percent * np.sqrt(np.max(Ax)**2/2), (len(Ax), 1))
+
+def add_noise_Blokk(Ax,SNR):
+    stdNoise = max(Ax)/SNR
+    return Ax + np.random.normal(0,stdNoise , (len(Ax), 1)) , 1/stdNoise**2
 
 # def old_add_noise(Ax, percent):
 #     return Ax + np.random.normal(0, percent * np.max(Ax), (len(Ax), 1))
@@ -679,7 +683,7 @@ def composeAforPress(A_lin, temp, O3, ind):
 
     f_broad = 1
     w_cross = f_broad * 1e-4 * O3
-    scalingConst = 1e11
+    scalingConst = 1#e11
     Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp)
     Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
@@ -734,7 +738,7 @@ def composeAforTemp(A_lin, press, O3, ind, old_temp):
 
     f_broad = 1
     w_cross = f_broad * 1e-4 * O3
-    scalingConst = 1e11
+    scalingConst = 1#e11
     Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / old_temp)
     Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / old_temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
@@ -789,7 +793,7 @@ def composeAforTempPress(A_lin, O3, ind, old_temp):
 
     f_broad = 1
     w_cross = f_broad * 1e-4 * O3
-    scalingConst = 1e11
+    scalingConst = 1#e11
     Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / old_temp)
     Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / old_temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (

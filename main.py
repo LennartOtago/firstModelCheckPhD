@@ -37,8 +37,8 @@ PgWidthPt = 245
 PgWidthPt =  fraction * 421/2 #phd
 n_bins = 20
 burnIn = 50
-betaG = 1e-10
-betaD = 1e-10
+betaG = 1e-35
+betaD = 1e-35
 #Colors
 #pyTCol = [230/255,159/255, 0/255]
 pyTCol = [213/255,94/255, 0/255]
@@ -190,99 +190,100 @@ SpecNumLayers = len(height_values)
 R_Earth = 6356#6371 # earth radiusin km
 ObsHeight = 500 # in km
 
-def pressFunc(x, b, h0, p0):
-    return np.exp(-b * (x -h0)  + np.log(p0))
-
-def pressFunc(x, b, p0):
-    return np.exp(-b * x  + np.log(p0))
-
-def pressFuncFullFit(x, b1, b2, h0, p0):
-    b = np.ones(len(x))
-    b[x<=h0] = b1
-    b[x>h0] = b2
-    return np.exp(-b * (x -h0)  + np.log(p0))
-
-
-popt, pcov = scy.optimize.curve_fit(pressFunc, height_values[:,0], pressure_values, p0=[1.5e-1, pressure_values[0]])
-#popt, pcov = scy.optimize.curve_fit(pressFunc,  actual_heights,calc_press, p0=[1.5e-1, pressure_values[0]])
-
-print(popt)
-poptFull, pcov = scy.optimize.curve_fit(pressFuncFullFit, actual_heights,calc_press, p0=[1.5e-1,1.5e-1, 8, pressure_values[0]])
-poptFull, pcov = scy.optimize.curve_fit(pressFuncFullFit, height_values[:,0],pressure_values, p0=[1.5e-1,1.5e-1, 8, pressure_values[0]])
-
-print(poptFull)
-
+# def pressFunc(x, b, h0, p0):
+#     return np.exp(-b * (x -h0)  + np.log(p0))
+#
+# def pressFunc(x, b, p0):
+#     return np.exp(-b * x  + np.log(p0))
+#
+# def pressFuncFullFit(x, b1, b2, h0, p0):
+#     b = np.ones(len(x))
+#     b[x<=h0] = b1
+#     b[x>h0] = b2
+#     return np.exp(-b * (x -h0)  + np.log(p0))
+#
+#
+# popt, pcov = scy.optimize.curve_fit(pressFunc, height_values[:,0], pressure_values, p0=[1.5e-1, pressure_values[0]])
+# #popt, pcov = scy.optimize.curve_fit(pressFunc,  actual_heights,calc_press, p0=[1.5e-1, pressure_values[0]])
+#
+# print(popt)
+# poptFull, pcov = scy.optimize.curve_fit(pressFuncFullFit, actual_heights,calc_press, p0=[1.5e-1,1.5e-1, 8, pressure_values[0]])
+# poptFull, pcov = scy.optimize.curve_fit(pressFuncFullFit, height_values[:,0],pressure_values, p0=[1.5e-1,1.5e-1, 8, pressure_values[0]])
+#
+# print(poptFull)
+#
 fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 
 
-axs.plot(pressFunc(height_values[:,0], *popt),height_values[:,0], label = 'not full')
-axs.plot(pressFuncFullFit(height_values[:,0], *poptFull),height_values[:,0], label = 'full')
+#axs.plot(pressFunc(height_values[:,0], *popt),height_values[:,0], label = 'not full')
+#axs.plot(pressFuncFullFit(height_values[:,0], *poptFull),height_values[:,0], label = 'full')
 axs.plot(pressure_values,height_values[:,0], label = 'true')
 
-
+axs.axvline(0.02)
 axs.set_xlabel(r'pressure in hPa ')
+axs.set_yscale('log')
 axs.legend()
 plt.show()
 
-
-tests = 1000
-
-means = np.zeros(2)
-sigmas = np.zeros(2)
-means[0] = popt[0]
-means[1] = popt[1]
-#means[2] = popt[2]
-##means[3] = popt[3]
-
-sigmaP =  4# * 2
-sigmaH = 0.2*3
-sigmaGrad2 = 0.0001*5#0.01 #* 5
-sigmas[0] = sigmaGrad2
-#sigmas[1] = sigmaGrad2
-sigmas[1] = sigmaP
-#sigmas[2] = sigmaP
-
-PriorSamp = np.random.multivariate_normal(means, np.eye(2) * sigmas, tests)
-
-
-fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
-ZeroP = np.zeros(tests)
-for i in range(0,tests):
-    ZeroP[i] = pressFunc(0, *PriorSamp[i,:])
-
-axs.hist(ZeroP, bins=n_bins)
-
-axs.set_xlabel(r'pressure in hPa ')
-
-plt.show()
-##
-fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
-axs.plot( pressure_values,height_values,marker = 'o',markerfacecolor = 'C1', color = 'C1' , label = 'true profile', zorder=0,linewidth = 3, markersize =15)
-axs.plot( calc_press,actual_heights,marker = 'o',markerfacecolor = 'C2', color = 'C2' , label = 'true profile', zorder=1,linewidth = 3, markersize =10)
-
-Sol = pressFunc(height_values[:, 0], *popt)
-axs.plot(Sol, height_values, markeredgecolor='C3', color='C3', zorder=2, marker='.', markersize=2, linewidth=1 )
-
-Sol = pressFuncFullFit(actual_heights, *poptFull)
-axs.plot(Sol, actual_heights, markeredgecolor='C4', color='C4', zorder=2, marker='.', markersize=2, linewidth=1 )
-
-axs.set_xlabel(r'pressure in hPa')
-
-axs.set_ylabel(r'height in km')
-
-plt.show()
-
-fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
-
-axs.plot( calc_temp,actual_heights,marker = 'o',markerfacecolor = 'C2', color = 'C2' , label = 'true profile', zorder=0,linewidth = 3, markersize =10)
-axs.plot( temp_func(actual_heights),actual_heights,marker = 'o',markerfacecolor = 'C1', color = 'C1' , label = 'true profile', zorder=1,linewidth = 2, markersize =5)
-axs.plot( temp_values,height_values,marker = 'o',markerfacecolor = 'C3', color = 'C3' , label = 'true profile', zorder=1,linewidth = 2, markersize =5)
-
-axs.set_xlabel(r'Temperature in K')
-
-axs.set_ylabel(r'height in km')
-
-plt.show()
+#
+# tests = 1000
+#
+# means = np.zeros(2)
+# sigmas = np.zeros(2)
+# means[0] = popt[0]
+# means[1] = popt[1]
+# #means[2] = popt[2]
+# ##means[3] = popt[3]
+#
+# sigmaP =  4# * 2
+# sigmaH = 0.2*3
+# sigmaGrad2 = 0.0001*5#0.01 #* 5
+# sigmas[0] = sigmaGrad2
+# #sigmas[1] = sigmaGrad2
+# sigmas[1] = sigmaP
+# #sigmas[2] = sigmaP
+#
+# PriorSamp = np.random.multivariate_normal(means, np.eye(2) * sigmas, tests)
+#
+#
+# fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
+# ZeroP = np.zeros(tests)
+# for i in range(0,tests):
+#     ZeroP[i] = pressFunc(0, *PriorSamp[i,:])
+#
+# axs.hist(ZeroP, bins=n_bins)
+#
+# axs.set_xlabel(r'pressure in hPa ')
+#
+# plt.show()
+# ##
+# fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
+# axs.plot( pressure_values,height_values,marker = 'o',markerfacecolor = 'C1', color = 'C1' , label = 'true profile', zorder=0,linewidth = 3, markersize =15)
+# axs.plot( calc_press,actual_heights,marker = 'o',markerfacecolor = 'C2', color = 'C2' , label = 'true profile', zorder=1,linewidth = 3, markersize =10)
+#
+# Sol = pressFunc(height_values[:, 0], *popt)
+# axs.plot(Sol, height_values, markeredgecolor='C3', color='C3', zorder=2, marker='.', markersize=2, linewidth=1 )
+#
+# Sol = pressFuncFullFit(actual_heights, *poptFull)
+# axs.plot(Sol, actual_heights, markeredgecolor='C4', color='C4', zorder=2, marker='.', markersize=2, linewidth=1 )
+#
+# axs.set_xlabel(r'pressure in hPa')
+#
+# axs.set_ylabel(r'height in km')
+#
+# plt.show()
+#
+# fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
+#
+# axs.plot( calc_temp,actual_heights,marker = 'o',markerfacecolor = 'C2', color = 'C2' , label = 'true profile', zorder=0,linewidth = 3, markersize =10)
+# axs.plot( temp_func(actual_heights),actual_heights,marker = 'o',markerfacecolor = 'C1', color = 'C1' , label = 'true profile', zorder=1,linewidth = 2, markersize =5)
+# axs.plot( temp_values,height_values,marker = 'o',markerfacecolor = 'C3', color = 'C3' , label = 'true profile', zorder=1,linewidth = 2, markersize =5)
+#
+# axs.set_xlabel(r'Temperature in K')
+#
+# axs.set_ylabel(r'height in km')
+#
+# plt.show()
 ##
 #np.savetxt('height_values.txt', height_values, fmt = '%.30f', delimiter= '\t')
 #np.savetxt('pressure_values.txt', pressure_values, fmt = '%.30f', delimiter= '\t')
@@ -309,7 +310,7 @@ meas_ang2 = np.array(np.exp(b * np.linspace(0,len(meas_ang)-1 ,len(meas_ang))))
 meas_ang2 = np.flip(meas_ang[0] + (meas_ang[-1]-meas_ang[0]) * meas_ang2/np.max(meas_ang2))
 A_lin_dx2, tang_heights_lin2, extraHeight = gen_forward_map(meas_ang2,height_values,ObsHeight,R_Earth)
 
-pointAcc = 0.00075 * 2
+pointAcc = 0.00075 / 2
 meas_ang3 = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
 A_lin_dx3, tang_heights_lin3, extraHeight = gen_forward_map(meas_ang3,height_values,ObsHeight,R_Earth)
 
@@ -320,7 +321,7 @@ A_lin_dx4, tang_heights_lin4, extraHeight = gen_forward_map(meas_ang4,height_val
 
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
 #ax1.scatter(range(len(meas_ang)),meas_ang1, label = 'case 1')
-ax1.scatter(range(len(meas_ang)),meas_ang2, label = 'case 2')
+ax1.scatter(range(len(meas_ang3)),meas_ang3, label = 'case 2')
 #ax1.scatter(range(len(meas_ang)),meas_ang, s = 10, label = 'case 3')
 plt.show(block = True)
 np.savetxt('ExpIncmeasAng.txt', meas_ang1, fmt = '%.30f', delimiter = '\t')
@@ -333,7 +334,7 @@ A_lin_dx, tang_heights_linNormal, extraHeight = gen_forward_map(meas_ang,height_
 
 
 pointAcc = 0.00085
-meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))[:25]
+meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))[:30]
 A_lin_dx, tang_heights_linChosen, extraHeight = gen_forward_map(meas_ang,height_values,ObsHeight,R_Earth)
 
 #pointAcc = 0.002#0.00085#0.00075#0.00045
@@ -586,7 +587,7 @@ num_mole = 1 / ( scy.constants.Boltzmann )#* temp_values)
 AscalConstKmToCm = 1e3
 #1e2 for pressure values from hPa to Pa
 A_scal = pressure_values.reshape((SpecNumLayers,1)) * 1e2 * LineIntScal * Source * AscalConstKmToCm/ ( temp_values)
-scalingConst = 1e11
+scalingConst = 1#e11
 #theta =(num_mole * w_cross.reshape((SpecNumLayers,1)) * Source * scalingConst )
 theta = num_mole * w_cross.reshape((SpecNumLayers,1)) * scalingConst * S[ind,0]
 
@@ -598,119 +599,133 @@ np.savetxt('LineIntScal.txt', LineIntScal, fmt = '%.30f', delimiter= '\t')
 
 
 
-fig, axs = plt.subplots(tight_layout=True, figsize=set_size(PgWidthPt, fraction=fraction))
-#plt.plot(press/1013.25,heights, label = 'pressure in hPa/' + str(np.around(max(press),3)) )
-#plt.plot(Source/max(Source),height_values, label = r'Source in $\frac{W}{m^2 sr}\frac{1}{\frac{1}{cm}}$/' + str(np.around(max(Source[0]),5)) )
-plt.plot(calc_temp,heights, color = 'darkred')# label = r'Source in K/' + str(np.around(max(temperature[0]),3)) )
-
-plt.plot(temp_values,height_values, color = 'red')# label = r'Source in K/' + str(np.around(max(temperature[0]),3)) )
-
-#plt.plot(LineInt,heights[minInd:maxInd], color = 'darkred')# label = r'Source in K/' + str(np.around(max(temperature[0]),3)) )
-#axs.legend()
-axs.tick_params(axis = 'x', labelcolor="darkred")
-ax2 = axs.twiny() # ax1 and ax2 share y-axis
-line3 = ax2.plot(press,heights, color = 'blue') #, label = 'pressure in hPa/' + str(np.around(max(press),3)) )
-ax2.spines['top'].set_color('blue')
-ax2.tick_params(labelcolor="blue")
-ax2.set_xlabel('Pressure in hPa')
-axs.set_ylabel('Height in km')
-axs.set_xlabel('Temperature in K')
-#axs.set_xlabel('Line intensity in cm / molecule')
-#axs.set_title()
-plt.savefig('PandQ.png')
-plt.show()
+# fig, axs = plt.subplots(tight_layout=True, figsize=set_size(PgWidthPt, fraction=fraction))
+# #plt.plot(press/1013.25,heights, label = 'pressure in hPa/' + str(np.around(max(press),3)) )
+# #plt.plot(Source/max(Source),height_values, label = r'Source in $\frac{W}{m^2 sr}\frac{1}{\frac{1}{cm}}$/' + str(np.around(max(Source[0]),5)) )
+# plt.plot(calc_temp,heights, color = 'darkred')# label = r'Source in K/' + str(np.around(max(temperature[0]),3)) )
+#
+# plt.plot(temp_values,height_values, color = 'red')# label = r'Source in K/' + str(np.around(max(temperature[0]),3)) )
+#
+# #plt.plot(LineInt,heights[minInd:maxInd], color = 'darkred')# label = r'Source in K/' + str(np.around(max(temperature[0]),3)) )
+# #axs.legend()
+# axs.tick_params(axis = 'x', labelcolor="darkred")
+# ax2 = axs.twiny() # ax1 and ax2 share y-axis
+# line3 = ax2.plot(press,heights, color = 'blue') #, label = 'pressure in hPa/' + str(np.around(max(press),3)) )
+# ax2.spines['top'].set_color('blue')
+# ax2.tick_params(labelcolor="blue")
+# ax2.set_xlabel('Pressure in hPa')
+# axs.set_ylabel('Height in km')
+# axs.set_xlabel('Temperature in K')
+# #axs.set_xlabel('Line intensity in cm / molecule')
+# #axs.set_title()
+# plt.savefig('PandQ.png')
+# plt.show()
 
 
 AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, temp_values)
 A = 2*AO3
 
-##
-
-PgWidthPt = 421/2
-fraction = 1.5
-plt.rcParams.update({'font.size':  10,
-                     'text.usetex': True,
-                     'font.family' : 'serif',
-                     'font.serif'  : 'cm',
-                     'text.latex.preamble': r'\usepackage{bm, amsmath}'})
-U, SingS, Vh = np.linalg.svd(A)#, full_matrices=True)
-
-# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-# ax1.scatter(range(len(SingS)),SingS)
-# ax1.axhline(max(SingS)/60)
-# ax1.set_yscale('log')
+# ##
 #
-# ax1.set_ylabel(r'singular values of $\bm{A}$')
-#ax2 = ax1.twinx()
-#ax2.scatter(range(len(tang_heights_lin)),tang_heights_lin, c = 'C1', marker='*')
-#ax2.set_ylabel('tangent height')
-#fig3.savefig('EigAExp.png', dpi = dpi)
-#plt.show(block = True)
-
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-for i in range(0,len(SingS)):
-    ax1.plot(Vh[i],height_values)
-    ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
-
-ax1.set_ylabel(r'right singular vectors of $\bm{A}$')
-plt.savefig('SingVecA.png', dpi = dpi)
-#ax1.set_xlabel(r'index')
-#ax1.text(max(Vh[19]), height_values[Vh[19] == max(Vh[19])], f'20')
-#ax1.text(1.05*max(Vh[0]), height_values[Vh[0] == max(Vh[0])], f'1')
-#ax1.text(1.05*max(Vh[3]), height_values[Vh[3] == max(Vh[3])], f'4')
-#ax1.text(1.05*max(Vh[9]), height_values[Vh[9] == max(Vh[9])], f'10')
+# PgWidthPt = 421/2
+# fraction = 1.5
+# plt.rcParams.update({'font.size':  10,
+#                      'text.usetex': True,
+#                      'font.family' : 'serif',
+#                      'font.serif'  : 'cm',
+#                      'text.latex.preamble': r'\usepackage{bm, amsmath}'})
+# U, SingS, Vh = np.linalg.svd(A)#, full_matrices=True)
+#
+# # fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# # ax1.scatter(range(len(SingS)),SingS)
+# # ax1.axhline(max(SingS)/60)
+# # ax1.set_yscale('log')
+# #
+# # ax1.set_ylabel(r'singular values of $\bm{A}$')
+# #ax2 = ax1.twinx()
+# #ax2.scatter(range(len(tang_heights_lin)),tang_heights_lin, c = 'C1', marker='*')
+# #ax2.set_ylabel('tangent height')
+# #fig3.savefig('EigAExp.png', dpi = dpi)
+# #plt.show(block = True)
+#
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# for i in range(0,20):
+#     ax1.plot(Vh[i],height_values)
+#     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
+#
+# ax1.set_ylabel(r'right singular vectors $\bm{v}_i$ of $\bm{A}$ at height in km')
+# plt.savefig('SingVecA.png', dpi = dpi)
+#
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# for i in range(20,len(SingS)):
+#     ax1.plot(Vh[i],height_values)
+#     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
+#
+# ax1.set_ylabel(r'null space of $\bm{A}$ at height in km')
+# plt.savefig('NullVecA.png', dpi = dpi)
+# #ax1.set_xlabel(r'index')
+# #ax1.text(max(Vh[19]), height_values[Vh[19] == max(Vh[19])], f'20')
+# #ax1.text(1.05*max(Vh[0]), height_values[Vh[0] == max(Vh[0])], f'1')
+# #ax1.text(1.05*max(Vh[3]), height_values[Vh[3] == max(Vh[3])], f'4')
+# #ax1.text(1.05*max(Vh[9]), height_values[Vh[9] == max(Vh[9])], f'10')
+# ##
+# np.allclose(A, U[:, :len(SingS)] @ np.diag(SingS) @ Vh[:len(SingS),:])
+#
+# #np.savetxt('SingSmore.txt', SingS, fmt = '%.30f', delimiter = '\t')
+#
+# ExpIncSingSNormal = np.loadtxt('ExpIncSingSNormal.txt')
+# ExpDecSingSNormal = np.loadtxt('ExpDecSingSNormal.txt')
+# SingSNormal = np.loadtxt('SingSNormal.txt')
+# SingSfewer = np.loadtxt('SingSfewer.txt')
+# SingSmore = np.loadtxt('SingSmore.txt')
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# ax1.scatter(range(1,len(ExpIncSingSNormal)+1),ExpIncSingSNormal, label = 'case 1',s=40 , marker = 'v')
+# ax1.scatter(range(1,len(ExpDecSingSNormal)+1),ExpDecSingSNormal,s = 25, label = 'case 2')
+# ax1.scatter(range(1,len(SingSNormal)+1),SingSNormal,s = 20 ,label = 'case 3', c = RegCol, marker = 's')
+#
+# #ax1.scatter(range(len(SingSfewer)),SingSfewer,marker = '.', s= 10, c='r',label = 'case 5')
+# ax1.scatter(range(1,len(SingSmore)+1),SingSmore,marker = 'x', s= 15, c='g',label = 'case 4')
+# ax1.scatter(range(1,len(SingS)+1),SingS,marker = '.', s= 10, c='k',label = 'case 5')
+# ax1.axhline(max(SingS)/100, linestyle = '--', color = 'k', linewidth = 0.75)
+# ax1.axhline(min(SingS), linestyle = '--', color = 'k', linewidth = 0.75)
+# ax1.text(0.8 , 1.3*max(SingS)/100, r'SNR $\approx 100$', transform=ax1.get_yaxis_transform())
+#
+# ax1.text(0.725, 0.15*min(SingS), rf'SNR $\approx {(max(SingS)/min(SingS)):1.0e}$', transform=ax1.get_yaxis_transform())
+# ax1.set_yscale('log')
+# ax1.set_xlim(0.01)
+# ax1.set_ylabel(r'singular values of $\bm{A}$ at height')
+# ax1.set_xlabel(r'index')
+# #ax2 = ax1.twinx()
+# #ax2.scatter(range(len(tang_heights_lin)),tang_heights_lin, c = 'C1', marker='*')
+# #ax2.set_ylabel('tangent height')
+# #fig3.savefig('EigAExp.png'
+# ax1.legend()
+# #plt.show(block = True)
+# plt.savefig('SingValA.png', dpi = dpi)
+#
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# # ax1.scatter(range(len(meas_ang)),meas_ang1,s = 40, label = 'case 1', marker = 'v')
+# # ax1.scatter(range(len(meas_ang)),meas_ang2,s = 25, label = 'case 2' )
+# # ax1.scatter(range(len(meas_ang)),meas_ang, s = 10, label = 'case 3', c = RegCol, marker = 's')
+# ax1.scatter(range(1,len(meas_ang1)+1),tang_heights_lin1,s = 40, label = 'case 1', marker = 'v')
+# ax1.scatter(range(1,len(meas_ang2)+1),tang_heights_lin2,s = 25, label = 'case 2' )
+# ax1.scatter(range(1,len(tang_heights_linNormal)+1),tang_heights_linNormal, s = 20, label = 'case 3', c = RegCol, marker = 's')
+#
+# #ax1.scatter(range(len(tang_heights_lin3)),tang_heights_lin3,marker = '.', s= 10, c='k',label = 'case 5')
+# ax1.scatter(range(1,len(tang_heights_lin3)+1),tang_heights_lin3,marker = 'x', s= 15, c='g',label = 'case 4')
+# ax1.scatter(range(1,len(tang_heights_linChosen)+1),tang_heights_linChosen,marker = '.', s= 10, c='k',label = 'case 5')
+# ax1.legend()
+# ax1.set_ylabel(r'tangent height of $\Gamma_j$')
+# ax1.set_xlabel(r'index j')
+# ax1.set_xlim(0.01)
+# plt.savefig('MeasTangHeight.png', dpi = dpi)
+# plt.show(block = True)
 ##
-np.allclose(A, U[:, :len(SingS)] @ np.diag(SingS) @ Vh[:len(SingS),:])
 
-#np.savetxt('SingSmore.txt', SingS, fmt = '%.30f', delimiter = '\t')
+# from pygsvd import *
+#
+# Ugvsd, Vgvsd, Xgvsd, Cgvsd, Sgvsd = gsvd(A, L)
 
-ExpIncSingSNormal = np.loadtxt('ExpIncSingSNormal.txt')
-ExpDecSingSNormal = np.loadtxt('ExpDecSingSNormal.txt')
-SingSNormal = np.loadtxt('SingSNormal.txt')
-SingSfewer = np.loadtxt('SingSfewer.txt')
-SingSmore = np.loadtxt('SingSmore.txt')
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-ax1.scatter(range(1,len(ExpIncSingSNormal)+1),ExpIncSingSNormal, label = 'case 1',s=40 , marker = 'v')
-ax1.scatter(range(1,len(ExpDecSingSNormal)+1),ExpDecSingSNormal,s = 25, label = 'case 2')
-ax1.scatter(range(1,len(SingSNormal)+1),SingSNormal,s = 20 ,label = 'case 3', c = RegCol, marker = 's')
-
-#ax1.scatter(range(len(SingSfewer)),SingSfewer,marker = '.', s= 10, c='r',label = 'case 5')
-ax1.scatter(range(1,len(SingSmore)+1),SingSmore,marker = 'x', s= 15, c='g',label = 'case 4')
-ax1.scatter(range(1,len(SingS)+1),SingS,marker = '.', s= 10, c='k',label = 'case 5')
-ax1.axhline(max(SingS)/100, linestyle = '--', color = 'k', linewidth = 0.75)
-ax1.axhline(min(SingS), linestyle = '--', color = 'k', linewidth = 0.75)
-ax1.text(0.8 , 1.3*max(SingS)/100, r'SNR $\approx 100$', transform=ax1.get_yaxis_transform())
-
-ax1.text(0.725, 0.15*min(SingS), rf'SNR $\approx {(max(SingS)/min(SingS)):1.0e}$', transform=ax1.get_yaxis_transform())
-ax1.set_yscale('log')
-ax1.set_xlim(0.01)
-ax1.set_ylabel(r'singular values of $\bm{A}$')
-ax1.set_xlabel(r'index')
-#ax2 = ax1.twinx()
-#ax2.scatter(range(len(tang_heights_lin)),tang_heights_lin, c = 'C1', marker='*')
-#ax2.set_ylabel('tangent height')
-#fig3.savefig('EigAExp.png'
-ax1.legend()
-#plt.show(block = True)
-plt.savefig('SingValA.png', dpi = dpi)
-
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-# ax1.scatter(range(len(meas_ang)),meas_ang1,s = 40, label = 'case 1', marker = 'v')
-# ax1.scatter(range(len(meas_ang)),meas_ang2,s = 25, label = 'case 2' )
-# ax1.scatter(range(len(meas_ang)),meas_ang, s = 10, label = 'case 3', c = RegCol, marker = 's')
-ax1.scatter(range(1,len(meas_ang1)+1),tang_heights_lin1,s = 40, label = 'case 1', marker = 'v')
-ax1.scatter(range(1,len(meas_ang2)+1),tang_heights_lin2,s = 25, label = 'case 2' )
-ax1.scatter(range(1,len(tang_heights_linNormal)+1),tang_heights_linNormal, s = 20, label = 'case 3', c = RegCol, marker = 's')
-
-#ax1.scatter(range(len(tang_heights_lin3)),tang_heights_lin3,marker = '.', s= 10, c='k',label = 'case 5')
-ax1.scatter(range(1,len(tang_heights_lin4)+1),tang_heights_lin4,marker = 'x', s= 15, c='g',label = 'case 4')
-ax1.scatter(range(1,len(tang_heights_linChosen)+1),tang_heights_linChosen,marker = '.', s= 10, c='k',label = 'case 5')
-ax1.legend()
-ax1.set_ylabel(r'tangent height of $\Gamma_j$')
-ax1.set_xlabel(r'index j')
-ax1.set_xlim(0.01)
-plt.savefig('MeasTangHeight.png', dpi = dpi)
-plt.show(block = True)
 ##
 
 ColinsSNR1 = 140#
@@ -769,58 +784,58 @@ for i in range(0, len(VMR_O3)):
 # #ax1.set_xscale('log')
 # plt.show(block = True)
 
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-ax1.errorbar( height_values,height_values[:,0], yerr= [deltaDelHeight,UPPerdeltaDelHeight] )
-ax1.set_ylabel('delta height')
-plt.show(block = True)
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# ax1.errorbar( height_values,height_values[:,0], yerr= [deltaDelHeight,UPPerdeltaDelHeight] )
+# ax1.set_ylabel('delta height')
+# plt.show(block = True)
 
-##
-maxJ = 5#4
-impuls =1#np.mean(VMR_O3 * theta_scale_O3)
-relDiff = np.zeros((len(VMR_O3), len(VMR_O3)))
-relDiff = np.zeros((len(VMR_O3),maxJ))
-relDiffLow = np.zeros((len(VMR_O3),maxJ))
-HDiff = np.zeros((len(VMR_O3),maxJ))
-HDiffLow = np.zeros((len(VMR_O3),maxJ))
-for j in range(1, maxJ):
-    for i in range(0, len(VMR_O3)-j):
-        xDelta = np.zeros((len(VMR_O3), 1))
-        xDelta[i] = impuls#1#0e10
-        benchmark = A @ xDelta
-        xDelta = np.zeros((len(VMR_O3), 1))
-        xDelta[i+j] = impuls#1#0e10
-        compare = A @ xDelta
-        relDiff[i,j] = np.linalg.norm(benchmark - compare) #/ np.linalg.norm(compare) #*100
-        HDiff[i, j] = abs(height_values[i] - height_values[i+j])
-    for i in range(j, len(VMR_O3)):
-        xDelta = np.zeros((len(VMR_O3), 1))
-        xDelta[i] = impuls  # 1#0e10
-        benchmark = A @ xDelta
-        xDelta = np.zeros((len(VMR_O3), 1))
-        xDelta[i - j] = impuls  # 1#0e10
-        compare = A @ xDelta
-        relDiffLow[i, j] = np.linalg.norm(benchmark - compare) #/ np.linalg.norm(compare)#*100
-        HDiffLow[i, j] = abs(height_values[i] - height_values[i-j])
-    # for j in range(0, len(VMR_O3)):
-    #     xDelta = np.zeros((len(VMR_O3), 1))
-    #     xDelta[j] = impuls#1#0e10
-    #     compare = A @ xDelta
-    #     relDiff[i,j] = np.linalg.norm(benchmark -compare)/np.linalg.norm(benchmark)
-relDiff[relDiff == 0] = np.nan
-relDiffLow[relDiffLow == 0] = np.nan
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-for j in range(1, maxJ):
-    ax1.plot(height_values[:len(VMR_O3)-j]/len(VMR_O3), relDiff[:len(VMR_O3)-j,j], label = str(j))
-    ax1.plot(height_values[j:], relDiffLow[j:,j]/len(VMR_O3), label = str(j))
-    #ax1.errorbar(height_values[:,0] ,HDiffLow[:,j],[relDiffLow[:,j],relDiff[:,j]], label = str(j))
-# for i in range(0, len(VMR_O3)):
-#     ax1.plot(abs(height_values- height_values[i])[:i], relDiff[i,:i])
-#     ax1.plot(abs(height_values - height_values[i])[i:], relDiff[i, i:])
-ax1.axhline(np.sqrt(1/gam0))
-ax1.legend()
-ax1.set_yscale('log')
-ax1.set_ylabel('delta height')
-plt.show(block=True)
+# ##
+# maxJ = 5#4
+# impuls =1#np.mean(VMR_O3 * theta_scale_O3)
+# relDiff = np.zeros((len(VMR_O3), len(VMR_O3)))
+# relDiff = np.zeros((len(VMR_O3),maxJ))
+# relDiffLow = np.zeros((len(VMR_O3),maxJ))
+# HDiff = np.zeros((len(VMR_O3),maxJ))
+# HDiffLow = np.zeros((len(VMR_O3),maxJ))
+# for j in range(1, maxJ):
+#     for i in range(0, len(VMR_O3)-j):
+#         xDelta = np.zeros((len(VMR_O3), 1))
+#         xDelta[i] = impuls#1#0e10
+#         benchmark = A @ xDelta
+#         xDelta = np.zeros((len(VMR_O3), 1))
+#         xDelta[i+j] = impuls#1#0e10
+#         compare = A @ xDelta
+#         relDiff[i,j] = np.linalg.norm(benchmark - compare) #/ np.linalg.norm(compare) #*100
+#         HDiff[i, j] = abs(height_values[i] - height_values[i+j])
+#     for i in range(j, len(VMR_O3)):
+#         xDelta = np.zeros((len(VMR_O3), 1))
+#         xDelta[i] = impuls  # 1#0e10
+#         benchmark = A @ xDelta
+#         xDelta = np.zeros((len(VMR_O3), 1))
+#         xDelta[i - j] = impuls  # 1#0e10
+#         compare = A @ xDelta
+#         relDiffLow[i, j] = np.linalg.norm(benchmark - compare) #/ np.linalg.norm(compare)#*100
+#         HDiffLow[i, j] = abs(height_values[i] - height_values[i-j])
+#     # for j in range(0, len(VMR_O3)):
+#     #     xDelta = np.zeros((len(VMR_O3), 1))
+#     #     xDelta[j] = impuls#1#0e10
+#     #     compare = A @ xDelta
+#     #     relDiff[i,j] = np.linalg.norm(benchmark -compare)/np.linalg.norm(benchmark)
+# relDiff[relDiff == 0] = np.nan
+# relDiffLow[relDiffLow == 0] = np.nan
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# for j in range(1, maxJ):
+#     ax1.plot(height_values[:len(VMR_O3)-j]/len(VMR_O3), relDiff[:len(VMR_O3)-j,j], label = str(j))
+#     ax1.plot(height_values[j:], relDiffLow[j:,j]/len(VMR_O3), label = str(j))
+#     #ax1.errorbar(height_values[:,0] ,HDiffLow[:,j],[relDiffLow[:,j],relDiff[:,j]], label = str(j))
+# # for i in range(0, len(VMR_O3)):
+# #     ax1.plot(abs(height_values- height_values[i])[:i], relDiff[i,:i])
+# #     ax1.plot(abs(height_values - height_values[i])[i:], relDiff[i, i:])
+# ax1.axhline(np.sqrt(1/gam0))
+# ax1.legend()
+# ax1.set_yscale('log')
+# ax1.set_ylabel('delta height')
+# plt.show(block=True)
 ##
 ATA = np.matmul(A.T,A)
 Au, As, Avh = np.linalg.svd(A)
@@ -838,16 +853,21 @@ Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
 SNR = 60#35000
+SNR = 150
+#y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
+##
+#y = Ax.reshape((SpecNumMeas,1)) + np.random.normal(0,0.00025,size=(SpecNumMeas,1))
 
-y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
-
-
+y, gam0  = add_noise_Blokk(Ax,SNR)
 fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
 ax1.plot(Ax, tang_heights_lin)
 ax1.scatter(y, tang_heights_lin, color = 'r')
 ax1.axhline(height_values[startInd])
 ax1.set_xscale('log')
 plt.show(block = True)
+
+xrms = 10 * np.log(np.sqrt(np.mean(np.random.normal(0,gam0,size=10000)**2)))
+
 ##
 
 signal_power = np.sqrt(np.mean(np.abs(Ax) ** 2))
@@ -855,7 +875,7 @@ noise = np.random.normal(0, np.sqrt(1 / gam0), size =y.shape)
 noise_power = np.sqrt(np.mean(np.abs(noise) ** 2))
 snr = signal_power / noise_power
 
-rms_noise = np.sqrt(np.mean(np.random.normal(0, np.sqrt(1 / gam0), size =10000)**2))
+rms_noise = 10*np.log(np.sqrt(np.mean(np.random.normal(0, np.sqrt(1 / gam0), size =10000)**2)))
 
 ColinsSNR = np.max(Ax)/rms_noise
 
@@ -1739,22 +1759,22 @@ axs[0].bar(gamBinEdges[1::],gamHist*np.diff(gamBinEdges)[0], color = MTCCol, zor
 axs[0].set_xlabel(r'the noise precision $\gamma$')
 axT = axs[0].twinx()
 gamX = gamBinEdges[1::]
-normConst = np.sum(np.exp(-1e-10 * gamX ))
-axT.plot(gamX,np.exp(-1e-10 *  gamX )/normConst )
+normConst = np.sum(np.exp(-betaG * gamX ))
+axT.plot(gamX,np.exp(-betaG *  gamX )/normConst )
 
 axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(lambBinEdges)[0])#10)
 axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter')
 axT = axs[1].twinx()
 lambX = lambBinEdges[1::]
 normConst = 1#np.sum(np.exp(-1e-10 *  lambX * gamX ) * gamX )
-axT.plot(lambX, np.exp(-1e-10 *  lambX * gamX )/ normConst )
+#axT.plot(lambX, np.exp(-betaG *  lambX * gamX )/ normConst )
 
 axs[2].bar(deltBinEdges[1::],deltHist*np.diff(deltBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(deltBinEdges)[0])#10)
 axs[2].set_xlabel(r'$\delta$, the smoothness parameter')
 axT = axs[2].twinx()
 delX = deltBinEdges[1::]
-normConst = np.sum(np.exp( -1e-10 * delX ))
-axT.plot(delX,np.round(np.exp( -1e-10 *  delX ))/normConst )
+normConst = np.sum(np.exp( -betaD * delX ))
+axT.plot(delX,np.round(np.exp( -betaD *  delX ))/normConst )
 
 plt.savefig('AllHistoPlot.png')
 plt.show()
