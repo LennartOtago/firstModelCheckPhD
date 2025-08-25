@@ -894,7 +894,7 @@ plt.show()
 '''L-curve refularoization
 '''
 
-lamLCurve = np.logspace(1,5,200)
+lamLCurve = np.logspace(0.5,5.5,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
