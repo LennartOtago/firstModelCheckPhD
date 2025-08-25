@@ -575,6 +575,7 @@ plt.show()
 
 ##
 
+RealMap = np.loadtxt(parentDir + '/TTDecomposition/RealMap.txt')
 A = RealMap @ np.copy(A)
 ATA = A.T @ A
 ATy = A.T @ y
