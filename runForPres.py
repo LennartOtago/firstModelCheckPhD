@@ -894,7 +894,7 @@ plt.show()
 '''L-curve refularoization
 '''
 
-lamLCurve = np.logspace(1,7,200)
+lamLCurve = np.logspace(1,5,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
@@ -911,7 +911,8 @@ for i in range(len(lamLCurve)):
 
 
 startTime  = time.time()
-lamLCurveZoom = np.logspace(0,7,200)
+#lamLCurveZoom = np.logspace(0,7,200)
+lamLCurveZoom = np.copy(lamLCurve )
 NormLCurveZoom = np.zeros(len(lamLCurveZoom))
 xTLxCurveZoom = np.zeros(len(lamLCurveZoom))
 for i in range(len(lamLCurveZoom)):
