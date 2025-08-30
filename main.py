@@ -325,7 +325,7 @@ np.savetxt('ExpDecmeasAng.txt', meas_ang2, fmt = '%.30f', delimiter = '\t')
 np.savetxt('measAngNormal.txt', meas_ang, fmt = '%.30f', delimiter = '\t')
 ##
 pointAcc = 0.00085
-meas_angChosen = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))[:30]
+meas_angChosen = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))[:25]
 A_lin_dx, tang_heights_linChosen, extraHeight = gen_forward_map(meas_angChosen,height_values,ObsHeight,R_Earth)
 
 pointAcc = 0.00075
@@ -468,7 +468,13 @@ np.savetxt('GraphLaplacian.txt', L, header = 'Graph Lalplacian', fmt = '%.15f', 
 #cholesky decomposition of L for W1 and v1
 lowC_L = scy.linalg.cholesky(L, lower = True)
 
+##
+DMat =-(np.triu(np.ones((len(L), len(L))), k=0) - np.triu(np.ones((len(L), len(L))), k=1)) + (np.triu(np.ones((len(L), len(L))), k=1) - np.triu(np.ones((len(L), len(L))), k=2))
+#DMat[1,0] = 1
+LaplTry = DMat.T @ DMat
+print(LaplTry )
 
+##
 #taylor exapnsion for f to do so we need y (data)
 
 ''' load data and pick wavenumber/frequency'''
@@ -640,25 +646,38 @@ U, SingS, Vh = np.linalg.svd(A)#, full_matrices=True)
 
 
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-for i in range(0,20):
-    ax1.plot(Vh[i],height_values)
+for i in range(0,10):
+    ax1.plot(Vh[i],height_values, linewidth = 0.85)
     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
 
-ax1.set_ylabel(r'right singular vectors $\bm{v}_i$ of $\bm{A}$ at height in km')
+ax1.set_ylabel(r'height in km')
+ax1.set_title(r'first 10 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
 plt.savefig('SingVecA.png', dpi = dpi)
 
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
 for i in range(20,len(SingS)):
-    ax1.plot(Vh[i],height_values)
+    ax1.plot(Vh[i],height_values, linewidth = 0.85)
     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
 
-ax1.set_ylabel(r'null space of $\bm{A}$ at height in km')
+ax1.set_ylabel(r'height in km')
+ax1.set_title(r'right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
 plt.savefig('NullVecA.png', dpi = dpi)
+
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+for i in range(10,20):
+    ax1.plot(Vh[i],height_values, linewidth = 0.85)
+    ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
+
+ax1.set_ylabel(r'height in km')
+ax1.set_title(r'last 5 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
+
+plt.savefig('MiddleVecA.png', dpi = dpi)
 #ax1.set_xlabel(r'index')
 #ax1.text(max(Vh[19]), height_values[Vh[19] == max(Vh[19])], f'20')
 #ax1.text(1.05*max(Vh[0]), height_values[Vh[0] == max(Vh[0])], f'1')
 #ax1.text(1.05*max(Vh[3]), height_values[Vh[3] == max(Vh[3])], f'4')
 #ax1.text(1.05*max(Vh[9]), height_values[Vh[9] == max(Vh[9])], f'10')
+
 ##
 np.allclose(A, U[:, :len(SingS)] @ np.diag(SingS) @ Vh[:len(SingS),:])
 
@@ -711,6 +730,8 @@ ax1.set_xlabel(r'index j')
 ax1.set_xlim(0.01)
 plt.savefig('MeasTangHeight.png', dpi = dpi)
 plt.show(block = True)
+
+print('sing Vec')
 ##
 
 # from pygsvd import *
@@ -725,45 +746,45 @@ plt.show(block = True)
 # y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), ColinsSNR1)
 #fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
 #xDelta = np.zeros((len(SingS),1))
-lowerHeight = np.zeros(len(VMR_O3))
-upperHeight = np.zeros(len(VMR_O3))
-deltaDelHeight = np.zeros(len(VMR_O3))
-UPPerdeltaDelHeight = np.zeros(len(VMR_O3))
-impuls =np.mean(VMR_O3 * theta_scale_O3)
-for i in range(0, len(VMR_O3)):
-    xDelta = np.zeros((len(VMR_O3), 1))
-    xDelta[i] = impuls#1#0e10
-    benchmark = A @ xDelta #* VMR_O3 * theta_scale_O3)
-    for j in range(0, i):
-        xDelta = np.zeros((len(VMR_O3), 1))
-        xDelta[j] = impuls# 10e10
-        #xDelta[i] = 1#0e10
-        compare = A @ xDelta #* VMR_O3 * theta_scale_O3)
-        diff = np.sum((benchmark - compare)**2)/ len(VMR_O3)
-        if diff <= (1 / gam0) :
-            print(j)
-            print(diff)
-            deltaDelHeight[i] = abs(height_values[j] - height_values[i])
-            break
-
-
-for i in range(0, len(VMR_O3)):
-    print('i ' + str(i))
-    xDelta = np.zeros((len(VMR_O3), 1))
-    xDelta[i] = impuls  # 1#0e10
-    benchmark = A @ xDelta
-    for j in range(len(VMR_O3)-1,i,-1):
-        print('j ' + str(j))
-        if j != i:
-            xDelta = np.zeros((len(VMR_O3), 1))
-            xDelta[j] = impuls#1
-            compare = A @ xDelta #* VMR_O3 * theta_scale_O3)
-            diff = np.sum((benchmark - compare) ** 2) /len(VMR_O3)
-            #UPPerdeltaDelHeight[i] = abs(height_values[j] - height_values[i])
-            if diff <= (1 / gam0):
-                print(diff)
-                UPPerdeltaDelHeight[i] = abs(height_values[j] - height_values[i])
-                break
+# lowerHeight = np.zeros(len(VMR_O3))
+# upperHeight = np.zeros(len(VMR_O3))
+# deltaDelHeight = np.zeros(len(VMR_O3))
+# UPPerdeltaDelHeight = np.zeros(len(VMR_O3))
+# impuls =np.mean(VMR_O3 * theta_scale_O3)
+# for i in range(0, len(VMR_O3)):
+#     xDelta = np.zeros((len(VMR_O3), 1))
+#     xDelta[i] = impuls#1#0e10
+#     benchmark = A @ xDelta #* VMR_O3 * theta_scale_O3)
+#     for j in range(0, i):
+#         xDelta = np.zeros((len(VMR_O3), 1))
+#         xDelta[j] = impuls# 10e10
+#         #xDelta[i] = 1#0e10
+#         compare = A @ xDelta #* VMR_O3 * theta_scale_O3)
+#         diff = np.sum((benchmark - compare)**2)/ len(VMR_O3)
+#         if diff <= (1 / gam0) :
+#             print(j)
+#             print(diff)
+#             deltaDelHeight[i] = abs(height_values[j] - height_values[i])
+#             break
+#
+#
+# for i in range(0, len(VMR_O3)):
+#     print('i ' + str(i))
+#     xDelta = np.zeros((len(VMR_O3), 1))
+#     xDelta[i] = impuls  # 1#0e10
+#     benchmark = A @ xDelta
+#     for j in range(len(VMR_O3)-1,i,-1):
+#         print('j ' + str(j))
+#         if j != i:
+#             xDelta = np.zeros((len(VMR_O3), 1))
+#             xDelta[j] = impuls#1
+#             compare = A @ xDelta #* VMR_O3 * theta_scale_O3)
+#             diff = np.sum((benchmark - compare) ** 2) /len(VMR_O3)
+#             #UPPerdeltaDelHeight[i] = abs(height_values[j] - height_values[i])
+#             if diff <= (1 / gam0):
+#                 print(diff)
+#                 UPPerdeltaDelHeight[i] = abs(height_values[j] - height_values[i])
+#                 break
 
 
 # fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)

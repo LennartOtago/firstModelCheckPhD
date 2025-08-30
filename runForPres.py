@@ -76,7 +76,7 @@ g_doub_prime = np.loadtxt(dir +'g_doub_prime.txt').reshape((909,1))
 
 
 index = 'sec'
-gridSize = 30
+gridSize = 35
 univarGridO3 = np.zeros((2, gridSize))
 for i in range(0, 2):
     univarGridO3[i] = np.loadtxt(parentDir + '/TTDecomposition/'+index +'uniVarGridMargO3' + str(i) + '.txt')
@@ -636,6 +636,36 @@ f_0 = f(ATy, y, B_inv_A_trans_y0)
 g_0 = g(A, L, lam0)
 delG = (np.log(g(A, L, 1e4)) - np.log(g_0))/ (np.log(1e4) - np.log(lam0))
 
+## calc root mean sqaure error for approxiamation
+def ApproxMargPost(params):#, coeff):
+
+    gam = params[0]
+    lamb = params[1]
+    if lamb < 0  or gam < 0:
+        return np.nan
+
+    n = SpecNumLayers
+    m = SpecNumMeas
+
+    Glam_p = (np.log(lamb) - np.log(lam0)) * delG + np.log(g_0)
+
+
+    delta_lam_p = lamb - lam0
+    delta_f = f_0_1 * delta_lam_p + f_0_2 * delta_lam_p ** 2 + f_0_3 * delta_lam_p ** 3
+    F = f_0 + delta_f
+
+    G = np.exp(Glam_p)
+
+
+    return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gam) + 0.5 * G + 0.5 * gam * F +  ( betaD *  lamb * gam + betaG *gam)
+
+
+margApproxGrid = np.zeros((gridSize,gridSize))
+for i in range(0,gridSize):
+    for j in range(0, gridSize):
+        margApproxGrid[i,j] =  ApproxMargPost([univarGridO3[0][i],univarGridO3[1][j]])
+
+np.savetxt('margApproxGrid.txt',margApproxGrid, fmt='%.30f')
 ## do sampling again
 
 
@@ -895,7 +925,7 @@ plt.show()
 '''L-curve refularoization
 '''
 
-lamLCurve = np.logspace(0.5,5.5,200)
+lamLCurve = np.logspace(0.5,6.5,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
@@ -970,7 +1000,7 @@ for i in range(0,sampSize):
 currX = MargInteg* theta_scale_O3
 NormMargRes = np.linalg.norm( np.matmul(A,currX) - y[0::,0])
 xTLxMargRes = np.sqrt(np.matmul(np.matmul(currX.T, L), currX))
-##
+
 
 
 fig, axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction) ,tight_layout = True)
@@ -989,14 +1019,31 @@ axs.legend()
 #axs.legend(handles = [handles[0],handles[1],handles[2]],loc = 'upper right',  frameon =True)
 plt.savefig('LCurvePhD.png', dpi = dpi)
 
-plt.show()
+plt.show(block = True)
 
 print('bla')
 
 np.savetxt('RegSol.txt',x_opt / theta_scale_O3, fmt = '%.15f', delimiter= '\t')
+##
+testInd = 180
+print(xTLxCurveZoom[testInd])
+lam_test = lamLCurveZoom[testInd]
+B = (ATA + lam_test * L)
+LowTri = np.linalg.cholesky(B)
+UpTri = LowTri.T
+x_test = lu_solve(LowTri, UpTri, ATy[0::, 0])
+fig, ax = plt.subplots()
+ax.plot(x_test, height_values)
 
+fig, axs = plt.subplots()
+axs.scatter(NormLCurveZoom,xTLxCurveZoom)
+axs.scatter(NormLCurveZoom[testInd],xTLxCurveZoom[testInd], color = 'r')
+axs.set_xscale('log')
+axs.set_yscale('log')
+plt.show(block = True)
 
-
+# je smaller xLx desto smoother
+# lagrange multiplier smoothest possible with given Ax-y
 ## make lagrange multiplier plot
 import matplotlib.cm as cm
 np.random.seed(5)
@@ -1036,14 +1083,15 @@ np.savetxt('SecO3Var.txt',CondVar, fmt = '%.30f', delimiter= '\t')
 
 FirstSamp = 100#len(y)
 Results = np.random.multivariate_normal(MargInteg, CondVar,size=FirstSamp)
-rejI = 0
-totI = 0
-
-for i in range(FirstSamp):
-    totI += 1
-    while any(Results[i] < 0):
-        rejI += 1
-        Results[i] = np.random.multivariate_normal(MargInteg, CondVar)
+Results[Results < 0] = 0
+# rejI = 0
+# totI = 0
+#
+# for i in range(FirstSamp):
+#     totI += 1
+#     while any(Results[i] < 0):
+#         rejI += 1
+#         Results[i] = np.random.multivariate_normal(MargInteg, CondVar)
 
 testTruncMean = np.mean(Results, axis = 0)
 testTruncVar = np.var(Results, axis = 0)

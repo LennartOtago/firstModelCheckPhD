@@ -142,10 +142,11 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
     relMapErr = np.copy(relMapErrDat)
     while np.max(relMapErr) >= relMapErrDat:
         Results = np.random.multivariate_normal(newCondMean, CondVar, size=SpecNumMeas)
-        for i in range(len(Results)):
+        Results[Results<0] = 0
+        #for i in range(len(Results)):
             #print(i)
-            while any(Results[i] < 0):
-                Results[i] = np.random.multivariate_normal(newCondMean, CondVar)
+            # while any(Results[i] < 0):
+            #     Results[i] = np.random.multivariate_normal(newCondMean, CondVar)
         testDat = SpecNumMeas
         A_O3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, wvnmbr, g_doub_prime, E, S)
 
@@ -158,7 +159,7 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
             # Results = np.loadtxt(f'Res{testSet}.txt')
 
             O3_Prof = np.copy(Results[ProfRand])
-            O3_Prof[O3_Prof < 0] = 0
+            #O3_Prof[O3_Prof < 0] = 0
             nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, O3_Prof, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
             noise = np.random.normal(0, np.sqrt(1 / gamma0), SpecNumMeas)
             # noise = np.zeros(SpecNumMeas)
@@ -180,7 +181,7 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
         #test map do find error
         testNum = 10# len(Results)#100
         testO3 = np.copy(Results)#np.random.multivariate_normal(VMR_O3.reshape(SpecNumLayers), 1e-18 * L_d, size=testNum)
-        testO3[testO3 < 0] = 0
+        #testO3[testO3 < 0] = 0
 
         testDataY = np.zeros((testNum, SpecNumMeas))
         testNonLinY = np.zeros((testNum, SpecNumMeas))
