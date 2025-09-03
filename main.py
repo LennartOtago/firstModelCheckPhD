@@ -78,7 +78,7 @@ press = df['Pressure (hPa)'].values #in hectpascal or millibars
 O3 = df['Ozone (VMR)'].values
 O3[O3<0] = 0
 dir = '/home/lennartgolks/PycharmProjects/'
-dir = '/Users/lennart/PycharmProjects/'
+#dir = '/Users/lennart/PycharmProjects/'
 dat = np.loadtxt(dir + 'openData/testProf.txt')
 #dat = np.loadtxt('/home/lennartgolks/PycharmProjects/openData/testProf.txt')
 press = dat[0,:]
@@ -171,17 +171,17 @@ height_values = np.around(height_values,2).reshape((SpecNumLayers,1))
 temp_values = np.around(new_calc_temp,2).reshape((SpecNumLayers,1))
 pressure_values = new_calc_press.reshape(SpecNumLayers)
 
-startInd = 23
-EndInd = len(height_values[startInd::2]) + startInd
-height_values[startInd:EndInd] = height_values[startInd::2]
-temp_values[startInd:EndInd] = temp_values[startInd::2]
-pressure_values[startInd:EndInd] = pressure_values[startInd::2]
-VMR_O3[startInd:EndInd] = VMR_O3[startInd::2]
+# startInd = 23
+# EndInd = len(height_values[startInd::2]) + startInd
+# height_values[startInd:EndInd] = height_values[startInd]
+# temp_values[startInd:EndInd] = temp_values[startInd::2]
+# pressure_values[startInd:EndInd] = pressure_values[startInd::2]
+# VMR_O3[startInd:EndInd] = VMR_O3[startInd::2]
 
-height_values = height_values[:EndInd]
-temp_values = temp_values[:EndInd]
-pressure_values = pressure_values[:EndInd]
-VMR_O3 = VMR_O3[:EndInd]
+# height_values = height_values[startInd:EndInd]
+# temp_values = temp_values[startInd:EndInd]
+# pressure_values = pressure_values[startInd:EndInd]
+# VMR_O3 = VMR_O3[startInd:EndInd]
 SpecNumLayers = len(height_values)
 ##
 #temp_values = np.interp(np.linspace(MinH, MaxH, SpecNumLayers).reshape(SpecNumLayers), heights, calc_temp.reshape(len(O3))).reshape((SpecNumLayers,1))
@@ -325,7 +325,7 @@ np.savetxt('ExpDecmeasAng.txt', meas_ang2, fmt = '%.30f', delimiter = '\t')
 np.savetxt('measAngNormal.txt', meas_ang, fmt = '%.30f', delimiter = '\t')
 ##
 pointAcc = 0.00085
-meas_angChosen = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))[:25]
+meas_angChosen = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))[:30]
 A_lin_dx, tang_heights_linChosen, extraHeight = gen_forward_map(meas_angChosen,height_values,ObsHeight,R_Earth)
 
 pointAcc = 0.00075
@@ -384,40 +384,26 @@ print('Distance through layers check: ' + str(np.allclose( sum(A_lin_dx.T,0), to
 
 # graph Laplacian
 # direchlet boundary condition
-NOfNeigh = 2#4
-neigbours = np.zeros((len(height_values),NOfNeigh))
+
 # neigbours[0] = np.nan, np.nan, 1, 2
 # neigbours[-1] = len(height_values)-2, len(height_values)-3, np.nan, np.nan
 # neigbours[0] = np.nan, 1
 # neigbours[-1] = len(height_values)-2, np.nan
-for i in range(0,len(height_values)):
-    neigbours[i] = i-1, i+1
-    #neigbours[i] =  i + 1
-    #neigbours[i] = i-2, i-1, i+1, i+2#, i+3 i-3,
 
-
-neigbours[neigbours >= len(height_values)] = np.nan
-neigbours[neigbours < 0] = np.nan
-
-L = generate_L(neigbours)
-coL = np.tril(np.triu(np.ones((len(VMR_O3)-1,len(VMR_O3))),0),+1)
-
-for i in range(0,len(VMR_O3)-1):
-        coL[i,i] = -1
 
 # coL[0,0] = -np.sqrt(2)
 # coL[0,1]= np.sqrt(2)
 # coL[-1,-1] = -np.sqrt(2)
 # coL[-2,-1] = np.sqrt(2)
-coL[startInd::, startInd::] = coL[startInd::, startInd::] * 0.5
-TIKH = coL.T@coL
-TIKH[0,0] = 2 * np.copy(TIKH[0,0])
-TIKH[-1,-1] = 2 * np.copy(TIKH[-1,-1])
+# coL[startInd::, startInd::] = coL[startInd::, startInd::] * 0.5
+# TIKH = coL.T@coL
+# TIKH[0,0] = 2 * np.copy(TIKH[0,0])
+# TIKH[-1,-1] = 2 * np.copy(TIKH[-1,-1])
 #L = np.copy(TIKH)
 
-LaplU, SingL, LalpVH =np.linalg.svd(L, full_matrices = True)
-LaplValL, EigVecL = np.linalg.eig(L)
-SortLaplValL = np.flip(np.array(sorted(LaplValL)))
+# LaplU, SingL, LalpVH =np.linalg.svd(L, full_matrices = True)
+# LaplValL, EigVecL = np.linalg.eig(L)
+# SortLaplValL = np.flip(np.array(sorted(LaplValL)))
 ##
 # 35
 #L[startInd::, startInd::] = L[startInd::, startInd::] * 0.5
@@ -464,15 +450,13 @@ delHeights = height_values[1:] - height_values[0:-1]
 #L[startInd+1, startInd+1] = -L[startInd+1, startInd+1-1] - L[startInd+1,startInd+1+1] -L[startInd+1, startInd+1-2] - L[startInd+1, startInd+1+2]
 # L[16, 16] = 13
 
-np.savetxt('GraphLaplacian.txt', L, header = 'Graph Lalplacian', fmt = '%.15f', delimiter= '\t')
-#cholesky decomposition of L for W1 and v1
-lowC_L = scy.linalg.cholesky(L, lower = True)
+
 
 ##
-DMat =-(np.triu(np.ones((len(L), len(L))), k=0) - np.triu(np.ones((len(L), len(L))), k=1)) + (np.triu(np.ones((len(L), len(L))), k=1) - np.triu(np.ones((len(L), len(L))), k=2))
-#DMat[1,0] = 1
-LaplTry = DMat.T @ DMat
-print(LaplTry )
+# DMat =-(np.triu(np.ones((len(L), len(L))), k=0) - np.triu(np.ones((len(L), len(L))), k=1)) + (np.triu(np.ones((len(L), len(L))), k=1) - np.triu(np.ones((len(L), len(L))), k=2))
+# #DMat[1,0] = 1
+# LaplTry = DMat.T @ DMat
+# print(LaplTry )
 
 ##
 #taylor exapnsion for f to do so we need y (data)
@@ -635,103 +619,103 @@ A = 2*AO3
 
 # ##
 
-PgWidthPt = 421/2
-fraction = 1.5
-plt.rcParams.update({'font.size':  10,
-                     'text.usetex': True,
-                     'font.family' : 'serif',
-                     'font.serif'  : 'cm',
-                     'text.latex.preamble': r'\usepackage{bm, amsmath}'})
-U, SingS, Vh = np.linalg.svd(A)#, full_matrices=True)
-
-
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-for i in range(0,10):
-    ax1.plot(Vh[i],height_values, linewidth = 0.85)
-    ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
-
-ax1.set_ylabel(r'height in km')
-ax1.set_title(r'first 10 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
-plt.savefig('SingVecA.png', dpi = dpi)
-
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-for i in range(20,len(SingS)):
-    ax1.plot(Vh[i],height_values, linewidth = 0.85)
-    ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
-
-ax1.set_ylabel(r'height in km')
-ax1.set_title(r'right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
-plt.savefig('NullVecA.png', dpi = dpi)
-
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-for i in range(10,20):
-    ax1.plot(Vh[i],height_values, linewidth = 0.85)
-    ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
-
-ax1.set_ylabel(r'height in km')
-ax1.set_title(r'last 5 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
-
-plt.savefig('MiddleVecA.png', dpi = dpi)
-#ax1.set_xlabel(r'index')
-#ax1.text(max(Vh[19]), height_values[Vh[19] == max(Vh[19])], f'20')
-#ax1.text(1.05*max(Vh[0]), height_values[Vh[0] == max(Vh[0])], f'1')
-#ax1.text(1.05*max(Vh[3]), height_values[Vh[3] == max(Vh[3])], f'4')
-#ax1.text(1.05*max(Vh[9]), height_values[Vh[9] == max(Vh[9])], f'10')
-
-##
-np.allclose(A, U[:, :len(SingS)] @ np.diag(SingS) @ Vh[:len(SingS),:])
-
-#np.savetxt('SingSmore.txt', SingS, fmt = '%.30f', delimiter = '\t')
-
-ExpIncSingSNormal = np.loadtxt('ExpIncSingSNormal.txt')
-ExpDecSingSNormal = np.loadtxt('ExpDecSingSNormal.txt')
-SingSNormal = np.loadtxt('SingSNormal.txt')
-SingSfewer = np.loadtxt('SingSfewer.txt')
-SingSmore = np.loadtxt('SingSmore.txt')
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-ax1.scatter(range(1,len(ExpIncSingSNormal)+1),ExpIncSingSNormal, label = 'case 1',s=40 , marker = 'v')
-ax1.scatter(range(1,len(ExpDecSingSNormal)+1),ExpDecSingSNormal,s = 25, label = 'case 2')
-ax1.scatter(range(1,len(SingSNormal)+1),SingSNormal,s = 20 ,label = 'case 3', c = RegCol, marker = 's')
-
-#ax1.scatter(range(len(SingSfewer)),SingSfewer,marker = '.', s= 10, c='r',label = 'case 5')
-ax1.scatter(range(1,len(SingSmore)+1),SingSmore,marker = 'x', s= 15, c='g',label = 'case 4')
-ax1.scatter(range(1,len(SingS)+1),SingS,marker = '.', s= 10, c='k',label = 'case 5')
-ax1.axhline(max(SingS)/150, linestyle = '--', color = 'k', linewidth = 0.75)
-ax1.axhline(min(SingS), linestyle = '--', color = 'k', linewidth = 0.75)
-ax1.text(0.8 , 1.3*max(SingS)/150, r'SNR $\approx 150$', transform=ax1.get_yaxis_transform())
-
-ax1.text(0.01, 1.2*min(SingS), rf'SNR $\approx {(max(SingS)/min(SingS)):1.0e}$', transform=ax1.get_yaxis_transform())
-ax1.set_yscale('log')
-ax1.set_xlim(0.01)
-ax1.set_ylabel(r'singular values of $\bm{A}$ at height')
-ax1.set_xlabel(r'index')
-#ax2 = ax1.twinx()
-#ax2.scatter(range(len(tang_heights_lin)),tang_heights_lin, c = 'C1', marker='*')
-#ax2.set_ylabel('tangent height')
-#fig3.savefig('EigAExp.png'
-ax1.legend()
-#plt.show(block = True)
-plt.savefig('SingValA.png', dpi = dpi)
-
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-# ax1.scatter(range(len(meas_ang)),meas_ang1,s = 40, label = 'case 1', marker = 'v')
-# ax1.scatter(range(len(meas_ang)),meas_ang2,s = 25, label = 'case 2' )
-# ax1.scatter(range(len(meas_ang)),meas_ang, s = 10, label = 'case 3', c = RegCol, marker = 's')
-ax1.scatter(range(1,len(meas_ang1)+1),tang_heights_lin1,s = 40, label = 'case 1', marker = 'v')
-ax1.scatter(range(1,len(meas_ang2)+1),tang_heights_lin2,s = 25, label = 'case 2' )
-ax1.scatter(range(1,len(tang_heights_linNormal)+1),tang_heights_linNormal, s = 20, label = 'case 3', c = RegCol, marker = 's')
-
-#ax1.scatter(range(len(tang_heights_lin3)),tang_heights_lin3,marker = '.', s= 10, c='k',label = 'case 5')
-ax1.scatter(range(1,len(tang_heights_lin3)+1),tang_heights_lin3,marker = 'x', s= 15, c='g',label = 'case 4')
-ax1.scatter(range(1,len(tang_heights_linChosen)+1),tang_heights_linChosen,marker = '.', s= 10, c='k',label = 'case 5')
-ax1.legend()
-ax1.set_ylabel(r'tangent height of $\Gamma_j$')
-ax1.set_xlabel(r'index j')
-ax1.set_xlim(0.01)
-plt.savefig('MeasTangHeight.png', dpi = dpi)
-plt.show(block = True)
-
-print('sing Vec')
+# PgWidthPt = 421/2
+# fraction = 1.5
+# plt.rcParams.update({'font.size':  10,
+#                      'text.usetex': True,
+#                      'font.family' : 'serif',
+#                      'font.serif'  : 'cm',
+#                      'text.latex.preamble': r'\usepackage{bm, amsmath}'})
+# U, SingS, Vh = np.linalg.svd(A)#, full_matrices=True)
+#
+#
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# for i in range(0,10):
+#     ax1.plot(Vh[i],height_values, linewidth = 0.85)
+#     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
+#
+# ax1.set_ylabel(r'height in km')
+# ax1.set_title(r'first 10 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
+# plt.savefig('SingVecA.png', dpi = dpi)
+#
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# for i in range(20,len(SingS)):
+#     ax1.plot(Vh[i],height_values, linewidth = 0.85)
+#     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
+#
+# ax1.set_ylabel(r'height in km')
+# ax1.set_title(r'right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
+# plt.savefig('NullVecA.png', dpi = dpi)
+#
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# for i in range(10,20):
+#     ax1.plot(Vh[i],height_values, linewidth = 0.85)
+#     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
+#
+# ax1.set_ylabel(r'height in km')
+# ax1.set_title(r'last 5 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
+#
+# plt.savefig('MiddleVecA.png', dpi = dpi)
+# #ax1.set_xlabel(r'index')
+# #ax1.text(max(Vh[19]), height_values[Vh[19] == max(Vh[19])], f'20')
+# #ax1.text(1.05*max(Vh[0]), height_values[Vh[0] == max(Vh[0])], f'1')
+# #ax1.text(1.05*max(Vh[3]), height_values[Vh[3] == max(Vh[3])], f'4')
+# #ax1.text(1.05*max(Vh[9]), height_values[Vh[9] == max(Vh[9])], f'10')
+#
+# ##
+# np.allclose(A, U[:, :len(SingS)] @ np.diag(SingS) @ Vh[:len(SingS),:])
+#
+# #np.savetxt('SingSmore.txt', SingS, fmt = '%.30f', delimiter = '\t')
+#
+# ExpIncSingSNormal = np.loadtxt('ExpIncSingSNormal.txt')
+# ExpDecSingSNormal = np.loadtxt('ExpDecSingSNormal.txt')
+# SingSNormal = np.loadtxt('SingSNormal.txt')
+# SingSfewer = np.loadtxt('SingSfewer.txt')
+# SingSmore = np.loadtxt('SingSmore.txt')
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# ax1.scatter(range(1,len(ExpIncSingSNormal)+1),ExpIncSingSNormal, label = 'case 1',s=40 , marker = 'v')
+# ax1.scatter(range(1,len(ExpDecSingSNormal)+1),ExpDecSingSNormal,s = 25, label = 'case 2')
+# ax1.scatter(range(1,len(SingSNormal)+1),SingSNormal,s = 20 ,label = 'case 3', c = RegCol, marker = 's')
+#
+# #ax1.scatter(range(len(SingSfewer)),SingSfewer,marker = '.', s= 10, c='r',label = 'case 5')
+# ax1.scatter(range(1,len(SingSmore)+1),SingSmore,marker = 'x', s= 15, c='g',label = 'case 4')
+# ax1.scatter(range(1,len(SingS)+1),SingS,marker = '.', s= 10, c='k',label = 'case 5')
+# ax1.axhline(max(SingS)/150, linestyle = '--', color = 'k', linewidth = 0.75)
+# ax1.axhline(min(SingS), linestyle = '--', color = 'k', linewidth = 0.75)
+# ax1.text(0.8 , 1.3*max(SingS)/150, r'SNR $\approx 150$', transform=ax1.get_yaxis_transform())
+#
+# ax1.text(0.01, 1.2*min(SingS), rf'SNR $\approx {(max(SingS)/min(SingS)):1.0e}$', transform=ax1.get_yaxis_transform())
+# ax1.set_yscale('log')
+# ax1.set_xlim(0.01)
+# ax1.set_ylabel(r'singular values of $\bm{A}$ at height')
+# ax1.set_xlabel(r'index')
+# #ax2 = ax1.twinx()
+# #ax2.scatter(range(len(tang_heights_lin)),tang_heights_lin, c = 'C1', marker='*')
+# #ax2.set_ylabel('tangent height')
+# #fig3.savefig('EigAExp.png'
+# ax1.legend()
+# #plt.show(block = True)
+# plt.savefig('SingValA.png', dpi = dpi)
+#
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# # ax1.scatter(range(len(meas_ang)),meas_ang1,s = 40, label = 'case 1', marker = 'v')
+# # ax1.scatter(range(len(meas_ang)),meas_ang2,s = 25, label = 'case 2' )
+# # ax1.scatter(range(len(meas_ang)),meas_ang, s = 10, label = 'case 3', c = RegCol, marker = 's')
+# ax1.scatter(range(1,len(meas_ang1)+1),tang_heights_lin1,s = 40, label = 'case 1', marker = 'v')
+# ax1.scatter(range(1,len(meas_ang2)+1),tang_heights_lin2,s = 25, label = 'case 2' )
+# ax1.scatter(range(1,len(tang_heights_linNormal)+1),tang_heights_linNormal, s = 20, label = 'case 3', c = RegCol, marker = 's')
+#
+# #ax1.scatter(range(len(tang_heights_lin3)),tang_heights_lin3,marker = '.', s= 10, c='k',label = 'case 5')
+# ax1.scatter(range(1,len(tang_heights_lin3)+1),tang_heights_lin3,marker = 'x', s= 15, c='g',label = 'case 4')
+# ax1.scatter(range(1,len(tang_heights_linChosen)+1),tang_heights_linChosen,marker = '.', s= 10, c='k',label = 'case 5')
+# ax1.legend()
+# ax1.set_ylabel(r'tangent height of $\Gamma_j$')
+# ax1.set_xlabel(r'index j')
+# ax1.set_xlim(0.01)
+# plt.savefig('MeasTangHeight.png', dpi = dpi)
+# plt.show(block = True)
+#
+# print('sing Vec')
 ##
 
 # from pygsvd import *
@@ -874,7 +858,7 @@ y, gam0  = add_noise_Blokk(Ax,SNR)
 fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
 ax1.plot(Ax, tang_heights_lin)
 ax1.scatter(y, tang_heights_lin, color = 'r')
-ax1.axhline(height_values[startInd])
+#ax1.axhline(height_values[startInd])
 ax1.set_xscale('log')
 plt.show(block = True)
 
@@ -913,6 +897,57 @@ nonLinY = (OrgData + noise).reshape((SpecNumMeas,1))
 y = (Ax + noise).reshape((SpecNumMeas,1))
 np.savetxt('nonLinDataY.txt',nonLinY, fmt = '%.15f', delimiter= '\t')
 np.savetxt('dataY.txt',y, fmt = '%.15f', delimiter= '\t')
+
+## new forwrad model
+
+
+
+startInd = 23
+EndInd = len(height_values[startInd::2]) + startInd
+
+height_values[startInd:EndInd] = np.copy(height_values[startInd::2])
+height_values = np.copy(height_values[:EndInd])
+
+
+temp_values[startInd:EndInd] = np.copy(temp_values[startInd::2])
+temp_values = np.copy(temp_values[:EndInd])
+
+pressure_values[startInd:EndInd] = np.copy(pressure_values[startInd::2])
+pressure_values = np.copy(pressure_values[:EndInd])
+
+VMR_O3[startInd:EndInd] = np.copy(VMR_O3[startInd::2])
+VMR_O3 = np.copy(VMR_O3[:EndInd])
+
+NOfNeigh = 2#4
+neigbours = np.zeros((len(height_values),NOfNeigh))
+for i in range(0,len(height_values)):
+    neigbours[i] = i-1, i+1
+    #neigbours[i] =  i + 1
+    #neigbours[i] = i-2, i-1, i+1, i+2#, i+3 i-3,
+
+
+neigbours[neigbours >= len(height_values)] = np.nan
+neigbours[neigbours < 0] = np.nan
+
+L = generate_L(neigbours)
+coL = np.tril(np.triu(np.ones((len(VMR_O3)-1,len(VMR_O3))),0),+1)
+
+for i in range(0,len(VMR_O3)-1):
+        coL[i,i] = -1
+np.savetxt('GraphLaplacian.txt', L, header = 'Graph Lalplacian', fmt = '%.15f', delimiter= '\t')
+#cholesky decomposition of L for W1 and v1
+lowC_L = scy.linalg.cholesky(L, lower = True)
+
+
+A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_angChosen,height_values,ObsHeight,R_Earth)
+np.savetxt('tang_heights_lin.txt',tang_heights_lin, fmt = '%.15f', delimiter= '\t')
+np.savetxt('A_lin_dx.txt',A_lin_dx, fmt = '%.15f', delimiter= '\t')
+
+A_lin = gen_sing_map(A_lin_dx, tang_heights_lin, height_values)
+AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, temp_values)
+A = 2*AO3
+ATA = np.matmul(A.T,A)
+nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
 np.savetxt('AMat.txt',A, fmt = '%.30f', delimiter= '\t')
 np.savetxt('ALinMat.txt',A_lin, fmt = '%.15f', delimiter= '\t')
 np.savetxt('nonLinA.txt',nonLinA, fmt = '%.15f', delimiter= '\t')

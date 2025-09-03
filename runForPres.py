@@ -101,6 +101,7 @@ fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=frac
 ax1.plot(Ax, tang_heights_lin)
 ax1.plot(nonLinAx, tang_heights_lin)
 ax1.scatter(y, tang_heights_lin, color = 'r')
+ax1.set_xscale('log')
 plt.show(block=True)
 #plt.interactive(False)
 
