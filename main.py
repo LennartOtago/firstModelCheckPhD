@@ -741,7 +741,7 @@ Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
 SNR = 60#35000
-SNR = 150
+SNR = 125
 #y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
 ##
 #y = Ax.reshape((SpecNumMeas,1)) + np.random.normal(0,0.00025,size=(SpecNumMeas,1))
@@ -1734,7 +1734,7 @@ line3 = ax2.scatter(y, tang_heights_lin, label = r'data $\bm{y}$', zorder = 0, m
 ax1 = ax2.twiny()
 #ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 1.5, markersize =7)
-ax1.axhline(height_values[startInd])
+#ax1.axhline(height_values[startInd])
 # edgecolor = [0, 158/255, 115/255]
 #line1 = ax1.plot(VMR_O3,height_values, color = [0, 158/255, 115/255], linewidth = 10, zorder=0)
 for n in range(0,paraSamp,20):
