@@ -85,7 +85,7 @@ for i in range(0, 2):
 
 AscalConstKmToCm = 1e3
 ind = 623
-f_broad = 1
+f_broad = 1#e-4
 scalingConst = 1#e11
 betaD = 1e-35
 betaG = 1e-35
@@ -197,12 +197,12 @@ f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
 
 
 
-g_0_1 = np.trace(B_inv_L)
-g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
-g_0_3 = 1 /6 * np.trace(B_inv_L_3)
-g_0_4 = -1 /24 * np.trace(B_inv_L_4)
-g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
-g_0_6 = 0#-1 /720 * np.trace(B_inv_L_6)
+# g_0_1 = np.trace(B_inv_L)
+# g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
+# g_0_3 = 0#1 /6 * np.trace(B_inv_L_3)
+# g_0_4 = 0#-1 /24 * np.trace(B_inv_L_4)
+# g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
+# g_0_6 = 0#-1 /720 * np.trace(B_inv_L_6)
 
 
 f_0 = f(ATy, y, B_inv_A_trans_y0)
@@ -307,8 +307,8 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
         # # draw new lambda
         lam_p = normal(lambdas[t], wLam)
 
-        while lam_p < univarGridO3[1][0] or lam_p > univarGridO3[1][-1]:
-                lam_p = normal(lambdas[t], wLam)
+        while lam_p < 0:#or lam_p > univarGridO3[1][-1]:
+               lam_p = normal(lambdas[t], wLam)
 
         delta_lam = lam_p - lambdas[t]
         delta_lam_t = lambdas[t] - lam0
@@ -358,8 +358,8 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
 
 
         gammas[t+1] = np.random.gamma(shape = shape, scale = 1/rate)
-        while gammas[t+1] < univarGridO3[0][0] or gammas[t+1] > univarGridO3[0][-1]:
-                gammas[t+1] = np.random.gamma(shape = shape, scale = 1/rate)
+        #while gammas[t+1] < univarGridO3[0][0] or gammas[t+1] > univarGridO3[0][-1]:
+        #        gammas[t+1] = np.random.gamma(shape = shape, scale = 1/rate)
 
         #deltas[t+1] = lambdas[t+1] * gammas[t+1]
 
@@ -625,17 +625,18 @@ f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
 
 
 
-g_0_1 = np.trace(B_inv_L)
-g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
-g_0_3 = 1 /6 * np.trace(B_inv_L_3)
-g_0_4 = -1 /24 * np.trace(B_inv_L_4)
-g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
-g_0_6 = 0#-1 /720 * np.trace(B_inv_L_6)
+# g_0_1 = np.trace(B_inv_L)
+# g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
+# g_0_3 = 1 /6 * np.trace(B_inv_L_3)
+# g_0_4 = -1 /24 * np.trace(B_inv_L_4)
+# g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
+# g_0_6 = 0#-1 /720 * np.trace(B_inv_L_6)
+
 
 
 f_0 = f(ATy, y, B_inv_A_trans_y0)
 g_0 = g(A, L, lam0)
-delG = (np.log(g(A, L, 1e4)) - np.log(g_0))/ (np.log(1e4) - np.log(lam0))
+delG = (np.log(g(A, L, univarGridO3[1][-1])) - np.log(g_0)) / (np.log(univarGridO3[1][-1]) - np.log(lam0))
 
 ## calc root mean sqaure error for approxiamation
 def ApproxMargPost(params):#, coeff):

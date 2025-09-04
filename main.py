@@ -18,6 +18,12 @@ import scipy as scy
 from matplotlib.ticker import FuncFormatter
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
 
+import os
+cwd = os.getcwd()
+dir_path = os.path.dirname(os.path.realpath(__file__))
+from pathlib import Path
+path = Path(cwd) # Path("/here/your/path/file.txt")
+parentDir = str( path.parent.absolute())
 
 
 """ for plotting figures,
@@ -77,9 +83,9 @@ print(df.columns)
 press = df['Pressure (hPa)'].values #in hectpascal or millibars
 O3 = df['Ozone (VMR)'].values
 O3[O3<0] = 0
-dir = '/home/lennartgolks/PycharmProjects/'
+#dir = '/home/lennartgolks/PycharmProjects/'
 #dir = '/Users/lennart/PycharmProjects/'
-dat = np.loadtxt(dir + 'openData/testProf.txt')
+dat = np.loadtxt(parentDir + '/openData/testProf.txt')
 #dat = np.loadtxt('/home/lennartgolks/PycharmProjects/openData/testProf.txt')
 press = dat[0,:]
 O3 = dat[1,:]
@@ -212,18 +218,18 @@ ObsHeight = 500 # in km
 #
 # print(poptFull)
 #
-fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
-
-
-#axs.plot(pressFunc(height_values[:,0], *popt),height_values[:,0], label = 'not full')
-#axs.plot(pressFuncFullFit(height_values[:,0], *poptFull),height_values[:,0], label = 'full')
-axs.plot(pressure_values,height_values[:,0], label = 'true')
-
-axs.axvline(0.02)
-axs.set_xlabel(r'pressure in hPa ')
-axs.set_yscale('log')
-axs.legend()
-plt.show()
+# fig, axs = plt.subplots( figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
+#
+#
+# #axs.plot(pressFunc(height_values[:,0], *popt),height_values[:,0], label = 'not full')
+# #axs.plot(pressFuncFullFit(height_values[:,0], *poptFull),height_values[:,0], label = 'full')
+# axs.plot(pressure_values,height_values[:,0], label = 'true')
+#
+# axs.axvline(0.02)
+# axs.set_xlabel(r'pressure in hPa ')
+# axs.set_yscale('log')
+# axs.legend()
+# plt.show()
 
 #
 # tests = 1000
@@ -334,15 +340,16 @@ A_lin_dx, tang_heights_linNormal, extraHeight = gen_forward_map(meas_angNormal,h
 
 
 
-#pointAcc = 0.002#0.00085#0.00075#0.00045
+#pointAcc = 0.00075 / 2#0.00085#0.00075#0.00045
 #meas_ang3 = np.array(np.arange(MinAng[0], MaxAng[0]-(MaxAng[0]- MinAng[0])/2, pointAcc))
 #meas_ang2 = np.array(np.arange(MaxAng[0]-(MaxAng[0]- MinAng[0])/5,MaxAng[0], pointAcc))
 #meas_ang =np.append(meas_ang1,meas_ang2)
 #meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))#[:25]
-SpecNumMeas = len(meas_angChosen)
-m = SpecNumMeas
+
 
 A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_angChosen,height_values,ObsHeight,R_Earth)
+SpecNumMeas = len(tang_heights_lin)
+m = SpecNumMeas
 np.savetxt('tang_heights_lin.txt',tang_heights_lin, fmt = '%.15f', delimiter= '\t')
 np.savetxt('A_lin_dx.txt',A_lin_dx, fmt = '%.15f', delimiter= '\t')
 
@@ -617,8 +624,8 @@ np.savetxt('LineIntScal.txt', LineIntScal, fmt = '%.30f', delimiter= '\t')
 AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, temp_values)
 A = 2*AO3
 
-# ##
-
+# # ##
+#
 # PgWidthPt = 421/2
 # fraction = 1.5
 # plt.rcParams.update({'font.size':  10,
@@ -626,6 +633,7 @@ A = 2*AO3
 #                      'font.family' : 'serif',
 #                      'font.serif'  : 'cm',
 #                      'text.latex.preamble': r'\usepackage{bm, amsmath}'})
+# nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
 # U, SingS, Vh = np.linalg.svd(A)#, full_matrices=True)
 #
 #
@@ -656,16 +664,16 @@ A = 2*AO3
 # ax1.set_title(r'last 5 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
 #
 # plt.savefig('MiddleVecA.png', dpi = dpi)
-# #ax1.set_xlabel(r'index')
-# #ax1.text(max(Vh[19]), height_values[Vh[19] == max(Vh[19])], f'20')
-# #ax1.text(1.05*max(Vh[0]), height_values[Vh[0] == max(Vh[0])], f'1')
-# #ax1.text(1.05*max(Vh[3]), height_values[Vh[3] == max(Vh[3])], f'4')
-# #ax1.text(1.05*max(Vh[9]), height_values[Vh[9] == max(Vh[9])], f'10')
-#
+# # #ax1.set_xlabel(r'index')
+# # #ax1.text(max(Vh[19]), height_values[Vh[19] == max(Vh[19])], f'20')
+# # #ax1.text(1.05*max(Vh[0]), height_values[Vh[0] == max(Vh[0])], f'1')
+# # #ax1.text(1.05*max(Vh[3]), height_values[Vh[3] == max(Vh[3])], f'4')
+# # #ax1.text(1.05*max(Vh[9]), height_values[Vh[9] == max(Vh[9])], f'10')
+# #
 # ##
 # np.allclose(A, U[:, :len(SingS)] @ np.diag(SingS) @ Vh[:len(SingS),:])
 #
-# #np.savetxt('SingSmore.txt', SingS, fmt = '%.30f', delimiter = '\t')
+# #np.savetxt('SingSNormal.txt', SingS, fmt = '%.30f', delimiter = '\t')
 #
 # ExpIncSingSNormal = np.loadtxt('ExpIncSingSNormal.txt')
 # ExpDecSingSNormal = np.loadtxt('ExpDecSingSNormal.txt')
@@ -717,122 +725,6 @@ A = 2*AO3
 #
 # print('sing Vec')
 ##
-
-# from pygsvd import *
-#
-# Ugvsd, Vgvsd, Xgvsd, Cgvsd, Sgvsd = gsvd(A, L)
-
-##
-
-# ColinsSNR1 = 140#
-# Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
-#
-# y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), ColinsSNR1)
-#fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-#xDelta = np.zeros((len(SingS),1))
-# lowerHeight = np.zeros(len(VMR_O3))
-# upperHeight = np.zeros(len(VMR_O3))
-# deltaDelHeight = np.zeros(len(VMR_O3))
-# UPPerdeltaDelHeight = np.zeros(len(VMR_O3))
-# impuls =np.mean(VMR_O3 * theta_scale_O3)
-# for i in range(0, len(VMR_O3)):
-#     xDelta = np.zeros((len(VMR_O3), 1))
-#     xDelta[i] = impuls#1#0e10
-#     benchmark = A @ xDelta #* VMR_O3 * theta_scale_O3)
-#     for j in range(0, i):
-#         xDelta = np.zeros((len(VMR_O3), 1))
-#         xDelta[j] = impuls# 10e10
-#         #xDelta[i] = 1#0e10
-#         compare = A @ xDelta #* VMR_O3 * theta_scale_O3)
-#         diff = np.sum((benchmark - compare)**2)/ len(VMR_O3)
-#         if diff <= (1 / gam0) :
-#             print(j)
-#             print(diff)
-#             deltaDelHeight[i] = abs(height_values[j] - height_values[i])
-#             break
-#
-#
-# for i in range(0, len(VMR_O3)):
-#     print('i ' + str(i))
-#     xDelta = np.zeros((len(VMR_O3), 1))
-#     xDelta[i] = impuls  # 1#0e10
-#     benchmark = A @ xDelta
-#     for j in range(len(VMR_O3)-1,i,-1):
-#         print('j ' + str(j))
-#         if j != i:
-#             xDelta = np.zeros((len(VMR_O3), 1))
-#             xDelta[j] = impuls#1
-#             compare = A @ xDelta #* VMR_O3 * theta_scale_O3)
-#             diff = np.sum((benchmark - compare) ** 2) /len(VMR_O3)
-#             #UPPerdeltaDelHeight[i] = abs(height_values[j] - height_values[i])
-#             if diff <= (1 / gam0):
-#                 print(diff)
-#                 UPPerdeltaDelHeight[i] = abs(height_values[j] - height_values[i])
-#                 break
-
-
-# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-# #print(A @ xDelta)
-# #ax1.plot( A @ xDelta, tang_heights_lin)
-# ax1.plot( height_values, deltaDelHeight )
-# ax1.plot( height_values, UPPerdeltaDelHeight )
-# ax1.set_ylabel('delta height')
-# #ax1.set_xscale('log')
-# plt.show(block = True)
-
-# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-# ax1.errorbar( height_values,height_values[:,0], yerr= [deltaDelHeight,UPPerdeltaDelHeight] )
-# ax1.set_ylabel('delta height')
-# plt.show(block = True)
-
-# ##
-# maxJ = 5#4
-# impuls =1#np.mean(VMR_O3 * theta_scale_O3)
-# relDiff = np.zeros((len(VMR_O3), len(VMR_O3)))
-# relDiff = np.zeros((len(VMR_O3),maxJ))
-# relDiffLow = np.zeros((len(VMR_O3),maxJ))
-# HDiff = np.zeros((len(VMR_O3),maxJ))
-# HDiffLow = np.zeros((len(VMR_O3),maxJ))
-# for j in range(1, maxJ):
-#     for i in range(0, len(VMR_O3)-j):
-#         xDelta = np.zeros((len(VMR_O3), 1))
-#         xDelta[i] = impuls#1#0e10
-#         benchmark = A @ xDelta
-#         xDelta = np.zeros((len(VMR_O3), 1))
-#         xDelta[i+j] = impuls#1#0e10
-#         compare = A @ xDelta
-#         relDiff[i,j] = np.linalg.norm(benchmark - compare) #/ np.linalg.norm(compare) #*100
-#         HDiff[i, j] = abs(height_values[i] - height_values[i+j])
-#     for i in range(j, len(VMR_O3)):
-#         xDelta = np.zeros((len(VMR_O3), 1))
-#         xDelta[i] = impuls  # 1#0e10
-#         benchmark = A @ xDelta
-#         xDelta = np.zeros((len(VMR_O3), 1))
-#         xDelta[i - j] = impuls  # 1#0e10
-#         compare = A @ xDelta
-#         relDiffLow[i, j] = np.linalg.norm(benchmark - compare) #/ np.linalg.norm(compare)#*100
-#         HDiffLow[i, j] = abs(height_values[i] - height_values[i-j])
-#     # for j in range(0, len(VMR_O3)):
-#     #     xDelta = np.zeros((len(VMR_O3), 1))
-#     #     xDelta[j] = impuls#1#0e10
-#     #     compare = A @ xDelta
-#     #     relDiff[i,j] = np.linalg.norm(benchmark -compare)/np.linalg.norm(benchmark)
-# relDiff[relDiff == 0] = np.nan
-# relDiffLow[relDiffLow == 0] = np.nan
-# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-# for j in range(1, maxJ):
-#     ax1.plot(height_values[:len(VMR_O3)-j]/len(VMR_O3), relDiff[:len(VMR_O3)-j,j], label = str(j))
-#     ax1.plot(height_values[j:], relDiffLow[j:,j]/len(VMR_O3), label = str(j))
-#     #ax1.errorbar(height_values[:,0] ,HDiffLow[:,j],[relDiffLow[:,j],relDiff[:,j]], label = str(j))
-# # for i in range(0, len(VMR_O3)):
-# #     ax1.plot(abs(height_values- height_values[i])[:i], relDiff[i,:i])
-# #     ax1.plot(abs(height_values - height_values[i])[i:], relDiff[i, i:])
-# ax1.axhline(np.sqrt(1/gam0))
-# ax1.legend()
-# ax1.set_yscale('log')
-# ax1.set_ylabel('delta height')
-# plt.show(block=True)
-##
 ATA = np.matmul(A.T,A)
 Au, As, Avh = np.linalg.svd(A)
 cond_A =  np.max(As)/np.min(As)
@@ -862,41 +754,32 @@ ax1.scatter(y, tang_heights_lin, color = 'r')
 ax1.set_xscale('log')
 plt.show(block = True)
 
-xrms = 10 * np.log(np.sqrt(np.mean(np.random.normal(0,gam0,size=10000)**2)))
 
 ##
-
-signal_power = np.sqrt(np.mean(np.abs(Ax) ** 2))
-noise = np.random.normal(0, np.sqrt(1 / gam0), size =y.shape)
-noise_power = np.sqrt(np.mean(np.abs(noise) ** 2))
-snr = signal_power / noise_power
-
-rms_noise = 10*np.log(np.sqrt(np.mean(np.random.normal(0, np.sqrt(1 / gam0), size =10000)**2)))
-
-ColinsSNR = np.max(Ax)/rms_noise
-
-ColinsSNR1 = np.max(y)/np.sqrt(1 / gam0)
 
 nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
 OrgData = np.matmul(AO3 * nonLinA,VMR_O3 * theta_scale_O3)
 DatErr = np.linalg.norm( OrgData -  Ax) / np.linalg.norm(OrgData) * 100
 print('DataErr '+ str(DatErr))
 
-fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
-ax1.plot(Ax, tang_heights_lin, label = 'linear Data')
-ax1.plot(OrgData , tang_heights_lin, label = 'nonlinear Data')
-ax1.scatter(y, tang_heights_lin, color = 'r')
-ax1.set_xscale('log')
-ax1.legend()
-plt.show()
 
 
 ##
 noise = np.random.normal(0, np.sqrt(1 / gam0), size = OrgData.shape)
 nonLinY = (OrgData + noise).reshape((SpecNumMeas,1))
-y = (Ax + noise).reshape((SpecNumMeas,1))
-np.savetxt('nonLinDataY.txt',nonLinY, fmt = '%.15f', delimiter= '\t')
-np.savetxt('dataY.txt',y, fmt = '%.15f', delimiter= '\t')
+Liny = (Ax + noise).reshape((SpecNumMeas,1))
+
+np.savetxt('nonLinDataY.txt',nonLinY, fmt = '%.30f', delimiter= '\t')
+np.savetxt('dataY.txt',Liny, fmt = '%.30f', delimiter= '\t')
+
+fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
+
+ax1.scatter(nonLinY, tang_heights_lin)
+ax1.plot(nonLinY, tang_heights_lin, label = 'noisy')
+ax1.plot(Ax, tang_heights_lin, label = 'noise free')
+plt.legend()
+ax1.set_xscale('log')
+plt.show(block = True)
 
 ## new forwrad model
 
@@ -917,6 +800,7 @@ pressure_values = np.copy(pressure_values[:EndInd])
 
 VMR_O3[startInd:EndInd] = np.copy(VMR_O3[startInd::2])
 VMR_O3 = np.copy(VMR_O3[:EndInd])
+SpecNumLayers = len(height_values)
 
 NOfNeigh = 2#4
 neigbours = np.zeros((len(height_values),NOfNeigh))
@@ -947,17 +831,21 @@ A_lin = gen_sing_map(A_lin_dx, tang_heights_lin, height_values)
 AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, temp_values)
 A = 2*AO3
 ATA = np.matmul(A.T,A)
+y = np.copy(nonLinY)
+ATy = np.matmul(A.T, y)
 nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
 np.savetxt('AMat.txt',A, fmt = '%.30f', delimiter= '\t')
 np.savetxt('ALinMat.txt',A_lin, fmt = '%.15f', delimiter= '\t')
 np.savetxt('nonLinA.txt',nonLinA, fmt = '%.15f', delimiter= '\t')
-np.savetxt('gamma0.txt',[gam0], fmt = '%.15f', delimiter= '\t')
+np.savetxt('gamma0.txt',[gam0], fmt = '%.30f', delimiter= '\t')
 
 
 ## some modifiaction
 # to find correaltion bewteen tmep and others
 
-y = np.copy(nonLinY)
+
+
+
 
 #new_temp_values = np.mean(temp_values) * np.ones((SpecNumLayers,1))
 #AO3, theta_scale_O3 = composeAforO3(A_lin, new_temp_values, pressure_values, ind, new_temp_values)
@@ -987,15 +875,9 @@ plt.legend()
 plt.show()
 
 #y = np.loadtxt('dataY.txt').reshape((SpecNumMeas,1))
-ATy = np.matmul(A.T, y)
 
-fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
 
-ax1.scatter(y, tang_heights_lin)
-ax1.plot(y, tang_heights_lin, label = 'noisy')
-ax1.plot(Ax, tang_heights_lin, label = 'noise free')
-plt.legend()
-plt.show()
+
 #print(1/np.var(y))
 
 
@@ -1012,20 +894,6 @@ np.savetxt('theta_scale_O3.txt', [theta_scale_O3], fmt = '%.15f')
 
 np.savetxt('calc_press.txt', calc_press[:maxInd], fmt = '%.30f', delimiter= '\t')
 np.savetxt('actual_heights.txt', actual_heights[:maxInd], fmt = '%.30f', delimiter= '\t')
-
-## change data length
-
-# MaxAng = [np.arcsin((55+ R_Earth) / (R_Earth + ObsHeight))]
-# MinAng = np.arcsin((height_values[0] + R_Earth) / (R_Earth + ObsHeight))
-# pointAcc = 0.00045
-# meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
-# SpecNumMeas = len(meas_ang)
-# m = SpecNumMeas
-# A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_ang,height_values,ObsHeight,R_Earth)
-# A_lin = gen_sing_map(A_lin_dx, tang_heights_lin, height_values)
-# AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, temp_values)
-# A = 2*AO3
-# y = np.copy(y[:m])
 
 
 ##
@@ -1066,9 +934,8 @@ def MinLogMargPost(params):#, coeff):
 
     return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gam) + 0.5 * G + 0.5 * gam * F +  ( betaD *  lamb * gam + betaG *gam)
 
-#minimum = optimize.fmin(MargPostU, [5e-5,0.5])
 minimum = optimize.fmin(MinLogMargPost, [gam0,1/gam0* 1/ np.mean(vari)/15], maxiter = 25)
-gamma0 = minimum[0]
+gam0 = minimum[0]
 lam0 = minimum[1]
 print(minimum)
 
@@ -1112,7 +979,7 @@ np.savetxt('lam.txt', lam, fmt = '%.15f')
 around lam0 from gmres = '''
 
 #taylor series arounf lam_0
-lam0 = 1.5*minimum[1]
+lam0 = minimum[1]
 B = (ATA + lam0 * L)
 
 LowTri = np.linalg.cholesky(B)
@@ -1143,22 +1010,22 @@ B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
 f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
 f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
 f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
-f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
-f_0_5 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
-f_0_6 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
+f_0_4 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+f_0_5 = 0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
+f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
 
 
 
-g_0_1 = np.trace(B_inv_L)
-g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
-g_0_3 = 1 /6 * np.trace(B_inv_L_3)
-g_0_4 = 0#-1 /24 * np.trace(B_inv_L_4)
-g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
-g_0_6 = 0#-1 /720 * np.trace(B_inv_L_6)
+# g_0_1 = np.trace(B_inv_L)
+# g_0_2 = -1 / 2 * np.trace(B_inv_L_2)
+# g_0_3 = 1 /6 * np.trace(B_inv_L_3)
+# g_0_4 = 0#-1 /24 * np.trace(B_inv_L_4)
+# g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
+# g_0_6 = 0#-1 /720 * np.trace(B_inv_L_6)
 
 f_0 = f(ATy, y, B_inv_A_trans_y0)
-g_0 = g(A, L,minimum[1] )
-delG = (np.log(g(A, L, 1.2e4)) - np.log(g_0))/ (np.log(1.2e4) - np.log(minimum[1]))
+#g_0 = g(A, L,minimum[1] )
+#delG = (np.log(g(A, L, 4e3)) - np.log(g_0))/ (np.log(4e3) - np.log(minimum[1]))
 
 
 ##
@@ -1179,14 +1046,20 @@ alphaD = 1
 rate = f_0 / 2 + betaG + betaD * lam0
 # draw gamma with a gibs step
 shape = SpecNumMeas/2 + alphaD + alphaG
+index = 'sec'
+gridSize = 35
+univarGridO3 = np.zeros((2, gridSize))
+for i in range(0, 2):
+    univarGridO3[i] = np.loadtxt(parentDir + '/TTDecomposition/'+index +'uniVarGridMargO3' + str(i) + '.txt')
+
 
 #f_new = f_0
 #g_old = g(A, L,  lambdas[0])
 g_0 = g(A, L, lam0)
-delG = (np.log(g(A, L, 1e4)) - np.log(g_0))/ (np.log(1e4) - np.log(lam0))
+delG = (np.log(g(A, L, univarGridO3[1][-1])) - np.log(g_0))/ (np.log(univarGridO3[1][-1]) - np.log(lam0))
 
 
-def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
+def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
     wLam = lam0 * 0.8#8e3#7e1
 
     alphaG = 1
@@ -1205,7 +1078,7 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
     shape = SpecNumMeas / 2 + alphaD + alphaG
     rate = f_0 / 2 + betaG + betaD * lam0
 
-    f_new = np.copy(f_0)
+    #f_new = np.copy(f_0)
     #rate_old = np.copy(rate)
     for t in range(number_samples + burnIn-1):
         #print(t)
@@ -1213,16 +1086,23 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
         # # draw new lambda
         lam_p = normal(lambdas[t], wLam)
 
-        while lam_p < 0:
-                lam_p = normal(lambdas[t], wLam)
+        while lam_p < 0:#or lam_p > univarGridO3[1][-1]:
+               lam_p = normal(lambdas[t], wLam)
 
         delta_lam = lam_p - lambdas[t]
         delta_lam_t = lambdas[t] - lam0
         delta_lam_p = lam_p - lam0
-        delta_f = f_0_1 * delta_lam + f_0_2 * (delta_lam_p**2 - delta_lam_t**2) + f_0_3 *(delta_lam_p**3 - delta_lam_t**3) #+ f_0_4 * delta_lam**4 + f_0_5 * delta_lam**5
-        #delta_g = g_0_1 * delta_lam + g_0_2 * (delta_lam_p**2 - delta_lam_t**2) + g_0_3 * (delta_lam_p**3 - delta_lam_t**3) #+ g_0_4 * delta_lam**4 + g_0_5 * delta_lam**5
-        Glam_p = (np.log(lam_p) - np.log(lam0)) * delG + np.log(g_0)
+
+        delta_f = f_0_1 * delta_lam + f_0_2 * (delta_lam_p**2 - delta_lam_t**2) + f_0_3 *(delta_lam_p**3 - delta_lam_t**3) #+ f_0_4 * (delta_lam_p**4 - delta_lam_t**4) #+ f_0_5 * delta_lam**5
+        #delta_g = g_0_1 * delta_lam + g_0_2 * (delta_lam_p**2 - delta_lam_t**2) + g_0_3 * (delta_lam_p**3 - delta_lam_t**3) #+ g_0_4 * (delta_lam_p**4 - delta_lam_t**4) #+ g_0_5 * delta_lam**5
+        #delta_g = g(A, L, lam_p) - g(A, L, lambdas[t])
+
+
+        Glam_p = (np.log(lam_p) - np.log(lam0)) * delG  + np.log(g_0)
         Gcurr = (np.log(lambdas[t]) - np.log(lam0)) * delG + np.log(g_0)
+        # taylorG = g_tayl(lamb - minimum[1], g_0, g_0_1, g_0_2, g_0_3, g_0_5, 0 ,0)
+        # taylorG = g(A, L, lamb)
+        #taylorG = np.exp(GApprox)
         delta_g = np.exp(Glam_p) - np.exp(Gcurr)
         log_MH_ratio = ((SpecNumLayers)/ 2) * (np.log(lam_p) - np.log(lambdas[t])) - 0.5 * (delta_g + gammas[t] * delta_f) - betaD * gammas[t] * delta_lam
 
@@ -1244,8 +1124,9 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
 
             #f_new = f(ATy, y, B_inv_A_trans_y)
             delta_lam_p = lam_p - lam0
-            delta_f = f_0_1 * delta_lam_p + f_0_2 * delta_lam_p ** 2 + f_0_3 * delta_lam_p ** 3
+            delta_f = f_0_1 * delta_lam_p + f_0_2 * delta_lam_p ** 2 + f_0_3 * delta_lam_p ** 3#+ f_0_4 * delta_lam_p ** 4
             f_new = f_0 + delta_f
+            #f_new = np.copy( f_p)
             # g_old = np.copy(g_new)
             rate = f_new / 2 + betaG + betaD * lam_p  # lambdas[t+1]
             if rate <= 0:
@@ -1262,9 +1143,8 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0):
     return lambdas, gammas,k
 
 
-
 startTime = time.time()
-lambdas ,gammas, k = MHwG(number_samples, burnIn, lam0, gamma0, f_0)
+lambdas ,gammas, k = MHwG(number_samples, burnIn, lam0, gam0, f_0, g_0)
 elapsed = time.time() - startTime
 print('MTC Done in ' + str(elapsed) + ' s')
 
@@ -1300,7 +1180,7 @@ axs[1].set_title(r'$\lambda =\delta / \gamma$, the regularization parameter', fo
 axs[2].plot( range(number_samples), trace, color = 'k')
 axs[2].set_ylabel(r'$\pi(\bm{\theta}|\bm{y})$')
 axs[2].set_xlabel('number of samples')
-plt.savefig('HistoPlot.png')
+plt.savefig('HistoPlotMain.png')
 plt.show()
 ##
 ''' check taylor series in f(lambda) and g(lambda)
@@ -1368,8 +1248,8 @@ delta_lam = lambBinEdges - lam0
 #taylorG = g_tayl(delta_lam,g(A, L, minimum[1]), g_0_1, g_0_2, g_0_3, g_0_4, g_0_5, g_0_6)
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,f_0_4, f_0_5, f_0_6)
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2,f_0_3,0, 0, 0)
-g_0 = g(A, L,lam0 )
-delG = (np.log(g(A, L, 1e4)) - np.log(g_0))/ (np.log(1e4) - np.log(lam0))
+g_0 = g(A, L,lam0)
+#delG = (np.log(g(A, L, 1e4)) - np.log(g_0))/ (np.log(1e4) - np.log(lam0))
 GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + np.log(g_0)
 taylorG = np.exp(GApprox)
 
