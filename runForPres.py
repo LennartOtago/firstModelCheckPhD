@@ -518,17 +518,53 @@ linTestDat = np.matmul(A,testO3[randInt] * theta_scale_O3)
 MapLinTestDat = np.matmul( RealMap @  A,testO3[randInt] * theta_scale_O3)
 nonLinTestDat = np.matmul( A/2 * nonLinA,testO3[randInt] * theta_scale_O3)
 
-# fig4, ax4 = plt.subplots(dpi=300)
-# # for test in range(len(y)):
-# #     ax4.plot(RealMap @ LinDataY[test], tang_heights_lin, linestyle='dotted', marker='*', markersize=7, zorder=2, color='k')
-# #     ax4.plot(NonLinDataY[test], tang_heights_lin, linestyle='dotted', marker='o', markersize=10, zorder=1, color='r')
-# test = 25
-# ax4.plot(RealMap @ LinDataY[test], tang_heights_lin, linestyle='dotted', marker='*', markersize=7, zorder=2, color='k')
-# ax4.plot(NonLinDataY[test], tang_heights_lin, linestyle='dotted', marker='o', markersize=10, zorder=1, color='r')
-# ax4.plot(nonLinTestDat, tang_heights_lin, linestyle='dotted', marker='o', markersize=5, zorder=1, color='g')
-# ax4.plot(RealMap @ linTestDat, tang_heights_lin, linestyle='dotted', marker='o', markersize=2, zorder=1, color='blue')
+
+# ## test inverse and mach learning
+# #get inverse of linearDaty
+# testDat = 1000#SpecNumMeas
+# Results = np.random.multivariate_normal(MargInteg, CondVar, size=testDat)
+# TrainLinDataY = np.zeros((testDat, SpecNumMeas))
+# TrainNonLinDataY = np.zeros((testDat, SpecNumMeas))
+# for test in range(testDat):
+#     ProfRand = test
 #
-# plt.show()
+#     O3_Prof = np.copy(Results[ProfRand])
+#     nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, O3_Prof,
+#                          AscalConstKmToCm, wvnmbr, S, E, g_doub_prime)
+#
+#     TrainLinDataY[test] = np.matmul((A),O3_Prof.reshape((SpecNumLayers, 1)) * theta_scale_O3).reshape(SpecNumMeas)
+#     TrainNonLinDataY[test] = np.matmul(A * nonLinA,O3_Prof.reshape((SpecNumLayers, 1)) * theta_scale_O3).reshape(SpecNumMeas)
+# #
+
+# num_epochs = 3000
+# lrate = 0.75
+# MaschModel = DoMachLearing(num_epochs,TrainNonLinDataY.T,TrainLinDataY.T, lrate)
+##
+# import torch
+# test = 25
+# MaschTest = MaschModel(torch.tensor([TrainLinDataY[test]], dtype=torch.float32))
+# MaschTestarr = np.array(MaschTest.detach())
+#
+#
+# fig4, ax4 = plt.subplots()
+#
+#
+# ax4.plot(RealMap @ TrainLinDataY[test], tang_heights_lin, linestyle='dotted', marker='*', markersize=7, zorder=2, color='r',label = 'RealMap')
+# ax4.plot(TrainNonLinDataY[test], tang_heights_lin, linestyle='dotted', marker='o', markersize=10, zorder=1, color='r',label = 'RealMap')
+#
+# ax4.plot(RealMap @ LinDataY[test], tang_heights_lin, linestyle='dotted', marker='*', markersize=7, zorder=2, color='r',label = 'RealMap')
+# ax4.plot(NonLinDataY[test], tang_heights_lin, linestyle='dotted', marker='o', markersize=10, zorder=1, color='r',label = 'RealMap')
+#
+# ax4.plot(MaschTestarr[0,:], tang_heights_lin, linestyle='dotted', marker='*', markersize=7, zorder=2, color='k',label = 'InvMap')
+# ax4.plot(TrainNonLinDataY[test], tang_heights_lin, linestyle='dotted', marker='o', markersize=10, zorder=1, color='k',label = 'InvMap')
+#
+#
+#
+# #ax4.plot(nonLinTestDat, tang_heights_lin, linestyle='dotted', marker='o', markersize=5, zorder=1, color='g')
+# #ax4.plot(RealMap @ linTestDat, tang_heights_lin, linestyle='dotted', marker='o', markersize=2, zorder=1, color='blue')
+# ax4.legend()
+# ax4.set_xscale('log')
+# plt.show(block = True)
 ##
 binCol = 'C0'
 postCol = 'C1'

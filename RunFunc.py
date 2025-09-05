@@ -78,7 +78,7 @@ def composeAforO3(A_lin, temp, press, ind, wvnmbr, g_doub_prime, E, S):
     v_0 = wvnmbr[ind][0]
 
     f_broad = 1
-    scalingConst = 1e11
+    scalingConst = 1#e11
     Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp)
     Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
@@ -111,7 +111,7 @@ def composeAforO3withTemp(A_lin, temp, press, ind, wvnmbr, g_doub_prime, E, S, n
     v_0 = wvnmbr[ind][0]
 
     f_broad = 1
-    scalingConst = 1e11
+    scalingConst = 1#e11
     Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp)
     Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
@@ -142,7 +142,7 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
     relMapErr = np.copy(relMapErrDat)
     while np.max(relMapErr) >= relMapErrDat:
         Results = np.random.multivariate_normal(newCondMean, CondVar, size=SpecNumMeas)
-        Results[Results<0] = 0
+        #Results[Results<0] = 0
         #for i in range(len(Results)):
             #print(i)
             # while any(Results[i] < 0):
@@ -360,3 +360,52 @@ def g(A, L, l):
 
 def f(ATy, y, B_inv_A_trans_y):
     return np.matmul(y[0::, 0].T, y[0::, 0]) - np.matmul(ATy[0::, 0].T, B_inv_A_trans_y)
+
+def DoMachLearing(num_epochs, nonLinY, LinDataY, lr):
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    SpecNumMeas , numberOfDat = nonLinY.shape
+    print(nonLinY.shape)
+    nonLinY_norm = ((nonLinY.T - np.mean(nonLinY, 1)) / np.std(nonLinY, 1)).T
+    LinY_norm = ((LinDataY.T - np.mean(LinDataY, 1)) / np.std(LinDataY, 1)).T
+
+    y_tensor = torch.tensor(nonLinY_norm, dtype=torch.float32)
+    x_tensor = torch.tensor(LinY_norm, dtype=torch.float32)
+
+    class LinearModel(nn.Module):
+        def __init__(self, in_features, out_features):
+            super().__init__()
+            self.linear = nn.Linear(in_features, out_features)
+
+        def forward(self, x):
+            return self.linear(x).squeeze(1)
+
+    in_features = SpecNumMeas
+    out_features = SpecNumMeas
+
+
+
+    criterion = nn.MSELoss()
+    #optimizer = optim.SGD(model.parameters(), lr=3)
+    model = LinearModel(in_features, out_features)
+    optimizer = optim.SGD(model.parameters(), lr=lr)
+    epoch = 1
+    for epoch in range(num_epochs):
+    #while prevLoss > currLoss:
+
+        outputs = model(x_tensor.T)
+
+        # calculate Los
+        loss = criterion(outputs, y_tensor.T)
+
+        # backwardpass and optimization
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        #epoch += 1
+
+        print(f'Epoch[ {epoch + 1}], Loss: {loss.item():.4f}')
+
+    return model
+
