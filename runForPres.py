@@ -76,7 +76,7 @@ g_doub_prime = np.loadtxt(dir +'g_doub_prime.txt').reshape((909,1))
 
 
 index = 'sec'
-gridSize = 35
+gridSize = 20
 univarGridO3 = np.zeros((2, gridSize))
 for i in range(0, 2):
     univarGridO3[i] = np.loadtxt(parentDir + '/TTDecomposition/'+index +'uniVarGridMargO3' + str(i) + '.txt')
@@ -387,7 +387,8 @@ firstdelmean, firstdeldelta, firstdeltint, firstdeld_tint = tauint([[deltas[burn
 firstlammean, firstlamdelta, firstlamtint, firstlamd_tint = tauint([[lambdas[burnIn::]]], 0)
 
 
-
+np.savetxt('firstGamTauInt.txt',[firstgamtint,firstgamd_tint], fmt = '%.15f', delimiter= '\t')
+np.savetxt('firstLamTauInt.txt',[firstlamtint,firstlamd_tint], fmt = '%.15f', delimiter= '\t')
 ##
 startTime = time.time()
 BinHistStart = 25
