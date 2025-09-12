@@ -839,6 +839,23 @@ np.savetxt('ALinMat.txt',A_lin, fmt = '%.15f', delimiter= '\t')
 np.savetxt('nonLinA.txt',nonLinA, fmt = '%.15f', delimiter= '\t')
 np.savetxt('gamma0.txt',[gam0], fmt = '%.30f', delimiter= '\t')
 
+#save plain A wothout Press Temp or O3
+Apl, theta_scale_O3 = composeAplain(A_lin, ind, temp_values)
+Aplain = 2*Apl
+
+np.savetxt('APlainMat.txt',Aplain, fmt = '%.30f', delimiter= '\t')
+##
+
+fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
+P = pressure_values.reshape((len(pressure_values),1))
+AplX = np.matmul(Aplain, (theta_scale_O3* VMR_O3) * P /temp_values)
+AplX = np.matmul(Aplain* (P /temp_values).T, (theta_scale_O3* VMR_O3) )
+ax1.plot(AplX, tang_heights_lin, color = 'g', label = 'noise free')
+ax1.scatter(nonLinY, tang_heights_lin, color = 'k')
+
+plt.legend()
+plt.show(block= True)
+
 
 ## some modifiaction
 # to find correaltion bewteen tmep and others
