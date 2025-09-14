@@ -97,6 +97,7 @@ maxInd = 50#47#51#54#47
 skipInd = 1
 pressure_values = press[minInd:maxInd][::skipInd]#press[minInd:maxInd]
 VMR_O3 = O3[minInd:maxInd][::skipInd]#O3[minInd:maxInd]
+#VMR_O3[:] = np.mean(VMR_O3)
 scalingConstkm = 1e-3
 
 # def height_to_pressure(p0, x, dx):
@@ -822,7 +823,7 @@ np.savetxt('GraphLaplacian.txt', L, header = 'Graph Lalplacian', fmt = '%.15f', 
 #cholesky decomposition of L for W1 and v1
 lowC_L = scy.linalg.cholesky(L, lower = True)
 
-
+##
 A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_angChosen,height_values,ObsHeight,R_Earth)
 np.savetxt('tang_heights_lin.txt',tang_heights_lin, fmt = '%.15f', delimiter= '\t')
 np.savetxt('A_lin_dx.txt',A_lin_dx, fmt = '%.15f', delimiter= '\t')
@@ -922,7 +923,8 @@ vari = np.zeros((len(theta)-2,1))
 for j in range(1,len(theta)-1):
     vari[j-1] = np.var([theta[j-1],theta[j],theta[j+1]])
     #vari[j - 1] = abs(-theta[j + 1] + 2*theta[j] - theta[j - 1])**2
-
+if np.mean(vari) == 0:
+    vari = 1
 ##
 #find minimum for first guesses
 '''params[1] = delta
@@ -933,6 +935,7 @@ def MinLogMargPost(params):#, coeff):
     # delta = params[1]
     gam = params[0]
     lamb = params[1]
+
     if lamb < 0  or gam < 0:
         return np.nan
 
@@ -1064,7 +1067,7 @@ rate = f_0 / 2 + betaG + betaD * lam0
 # draw gamma with a gibs step
 shape = SpecNumMeas/2 + alphaD + alphaG
 index = 'sec'
-gridSize = 35
+gridSize = 20
 univarGridO3 = np.zeros((2, gridSize))
 for i in range(0, 2):
     univarGridO3[i] = np.loadtxt(parentDir + '/TTDecomposition/'+index +'uniVarGridMargO3' + str(i) + '.txt')

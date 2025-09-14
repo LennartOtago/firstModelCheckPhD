@@ -1052,7 +1052,7 @@ axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'ma
 axs.set_xscale('log')
 axs.set_yscale('log')
 axs.set_ylabel(r'$ \sqrt{\bm{x}^T \bm{L}\bm{x}}$', style='italic')
-axs.set_xlabel(r'$|| \bm{Ax} - \bm{y}||$')
+axs.set_xlabel(r'$\lVert \bm{Ax} - \bm{y}\rVert_{L^2}$')
 handles, labels = axs.get_legend_handles_labels()
 axs.legend()
 #axs.legend(handles = [handles[0],handles[1],handles[2]],loc = 'upper right',  frameon =True)
