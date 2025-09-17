@@ -742,7 +742,7 @@ Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
 SNR = 60#35000
-SNR = 125
+SNR = 150
 #y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
 ##
 #y = Ax.reshape((SpecNumMeas,1)) + np.random.normal(0,0.00025,size=(SpecNumMeas,1))

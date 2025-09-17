@@ -397,6 +397,7 @@ lambHist, lambBinEdges = np.histogram(lambdas, bins=BinHistStart, density=True)
 gamHist, gamBinEdges = np.histogram(gammas, bins=BinHistStart, density=True)
 MargResults = np.zeros((BinHistStart, len(theta)))
 B_inv_Res = np.zeros((BinHistStart, len(theta)))
+#Prec_Mat_Int = np.zeros((BinHistStart, len(L), len(L)))
 VarB = np.zeros((BinHistStart, len(L), len(L)))
 gamInt = np.zeros(BinHistStart)
 meanGamInt = np.zeros(BinHistStart)
@@ -425,6 +426,7 @@ for p in range(0,BinHistStart):
     VarB[p] = B_inv * lambHist[p] / np.sum(lambHist)
     gamInt[p] = 1 / SetGamma * gamHist[p] / np.sum(gamHist)
     meanGamInt[p] = SetGamma * gamHist[p] / np.sum(gamHist)
+    #Prec_Mat_Int[p] = SetB * lambHist[p] / np.sum(lambHist)
 
 oldMargInteg = np.sum(MargResults,0) / theta_scale_O3
 MargInteg= np.copy(oldMargInteg)
@@ -432,10 +434,18 @@ BinHist = BinHistStart
 MargTime = time.time() - startTime
 print('Post Mean in ' + str(MargTime) + ' s')
 
-
+#Prec_Mat = np.sum(gamInt) * np.sum(Prec_Mat_Int,0)  / (theta_scale_O3) ** 2
 #CondVar = scy.integrate.trapezoid(gamInt) * scy.integrate.trapezoid(VarB.T) / (theta_scale_O3) ** 2
 CondVar =np.sum(gamInt) * np.sum(VarB,0)  / (theta_scale_O3) ** 2
 
+Var_inv = np.zeros(CondVar.shape)
+# startTime = time.time()
+LowTri = np.linalg.cholesky(CondVar)
+UpTri = LowTri.T
+for j in range(len(B)):
+    Var_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
+
+#np.allclose(Var_inv,Prec_Mat)
 MargTime = time.time() - startTime
 print('Post Mean in ' + str(MargTime) + ' s')
 
@@ -460,7 +470,7 @@ axs[0].set_xlabel(r'the noise precision $\gamma$')
 axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = 'k', zorder = 0,width = np.diff(lambBinEdges)[0])#10)
 axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
 plt.savefig('HistoPlot.png', dpi = dpi)
-plt.show()
+plt.show(block = True)
 
 
 
@@ -964,7 +974,7 @@ plt.show()
 '''L-curve refularoization
 '''
 
-lamLCurve = np.logspace(0.5,6.5,200)
+lamLCurve = np.logspace(0,6,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
