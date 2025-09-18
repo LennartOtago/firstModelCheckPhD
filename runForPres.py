@@ -189,8 +189,8 @@ B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
 
 
 f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
-f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
-f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
+f_0_2 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+f_0_3 =  0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
 f_0_4 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
 f_0_5 = 0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
 f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
@@ -307,7 +307,7 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
         # # draw new lambda
         lam_p = normal(lambdas[t], wLam)
 
-        while lam_p < 0:#or lam_p > univarGridO3[1][-1]:
+        while lam_p < 0 or lam_p > univarGridO3[1][-1]:
                lam_p = normal(lambdas[t], wLam)
 
         delta_lam = lam_p - lambdas[t]
@@ -397,7 +397,7 @@ lambHist, lambBinEdges = np.histogram(lambdas, bins=BinHistStart, density=True)
 gamHist, gamBinEdges = np.histogram(gammas, bins=BinHistStart, density=True)
 MargResults = np.zeros((BinHistStart, len(theta)))
 B_inv_Res = np.zeros((BinHistStart, len(theta)))
-#Prec_Mat_Int = np.zeros((BinHistStart, len(L), len(L)))
+Prec_Mat_Int = np.zeros((BinHistStart, len(L), len(L)))
 VarB = np.zeros((BinHistStart, len(L), len(L)))
 gamInt = np.zeros(BinHistStart)
 meanGamInt = np.zeros(BinHistStart)
@@ -426,7 +426,7 @@ for p in range(0,BinHistStart):
     VarB[p] = B_inv * lambHist[p] / np.sum(lambHist)
     gamInt[p] = 1 / SetGamma * gamHist[p] / np.sum(gamHist)
     meanGamInt[p] = SetGamma * gamHist[p] / np.sum(gamHist)
-    #Prec_Mat_Int[p] = SetB * lambHist[p] / np.sum(lambHist)
+    Prec_Mat_Int[p] = SetB * lambHist[p] / np.sum(lambHist)
 
 oldMargInteg = np.sum(MargResults,0) / theta_scale_O3
 MargInteg= np.copy(oldMargInteg)
@@ -434,7 +434,7 @@ BinHist = BinHistStart
 MargTime = time.time() - startTime
 print('Post Mean in ' + str(MargTime) + ' s')
 
-#Prec_Mat = np.sum(gamInt) * np.sum(Prec_Mat_Int,0)  / (theta_scale_O3) ** 2
+Prec_Mat = np.sum(meanGamInt) * np.sum(Prec_Mat_Int,0) * (theta_scale_O3) ** 2
 #CondVar = scy.integrate.trapezoid(gamInt) * scy.integrate.trapezoid(VarB.T) / (theta_scale_O3) ** 2
 CondVar =np.sum(gamInt) * np.sum(VarB,0)  / (theta_scale_O3) ** 2
 
@@ -445,7 +445,16 @@ UpTri = LowTri.T
 for j in range(len(B)):
     Var_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
 
-#np.allclose(Var_inv,Prec_Mat)
+
+Prec_inv = np.zeros(Prec_Mat.shape)
+# startTime = time.time()
+LowTri = np.linalg.cholesky(Prec_Mat)
+UpTri = LowTri.T
+for j in range(len(Prec_Mat)):
+    Prec_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
+
+print(np.allclose(CondVar, Prec_inv))
+print(np.allclose(Var_inv,Prec_Mat))
 MargTime = time.time() - startTime
 print('Post Mean in ' + str(MargTime) + ' s')
 
@@ -472,7 +481,39 @@ axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter', f
 plt.savefig('HistoPlot.png', dpi = dpi)
 plt.show(block = True)
 
+##
+U, SATA, Vh = np.linalg.svd(ATA, full_matrices=True)
 
+#U, SATA, Vh = np.linalg.svd(A, full_matrices=True)
+eigval, eigenvectors = np.linalg.eig(ATA)
+#eigval = eigval.sort()
+U, Sing, Vh = np.linalg.svd(Prec_Mat, full_matrices=True)
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+#ax1.scatter(range(1,len(Sing)+1),abs(Sing), color = 'k', label = r"sing. val. of $\bm{Q}_{\bm{x}|\bm{y}}$")
+ax1.scatter(range(1,len(SATA)+1),SATA, color = 'r', marker = "s", label = r"sing. val. of $\bm{A}^T\bm{A}$", zorder = 0)
+ax1.scatter(range(1,len(eigval)+1),eigval, color = 'b', marker = ".", label = r"sing. val. of $\bm{A}^T\bm{A}$", zorder = 0)
+
+ax1.set_yscale('log')
+plt.show(block = True)
+##
+
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
+ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
+
+for i in range(0, 1000):
+    O3TrySampl =np.random.multivariate_normal(oldMargInteg, CondVar)
+    ax1.plot(O3TrySampl, height_values, c = "k", linewidth=0.1)
+    O3TrySampl =np.random.multivariate_normal(oldMargInteg, Prec_inv)
+    ax1.plot(O3TrySampl, height_values, c = "r", linewidth=0.1)
+
+ax1.set_xlabel(r'ozone volume mixing ratio ')
+ax1.set_ylabel('height in km')
+handles, labels = ax1.get_legend_handles_labels()
+ax1.legend(loc = 'upper right')
+ax1.set_ylim([height_values[0], height_values[-1]])
+
+
+plt.show(block = True)
 
 ##
 TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
@@ -664,8 +705,9 @@ B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
 
 
 f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
-f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
-f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
+f_0_2 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+f_0_3 =  0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
+
 f_0_4 = 0# -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
 f_0_5 = 0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
 f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
@@ -1233,7 +1275,7 @@ delta_lam = lambBinEdges - lam0
 GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + np.log(g_0)
 taylorG = np.exp(GApprox)
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,0, 0, 0)
-
+taylorF = f_tayl(delta_lam, f_0, f_0_1,0, 0,0, 0, 0)
 fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 
 axs.plot(lam,f_func, color = fCol, zorder = 2, linestyle=  'dotted')
@@ -1313,19 +1355,89 @@ axins.set_xlim(min(lambBinEdges),max(lambBinEdges))
 axs.legend(np.append(lines2,lines),np.append(lab2,lab0), loc = 'lower right')
 
 fig.savefig('f_and_g_phd.png', bbox_inches='tight', dpi = dpi)
-plt.show()
-##
-gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist)
-lambHist, lambBinEdges = np.histogram(lambdas, bins=BinHist)
-const = -400
-delta_lam = lambBinEdges - lam0
-#taylorG = g_tayl(delta_lam,g_0, g_0_1, g_0_2, g_0_3,g_0_4, 0,0)
-GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + np.log(g_0)
-taylorG = np.exp(GApprox)
-taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,0, 0, 0)
-f_0_4 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+plt.show(block = True)
+## taylor series approximation error
 
-# print max rel F taylor F error
+gamHist, gamBinEdges = np.histogram(gammas, bins=100)
+lambHist, lambBinEdges = np.histogram(lambdas, bins=100)
+index = '/home/lennartgolks/PycharmProjects/TTDecomposition/first'
+#lambBinEdges = np.loadtxt( index +'uniVarGridMargO3' + str(1) + '.txt')
+#gamBinEdges = np.loadtxt( index +'uniVarGridMargO3' + str(0) + '.txt')
+
+delta_lam = lambBinEdges - lam0
+f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
+f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+f_0_3 =  1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
+f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+f_True = np.zeros(len(lambBinEdges))
+g_True = np.zeros(len(lambBinEdges))
+
+for j in range(len(lambBinEdges)):
+
+    B = (ATA + lambBinEdges[j] * L)
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    # check if L L.H = B
+    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+    f_True[j] = f(ATy, y, B_inv_A_trans_y)
+    g_True[j] = g(A, L, lambBinEdges[j])
+
+
+# taylorG = g_tayl(delta_lam,g_0, g_0_1, g_0_2, g_0_3,g_0_4, 0,0)
+GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG + np.log(g_0)
+taylorG = np.exp(GApprox)
+MaxabsGErr = np.max(abs(g_True - taylorG))
+
+absRMSGErr = np.sqrt(np.mean((g_True - taylorG)**2))
+relRMSGErr = np.sqrt(np.sum((g_True - taylorG)**2/g_True**2))
+print("max Abs err G " + str(MaxabsGErr))
+print("Abs rms err G " + str(absRMSGErr))
+print("rel rms err G " + str(relRMSGErr))
+
+
+# 1 order taylor F
+print("1 order ----------------------------------- ")
+taylorF = f_tayl(delta_lam, f_0, f_0_1, 0, 0, 0, 0, 0)
+MaxabsFErr = np.max(abs(f_True - taylorF))
+absRMSFErr = np.sqrt(np.mean((f_True - taylorF)**2))
+relRMSFErr = np.sqrt(np.sum((f_True - taylorF)**2/f_True**2))
+print("max Abs err F " + str(MaxabsFErr))
+print("Abs rms err F " + str(absRMSFErr))
+print("rel rms err F " + str(relRMSFErr))
+
+# 2 order taylor F
+print("2 order ----------------------------------- ")
+taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, 0, 0, 0, 0)
+MaxabsFErr = np.max(abs(f_True - taylorF))
+absRMSFErr = np.sqrt(np.mean((f_True - taylorF)**2))
+relRMSFErr = np.sqrt(np.sum((f_True - taylorF)**2/f_True**2))
+print("max Abs err F " + str(MaxabsFErr))
+print("Abs rms err F " + str(absRMSFErr))
+print("rel rms err F " + str(relRMSFErr))
+
+# 3 order taylor F
+print("3 order ----------------------------------- ")
+taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3, 0, 0, 0)
+MaxabsFErr = np.max(abs(f_True - taylorF))
+absRMSFErr = np.sqrt(np.mean((f_True - taylorF)**2))
+relRMSFErr = np.sqrt(np.sum((f_True - taylorF)**2/f_True**2))
+print("max Abs err F " + str(MaxabsFErr))
+print("Abs rms err F " + str(absRMSFErr))
+print("rel rms err F " + str(relRMSFErr))
+
+# 3 order taylor F
+print("4 order ----------------------------------- ")
+taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3, f_0_4, 0, 0)
+MaxabsFErr = np.max(abs(f_True - taylorF))
+absRMSFErr = np.sqrt(np.mean((f_True - taylorF)**2))
+relRMSFErr = np.sqrt(np.sum((f_True - taylorF)**2/f_True**2))
+print("max Abs err F " + str(MaxabsFErr))
+print("Abs rms err F " + str(absRMSFErr))
+print("rel rms err F " + str(relRMSFErr))
+
+
+## error on marg
 def piFunc(lamb, gam):
     #gam =  minimum[0]
 
@@ -1337,148 +1449,116 @@ def piFunc(lamb, gam):
     F = f(ATy, y, B_inv_A_trans_ymax)
     G = g(A, L, lamb)
     return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 *G + 0.5 * gam * F + (betaD * lamb * gam + betaG * gam) #- 440
+    #return  0.5 *G + 0.5 * gam * F
 
 def piFuncTayl(lamb, gam):
     #gam =  minimum[0]
-    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, f_0_2 ,f_0_3,0, 0, 0)
 
-    GApprox = (np.log(lamb) - np.log(lam0)) * delG + np.log(g_0)
-    taylorG = np.exp(GApprox)
+    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, 0 ,0,0, 0, 0)
+    GApp = (np.log(lamb) - np.log(lam0)) * delG + np.log(g_0)
+    taylorG = np.exp(GApp)
     return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 * taylorG + 0.5 * gam * taylorF + (betaD * lamb * gam + betaG * gam) #- 440
+    #return  0.5 * taylorG + 0.5 * gam * taylorF
 
-f_Checkfunc = np.zeros(len(lambBinEdges))
-g_Checkfunc = np.zeros(len(lambBinEdges))
-ComplPiFunc = np.zeros(len(gamBinEdges))
-maxPiErr = 0
-maxlogPiErr = 0
-
-for j in range(len(lambBinEdges)):
-
-    B = (ATA + lambBinEdges[j] * L)
-
-    #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
-    LowTri = np.linalg.cholesky(B)
-    UpTri = LowTri.T
-    # check if L L.H = B
-    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
-
-    f_Checkfunc[j] = f(ATy, y, B_inv_A_trans_y)
-    g_Checkfunc[j] = g(A, L, lambBinEdges[j])
-    for i in range(len(gamBinEdges)):
-        ComplPiFunc[i] = piFunc(lambBinEdges[j], gamBinEdges[i])
-
-    normPiTayl = np.exp(-piFuncTayl(lambBinEdges[j], gamBinEdges) + const) #/ np.sum(np.exp(-piFuncTayl(lambBinEdges[j], gamBinEdges) + const))
-    normPiFunc = np.exp((-ComplPiFunc + const))# / np.sum(np.exp(-ComplPiFunc + const))
-    piErr = max(abs(normPiTayl - normPiFunc)/abs(normPiFunc))
-    if piErr > maxPiErr:
-        maxPiErr = np.copy(piErr)
-        maxErrExpLam = lambBinEdges[j]
-        maxErrExpgam = gamBinEdges[abs(normPiTayl - normPiFunc) / normPiFunc == piErr][0]
-
-    logpiErr = max(abs(piFuncTayl(lambBinEdges[j], gamBinEdges) - ComplPiFunc) / abs(ComplPiFunc))
-    #print(logpiErr*100)
-    if logpiErr > maxlogPiErr:
-
-        maxlogPiErr = np.copy(logpiErr)
-        maxErrPiLam = lambBinEdges[j]
-        maxErrPiGam = gamBinEdges[abs(piFuncTayl(lambBinEdges[j], gamBinEdges) - ComplPiFunc) / abs(ComplPiFunc) == logpiErr][0]
-
-
-relFErr = max(abs(f_Checkfunc - taylorF)/abs(f_Checkfunc))
-absFErr = max(abs(f_Checkfunc - taylorF))
-ErrFLam = lambBinEdges[abs(f_Checkfunc - taylorF)/abs(f_Checkfunc) == relFErr][0]
-print(f'relative F error {relFErr *100} at {ErrFLam} with abs Err {absFErr}')
-
-relGErr = max(abs(g_Checkfunc - taylorG)/abs(g_Checkfunc))
-absGErr = max(abs(g_Checkfunc - taylorG))
-ErrGLam = lambBinEdges[abs(g_Checkfunc - taylorG)/abs(g_Checkfunc) == relGErr][0]
-print(f'relative G error {relGErr *100} at {ErrGLam} with abs Err {absGErr}')
-
-
-# normPiTayl = np.exp(-piFuncTayl(lambBinEdges)+const)/ np.sum(np.exp(-piFuncTayl(lambBinEdges)+const))
-# normPiFunc = np.exp((-ComplPiFunc+const))/np.sum( np.exp(-ComplPiFunc+const))
-# 
-# piErr = max(abs(normPiTayl - normPiFunc)/normPiFunc)
-# ErrExpLam = lambBinEdges[abs(normPiTayl - normPiFunc)/normPiFunc == piErr ][0]
-#print(f'relative error function {piErr*100:.2f} at lam: {maxErrExpLam} and gam: {maxErrExpgam}')
-print(f'relative log error function {logpiErr *100:.2f} at lam: {maxErrPiLam} and gam: {maxErrPiGam}')
-PiTayl = np.exp(-piFuncTayl(maxErrExpLam, maxErrExpgam) + const) #/ np.sum(np.exp(-piFuncTayl(maxErrExpLam, maxErrExpgam) + const))
-PiFunc = np.exp((-piFunc(maxErrExpLam, maxErrExpgam) + const)) #/ np.sum(np.exp(-ComplPiFunc + const))
-abspiErr = abs(PiTayl - PiFunc)
-PiTaylMode = np.exp(-piFunc(lam0, gam0) + const)
-print(f'abs error {abspiErr} at lam: {maxErrExpLam} and gam: {maxErrExpgam}')
-
-
-##
-
-f_0_4 = -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
-upperErrBond = max(abs(f_0_4) * (lambBinEdges-lam0)**4)
-lamErrUpBond = lambBinEdges[abs(f_0_4) * (lambBinEdges-lam0)**4 == upperErrBond][0]
-ApprF = abs(f_tayl(lamErrUpBond - lam0 , f_0, f_0_1, f_0_2 ,f_0_3,0, 0, 0))
-print(upperErrBond/ApprF*100)
-print(upperErrBond/f_Checkfunc[-1]*100)
-#upperErrBond = 30136983
+TrueMarg = np.zeros((len(gamBinEdges),len(lambBinEdges)))
+ApproxMarg = np.zeros((len(gamBinEdges),len(lambBinEdges)))
 for j in range(len(lambBinEdges)):
     for i in range(len(gamBinEdges)):
-        ComplPiFunc[i] = piFunc(lambBinEdges[j], gamBinEdges[i])
+        lamb = lambBinEdges[j]
+        gam = gamBinEdges[i]
+        TrueMarg[i,j] = piFuncTayl(lamb, gam)
+        ApproxMarg[i,j] = piFunc(lamb, gam)
 
-    logpiErr = max(abs(piFuncTayl(lambBinEdges[j], gamBinEdges) - ComplPiFunc)) #/ abs(ComplPiFunc))
-    #print(logpiErr)
-    print(np.max((0.5 * gamBinEdges* upperErrBond)/ComplPiFunc)*100)
-#upperErrBond / piFuncTayl(lamErrUpBond, gamBinEdges)
+MaxabsMargErr = np.max(abs(TrueMarg - ApproxMarg))
+absRMSMargErr = np.sqrt(np.mean((TrueMarg - ApproxMarg)**2))
+relRMSMargErr = np.sqrt(np.sum((TrueMarg - ApproxMarg)**2))/ np.sqrt(np.sum(TrueMarg**2))
+relMargMaxErr= np.max( abs(TrueMarg - ApproxMarg)/ abs( TrueMarg))
 
-##
-# logpiErr = max(abs(piFuncTayl(lambBinEdges) - ComplPiFunc)/abs(ComplPiFunc ))
-# ErrPiLam = lambBinEdges[abs(piFuncTayl(lambBinEdges) - ComplPiFunc)/abs(ComplPiFunc ) == logpiErr ][0]
-# print(f'relative log error function {logpiErr *100:.2f} at {ErrPiLam}')
+print("Marg ----------------------------------- Log ")
+print("max Abs err " + str(MaxabsMargErr))
+print("max rel err " + str(relMargMaxErr))
+print("Abs rms err " + str(absRMSMargErr))
+print("rel rms err " + str(relRMSMargErr))
+currConst = -400
+TrueMarg = np.exp(-np.copy(TrueMarg)+currConst)
+ApproxMarg = np.exp(-np.copy(ApproxMarg)+currConst)
+MaxabsMargErr = np.max(abs(TrueMarg - ApproxMarg))
+absRMSMargErr = np.sqrt(np.mean((TrueMarg - ApproxMarg)**2))
+relRMSMargErr = np.sqrt(np.sum((TrueMarg - ApproxMarg)**2))/ np.sqrt(np.sum(TrueMarg**2))
+print("Marg ----------------------------------- exp ")
+print("max Abs err " + str(MaxabsMargErr))
+print("Abs rms err " + str(absRMSMargErr))
+print("rel rms err " + str(relRMSMargErr))
 
-fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 
-axs.plot(lambBinEdges, normPiTayl/np.sum(normPiTayl), color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
-axs.plot(lambBinEdges,normPiFunc/np.sum(normPiFunc),color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3)
+## calc error due to binning up samples
+TotBinNum =200
+IntMean = np.zeros((TotBinNum-1 , len(VMR_O3)))
+IntCoVar = np.zeros((TotBinNum-1 , len(VMR_O3),len(VMR_O3)))
 
-axs.set_yscale('log')
-axs.set_xscale('log')
-axs.legend()
-plt.show(block = True)
-##
-# fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
-#
-# axs.plot(lambBinEdges, -piFuncTayl(lambBinEdges), color = 'k', linewidth = 1, zorder = 1, label = 'Taylor series' )
-# axs.plot(lambBinEdges, -ComplPiFunc,color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
-#
-# #axs.set_yscale('log')
-# #axs.set_xscale('log')
-# plt.show(block = True)
+for b in range(1,TotBinNum):
+    lambHist, lambBinEdges = np.histogram(lambdas, bins=b, density=True)
+    gamHist, gamBinEdges = np.histogram(gammas, bins=b, density=True)
+    MargResults = np.zeros((b, len(theta)))
+    B_inv_Res = np.zeros((b, len(theta)))
+    VarB = np.zeros((b, len(L), len(L)))
+    gamInt = np.zeros(b)
+    meanGamInt = np.zeros(b)
+    IDiag = np.eye(len(L))
 
-##
-startNum = 1
-endNum = 100
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
-lamMeans= np.zeros(endNum - startNum)
-gamMeans= np.zeros(endNum - startNum)
-CombMeans = np.zeros((2,endNum - startNum))
-for i in range(startNum,endNum):
-    lambHist, lambBinEdges = np.histogram(lambdas, bins=i)
-    lamMeans[i - startNum] = np.sum(lambHist * (lambBinEdges[:-1] + (lambBinEdges[1:] - lambBinEdges[:-1])/2) ) / np.sum(lambHist)
-    gamHist, gamBinEdges = np.histogram(gammas, bins=i)
-    gamMeans[i - startNum] = np.sum(gamHist * (gamBinEdges[:-1] + (gamBinEdges[1:] - gamBinEdges[:-1])/2) ) / np.sum(gamHist)
-    CombMeans[0,i - startNum] = np.copy(gamMeans[i - startNum])
-    CombMeans[1,i - startNum]= np.copy(lamMeans[i - startNum])
-relLamErr =  abs(lamMeans - lamMeans[-1] ) /abs(lamMeans[-1])
-relGamErr =  abs(gamMeans - gamMeans[-1] ) /abs(gamMeans[-1])
-relErr = np.linalg.norm(CombMeans - CombMeans[:,-1].reshape(2,1), axis = 0  ) /np.linalg.norm(CombMeans[:,-1]) * 100
+    for p in range(0,b):
 
-#ax1.plot(range(startNum,endNum-1),relLamErr[:-1])
-#ax1.plot(range(startNum,endNum-1),relGamErr[:-1])
-ax1.plot(range(startNum,endNum-1),relErr[:-1])
-ax1.plot(np.linspace(startNum,endNum),1e-2 /np.linspace(startNum,endNum) *100, linestyle = '--', color = 'k', label = r'$\propto 1/\sqrt{N}$')
+        SetLambda = lambBinEdges[p] + (lambBinEdges[p] + lambBinEdges[p + 1]) / 2
+        SetGamma = gamBinEdges[p] + (gamBinEdges[p] + gamBinEdges[p + 1]) / 2
+        SetB = ATA + SetLambda * L
 
-ax1.set_xlabel('number of Bins')
-ax1.set_ylabel('relative Error in percent')
+        LowTri = np.linalg.cholesky(SetB)
+        UpTri = LowTri.T
+        B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+        MargResults[p, :] = B_inv_A_trans_y * lambHist[p] / np.sum(lambHist)
+        B_inv_Res[p, :] = B_inv_A_trans_y
+
+        B_inv = np.zeros(SetB.shape)
+        LowTri = np.linalg.cholesky(SetB)
+        UpTri = LowTri.T
+        for j in range(len(B)):
+            B_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
+
+        VarB[p] = B_inv * lambHist[p] / np.sum(lambHist)
+        gamInt[p] = 1 / SetGamma * gamHist[p] / np.sum(gamHist)
+        meanGamInt[p] = SetGamma * gamHist[p] / np.sum(gamHist)
+
+    IntMean[b-1] =np.sum(MargResults,0)  / theta_scale_O3
+
+
+    IntCoVar[b-1] = np.sum(gamInt) * np.sum(VarB,0)  / (theta_scale_O3) ** 2
+
+
+## calc norms
+TrueVal = np.append(IntMean[ - 1], IntCoVar[-1].reshape(-1))
+RMSDiffNorm = np.zeros(TotBinNum-2)
+for b in range(1,TotBinNum-1):
+    CurrDiff = np.append(IntMean[b - 1], IntCoVar[b-1].reshape(-1)) - TrueVal
+    RMSDiffNorm[b-1] = np.sqrt(np.sum(CurrDiff**2)/np.sum(TrueVal**2))
+
+fig3, ax1 = plt.subplots(figsize= (4.369032793690328, 4.369032793690328/2), tight_layout = True)
+#fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
+
+currNorm = RMSDiffNorm[3:]
+ax1.plot(range(3,3+ len(currNorm )),currNorm *100)
+ax1.plot(np.linspace(1,TotBinNum-1),0.1 /np.linspace(1,TotBinNum-1) *100, linestyle = '--', color = 'k', label = r'$\propto \exp{1/N}$')
+ax1.set_xlim([3,3+ len(currNorm )])
+ax1.axvline(20, linewidth = 0.8, color = "k")
+ax1.axhline(RMSDiffNorm[20]*100, linewidth = 0.8, color = "k")
+ax1.text(21,RMSDiffNorm[20]*105, f"rel. RMS error of {RMSDiffNorm[20]*100:.2f}  for 20 bins")
+
+ax1.set_xlabel('number of bins')
+ax1.set_ylabel('relative RMS in $\%$')
 ax1.set_yscale('log')
-ax1.set_xscale('log')
+#ax1.set_xscale('log')
 ax1.legend()
+plt.savefig("relErrO3MeanVar.png", dpi =dpi)
 plt.show(block = True)
 ##
 
