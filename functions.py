@@ -219,6 +219,7 @@ def composeAforO3(A_lin, temp, press, ind, set_temp):
     E = np.zeros((size[0], 1))
     n_air = np.zeros((size[0], 1))
     g_doub_prime = np.zeros((size[0], 1))
+    g_prime = np.zeros((size[0], 1))
 
     for i, lines in enumerate(data_set):
         wvnmbr[i] = float(lines[0][5:15])  # in 1/cm
@@ -228,7 +229,8 @@ def composeAforO3(A_lin, temp, press, ind, set_temp):
         g_self[i] = float(lines[0][40:45])
         E[i] = float(lines[0][46:55])
         n_air[i] = float(lines[0][55:59])
-        g_doub_prime[i] = float(lines[0][155:160])
+        g_doub_prime[i] = float(lines[0][148:153])
+        g_prime[i] = float(lines[0][155:160])
 
     # from : https://hitran.org/docs/definitions-and-units/
     HitrConst2 = 1.4387769  # in cm K
@@ -236,8 +238,10 @@ def composeAforO3(A_lin, temp, press, ind, set_temp):
 
     f_broad = 1
     scalingConst = 1#e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
+    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / temp)
+    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
                 1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
@@ -300,7 +304,7 @@ def gen_trap_rul(dxs):
 #     val[-1] = dxs[-1] * 0.5
 #     return val
 
-def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime):
+def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime,g_prime):
     '''careful that A_lin is just dx values
     maybe do A_lin_copy = np.copy(A_lin/2)
     A_lin_copy[:,-1] = A_lin_copy[:,-1] * 2
@@ -320,8 +324,10 @@ def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_val
 
     f_broad = 1
     #scalingConst = 1e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
+    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp_values) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / temp_values)
+    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
                 1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
@@ -666,6 +672,7 @@ def composeAforPress(A_lin, temp, O3, ind):
     E = np.zeros((size[0], 1))
     n_air = np.zeros((size[0], 1))
     g_doub_prime = np.zeros((size[0], 1))
+    g_prime = np.zeros((size[0], 1))
 
     for i, lines in enumerate(data_set):
         wvnmbr[i] = float(lines[0][5:15])  # in 1/cm
@@ -675,7 +682,8 @@ def composeAforPress(A_lin, temp, O3, ind):
         g_self[i] = float(lines[0][40:45])
         E[i] = float(lines[0][46:55])
         n_air[i] = float(lines[0][55:59])
-        g_doub_prime[i] = float(lines[0][155:160])
+        g_doub_prime[i] = float(lines[0][148:153])
+        g_prime[i] = float(lines[0][155:160])
 
     # from : https://hitran.org/docs/definitions-and-units/
     HitrConst2 = 1.4387769  # in cm K
@@ -684,8 +692,11 @@ def composeAforPress(A_lin, temp, O3, ind):
     f_broad = 1
     w_cross = f_broad * 1e-4 * O3
     scalingConst = 1#e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
+
+    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / temp)
+    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
                 1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
@@ -721,6 +732,7 @@ def composeAforTemp(A_lin, press, O3, ind, old_temp):
     E = np.zeros((size[0], 1))
     n_air = np.zeros((size[0], 1))
     g_doub_prime = np.zeros((size[0], 1))
+    g_prime = np.zeros((size[0], 1))
 
     for i, lines in enumerate(data_set):
         wvnmbr[i] = float(lines[0][5:15])  # in 1/cm
@@ -730,7 +742,8 @@ def composeAforTemp(A_lin, press, O3, ind, old_temp):
         g_self[i] = float(lines[0][40:45])
         E[i] = float(lines[0][46:55])
         n_air[i] = float(lines[0][55:59])
-        g_doub_prime[i] = float(lines[0][155:160])
+        g_doub_prime[i] = float(lines[0][148:153])
+        g_prime[i] = float(lines[0][155:160])
 
     # from : https://hitran.org/docs/definitions-and-units/
     HitrConst2 = 1.4387769  # in cm K
@@ -739,8 +752,10 @@ def composeAforTemp(A_lin, press, O3, ind, old_temp):
     f_broad = 1
     w_cross = f_broad * 1e-4 * O3
     scalingConst = 1#e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / old_temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
+    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] /  old_temp) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / old_temp)
+    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / old_temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
                 1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / old_temp)) / (
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
@@ -776,6 +791,7 @@ def composeAforTempPress(A_lin, O3, ind, old_temp):
     E = np.zeros((size[0], 1))
     n_air = np.zeros((size[0], 1))
     g_doub_prime = np.zeros((size[0], 1))
+    g_prime = np.zeros((size[0], 1))
 
     for i, lines in enumerate(data_set):
         wvnmbr[i] = float(lines[0][5:15])  # in 1/cm
@@ -785,7 +801,8 @@ def composeAforTempPress(A_lin, O3, ind, old_temp):
         g_self[i] = float(lines[0][40:45])
         E[i] = float(lines[0][46:55])
         n_air[i] = float(lines[0][55:59])
-        g_doub_prime[i] = float(lines[0][155:160])
+        g_doub_prime[i] = float(lines[0][148:153])
+        g_prime[i] = float(lines[0][155:160])
 
     # from : https://hitran.org/docs/definitions-and-units/
     HitrConst2 = 1.4387769  # in cm K
@@ -794,8 +811,10 @@ def composeAforTempPress(A_lin, O3, ind, old_temp):
     f_broad = 1
     w_cross = f_broad * 1e-4 * O3
     scalingConst = 1#e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / old_temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
+    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / old_temp) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / old_temp)
+    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / old_temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
                 1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / old_temp)) / (
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
@@ -832,6 +851,7 @@ def composeAplain(A_lin, ind, temp):
     E = np.zeros((size[0], 1))
     n_air = np.zeros((size[0], 1))
     g_doub_prime = np.zeros((size[0], 1))
+    g_prime = np.zeros((size[0], 1))
 
     for i, lines in enumerate(data_set):
         wvnmbr[i] = float(lines[0][5:15])  # in 1/cm
@@ -841,7 +861,8 @@ def composeAplain(A_lin, ind, temp):
         g_self[i] = float(lines[0][40:45])
         E[i] = float(lines[0][46:55])
         n_air[i] = float(lines[0][55:59])
-        g_doub_prime[i] = float(lines[0][155:160])
+        g_doub_prime[i] = float(lines[0][148:153])
+        g_prime[i] = float(lines[0][155:160])
 
     # from : https://hitran.org/docs/definitions-and-units/
     HitrConst2 = 1.4387769  # in cm K
@@ -849,8 +870,10 @@ def composeAplain(A_lin, ind, temp):
 
     f_broad = 1
     scalingConst = 1#e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
+    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / temp)
+    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
                 1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))

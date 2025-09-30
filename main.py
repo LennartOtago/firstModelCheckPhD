@@ -504,7 +504,7 @@ g_self = np.zeros((size[0],1))
 E = np.zeros((size[0],1))
 n_air = np.zeros((size[0],1))
 g_doub_prime= np.zeros((size[0],1))
-
+g_prime= np.zeros((size[0],1))
 
 for i, lines in enumerate(data_set):
     wvnmbr[i] = float(lines[0][5:15]) # in 1/cm
@@ -514,7 +514,9 @@ for i, lines in enumerate(data_set):
     g_self[i] = float(lines[0][40:45])
     E[i] = float(lines[0][46:55])
     n_air[i] = float(lines[0][55:59])
-    g_doub_prime[i] = float(lines[0][155:160])
+    g_doub_prime[i] = float(lines[0][148:153])
+    g_prime[i] = float(lines[0][155:160])
+
 
 
 np.savetxt('S.txt',S, delimiter= '\t')
@@ -565,8 +567,8 @@ w_cross =  VMR_O3 * f_broad * 1e-4
 HitrConst2 = 1.4387769 # in cm K
 
 # internal partition sum
-Q = g_doub_prime[ind,0] * np.exp(- HitrConst2 * E[ind,0]/ temp_values)
-Q_ref = g_doub_prime[ind,0] * np.exp(- HitrConst2 * E[ind,0]/ 296)
+Q = g_doub_prime[ind,0] * np.exp(- HitrConst2 * E[ind,0]/ temp_values) + g_prime[ind,0] * np.exp(- HitrConst2 * (E[ind,0] + v_0) / temp_values)
+Q_ref = g_doub_prime[ind,0] * np.exp(- HitrConst2 * E[ind,0]/ 296) + g_prime[ind,0] * np.exp(- HitrConst2 * (E[ind,0] + v_0)/ 296)
 LineInt = S[ind,0] * Q_ref / Q * np.exp(- HitrConst2 * E[ind,0]/ temp_values)/ np.exp(- HitrConst2 * E[ind,0]/ 296) * (1 - np.exp(- HitrConst2 * wvnmbr[ind,0]/ temp_values))/ (1- np.exp(- HitrConst2 * wvnmbr[ind,0]/ 296))
 LineIntScal =  Q_ref / Q * np.exp(- HitrConst2 * E[ind,0]/ temp_values)/ np.exp(- HitrConst2 * E[ind,0]/ 296) * (1 - np.exp(- HitrConst2 * wvnmbr[ind,0]/ temp_values))/ (1- np.exp(- HitrConst2 * wvnmbr[ind,0]/ 296))
 
@@ -594,6 +596,7 @@ theta = num_mole * w_cross.reshape((SpecNumLayers,1)) * scalingConst * S[ind,0]
 np.savetxt('num_mole.txt', [num_mole], fmt = '%.15f', delimiter= '\t')
 np.savetxt('wvnmbr.txt', wvnmbr, fmt = '%.15f', delimiter= '\t')
 np.savetxt('g_doub_prime.txt', g_doub_prime, fmt = '%.15f', delimiter= '\t')
+np.savetxt('g_prime.txt', g_prime, fmt = '%.15f', delimiter= '\t')
 np.savetxt('E.txt', E, fmt = '%.15f', delimiter= '\t')
 np.savetxt('LineIntScal.txt', LineIntScal, fmt = '%.30f', delimiter= '\t')
 
@@ -758,7 +761,7 @@ plt.show(block = True)
 
 ##
 
-nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
+nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime,g_prime)
 OrgData = np.matmul(AO3 * nonLinA,VMR_O3 * theta_scale_O3)
 DatErr = np.linalg.norm( OrgData -  Ax) / np.linalg.norm(OrgData) * 100
 print('DataErr '+ str(DatErr))
@@ -834,7 +837,7 @@ A = 2*AO3
 ATA = np.matmul(A.T,A)
 y = np.copy(nonLinY)
 ATy = np.matmul(A.T, y)
-nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
+nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime,g_prime)
 np.savetxt('AMat.txt',A, fmt = '%.30f', delimiter= '\t')
 np.savetxt('ALinMat.txt',A_lin, fmt = '%.15f', delimiter= '\t')
 np.savetxt('nonLinA.txt',nonLinA, fmt = '%.15f', delimiter= '\t')

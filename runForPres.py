@@ -73,6 +73,8 @@ temp_values = np.loadtxt(dir +'temp_values.txt').reshape((len(VMR_O3), 1))
 wvnmbr = np.loadtxt(dir +'wvnmbr.txt').reshape((909,1))
 E = np.loadtxt(dir +'E.txt').reshape((909,1))
 g_doub_prime = np.loadtxt(dir +'g_doub_prime.txt').reshape((909,1))
+g_prime = np.loadtxt(dir +'g_prime.txt').reshape((909,1))
+
 
 
 index = 'sec'
@@ -560,7 +562,7 @@ relMapErrDat = 4
 #Results[0] = MargInteg
 #Results = np.random.multivariate_normal(VMR_O3[:,0], CondVar,size=FirstSamp)
 currMap = np.eye(len(y))
-RealMap, relMapErr, LinDataY, NonLinDataY, testO3 = genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, gamma0, MargInteg, CondVar, AscalConstKmToCm, A_lin, temp_values, pressure_values, ind, scalingConst, relMapErrDat, wvnmbr, S, E,g_doub_prime)
+RealMap, relMapErr, LinDataY, NonLinDataY, testO3 = genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, gamma0, MargInteg, CondVar, AscalConstKmToCm, A_lin, temp_values, pressure_values, ind, scalingConst, relMapErrDat, wvnmbr, S, E, g_doub_prime, g_prime)
 
 randInt = np.random.randint(len(y))
 
@@ -1547,7 +1549,7 @@ fig3, ax1 = plt.subplots(figsize= (4.369032793690328, 4.369032793690328/2), tigh
 
 currNorm = RMSDiffNorm[3:]
 ax1.plot(range(3,3+ len(currNorm )),currNorm *100)
-ax1.plot(np.linspace(1,TotBinNum-1),0.1 /np.linspace(1,TotBinNum-1) *100, linestyle = '--', color = 'k', label = r'$\propto \exp{1/N}$')
+ax1.plot(np.linspace(1,TotBinNum-1),0.05 /np.linspace(1,TotBinNum-1) *100, linestyle = '--', color = 'k', label = r'$\propto 1/N$')
 ax1.set_xlim([3,3+ len(currNorm )])
 ax1.axvline(20, linewidth = 0.8, color = "k")
 ax1.axhline(RMSDiffNorm[20]*100, linewidth = 0.8, color = "k")
@@ -1555,7 +1557,7 @@ ax1.text(21,RMSDiffNorm[20]*105, f"rel. RMS error of {RMSDiffNorm[20]*100:.2f}  
 
 ax1.set_xlabel('number of bins')
 ax1.set_ylabel('relative RMS in $\%$')
-ax1.set_yscale('log')
+#ax1.set_yscale('log')
 #ax1.set_xscale('log')
 ax1.legend()
 plt.savefig("relErrO3MeanVar.png", dpi =dpi)

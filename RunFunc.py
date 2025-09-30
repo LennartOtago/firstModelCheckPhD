@@ -70,7 +70,7 @@ def set_size(width, fraction=1):
     return fig_dim
 
 
-def composeAforO3(A_lin, temp, press, ind, wvnmbr, g_doub_prime, E, S):
+def composeAforO3(A_lin, temp, press, ind, wvnmbr, g_doub_prime, g_prime, E, S):
 
 
     # from : https://hitran.org/docs/definitions-and-units/
@@ -79,8 +79,10 @@ def composeAforO3(A_lin, temp, press, ind, wvnmbr, g_doub_prime, E, S):
 
     f_broad = 1
     scalingConst = 1#e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
+    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / temp)
+    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
                 1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
@@ -103,7 +105,7 @@ def composeAforO3(A_lin, temp, press, ind, wvnmbr, g_doub_prime, E, S):
     return A, theta_scale
 
 
-def composeAforO3withTemp(A_lin, temp, press, ind, wvnmbr, g_doub_prime, E, S, newTemp):
+def composeAforO3withTemp(A_lin, temp, press, ind, wvnmbr, g_doub_prime, g_prime, E, S, newTemp):
 
 
     # from : https://hitran.org/docs/definitions-and-units/
@@ -112,8 +114,10 @@ def composeAforO3withTemp(A_lin, temp, press, ind, wvnmbr, g_doub_prime, E, S, n
 
     f_broad = 1
     scalingConst = 1#e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
+    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / temp)
+    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
                 1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
@@ -135,7 +139,7 @@ def composeAforO3withTemp(A_lin, temp, press, ind, wvnmbr, g_doub_prime, E, S, n
     #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
     return A, theta_scale
 
-def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, gamma0, newCondMean, CondVar, AscalConstKmToCm, A_lin, temp_values, pressure_values, ind, scalingConst, relMapErrDat, wvnmbr, S, E,g_doub_prime):
+def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, gamma0, newCondMean, CondVar, AscalConstKmToCm, A_lin, temp_values, pressure_values, ind, scalingConst, relMapErrDat, wvnmbr, S, E,g_doub_prime, g_prime):
     '''Find map from linear to non-linear data'''
 
     SpecNumMeas, SpecNumLayers = A_lin.shape
@@ -148,7 +152,7 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
             # while any(Results[i] < 0):
             #     Results[i] = np.random.multivariate_normal(newCondMean, CondVar)
         testDat = SpecNumMeas
-        A_O3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, wvnmbr, g_doub_prime, E, S)
+        A_O3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, wvnmbr, g_doub_prime, g_prime, E, S)
 
         # Results = np.zeros((SampleRounds, SpecNumLayers))
         LinDataY = np.zeros((testDat, SpecNumMeas))
@@ -160,7 +164,7 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
 
             O3_Prof = np.copy(Results[ProfRand])
             #O3_Prof[O3_Prof < 0] = 0
-            nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, O3_Prof, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
+            nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, O3_Prof, AscalConstKmToCm, wvnmbr, S, E, g_doub_prime, g_prime)
             noise = np.random.normal(0, np.sqrt(1 / gamma0), SpecNumMeas)
             # noise = np.zeros(SpecNumMeas)
 
@@ -189,7 +193,7 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
         for k in range(0, testNum):
             currO3 = testO3[k]
             noise = np.random.normal(0, np.sqrt(1 / gamma0), SpecNumMeas)
-            nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, currO3 , AscalConstKmToCm, wvnmbr, S, E,g_doub_prime)
+            nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, currO3 , AscalConstKmToCm, wvnmbr, S, E, g_doub_prime, g_prime)
 
             testDataY[k] = np.matmul(currMap @ (A_O3 * 2), currO3.reshape((SpecNumLayers, 1)) * theta_scale_O3).reshape(SpecNumMeas)# + noise
             testNonLinY[k] = np.matmul(A_O3 * nonLinA, currO3.reshape((SpecNumLayers, 1)) * theta_scale_O3).reshape(
@@ -241,7 +245,7 @@ def gen_trap_rul(dxs):
     sumMat = sumMat + np.triu(Ones,1) - np.triu(Ones,2)
     return 0.5*(dxs @ np.copy(sumMat[:-1,:]))
 
-def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime):
+def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime, g_prime):
     '''careful that A_lin is just dx values
     maybe do A_lin_copy = np.copy(A_lin/2)
     A_lin_copy[:,-1] = A_lin_copy[:,-1] * 2
@@ -261,8 +265,10 @@ def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_val
 
     f_broad = 1
     #scalingConst = 1e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296)
+    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / temp)
+    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / 296)
     LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
                 1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
