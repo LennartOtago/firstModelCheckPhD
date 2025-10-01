@@ -143,9 +143,14 @@ def MinLogMargPost(params):#, coeff):
     Bp = ATA + lamb * L
 
     LowTri = np.linalg.cholesky(Bp)
-    UpTri = LowTri.T
-    # check if L L.H = B
-    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    ForwSub = np.linalg.solve(LowTri, ATy[:,0])
+    B_inv_A_trans_y = np.linalg.solve(LowTri.T, ForwSub)
+
+    # UpTri = LowTri.T
+    # # check if L L.H = B
+    # B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    # lu, piv = scy.linalg.lu_factor(Bp)
+    # B_inv_A_trans_y = scy.linalg.lu_solve((lu, piv),ATy[:,0])
 
     G = g(A, L,  lamb)
     F = f(ATy, y,  B_inv_A_trans_y)
@@ -175,7 +180,6 @@ UpTri = LowTri.T
 B_inv_A_trans_y0 = lu_solve(LowTri, UpTri,  ATy[0::, 0])
 
 
-
 B_inv_L = np.zeros(np.shape(B))
 
 for i in range(len(B)):
@@ -191,7 +195,7 @@ B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
 
 
 f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
-f_0_2 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
 f_0_3 =  0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
 f_0_4 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
 f_0_5 = 0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
@@ -418,12 +422,15 @@ for p in range(0,BinHistStart):
     MargResults[p, :] = B_inv_A_trans_y * lambHist[p] / np.sum(lambHist)
     B_inv_Res[p, :] = B_inv_A_trans_y
 
-    B_inv = np.zeros(SetB.shape)
-    # startTime = time.time()
     LowTri = np.linalg.cholesky(SetB)
-    UpTri = LowTri.T
-    for j in range(len(B)):
-        B_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
+    B_inv = scy.linalg.cho_solve((LowTri,True),IDiag)
+
+    # B_inv = np.zeros(SetB.shape)
+    # # startTime = time.time()
+    # LowTri = np.linalg.cholesky(SetB)
+    # UpTri = LowTri.T
+    # for j in range(len(B)):
+    #     B_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
 
     VarB[p] = B_inv * lambHist[p] / np.sum(lambHist)
     gamInt[p] = 1 / SetGamma * gamHist[p] / np.sum(gamHist)
@@ -440,24 +447,24 @@ Prec_Mat = np.sum(meanGamInt) * np.sum(Prec_Mat_Int,0) * (theta_scale_O3) ** 2
 #CondVar = scy.integrate.trapezoid(gamInt) * scy.integrate.trapezoid(VarB.T) / (theta_scale_O3) ** 2
 CondVar =np.sum(gamInt) * np.sum(VarB,0)  / (theta_scale_O3) ** 2
 
-Var_inv = np.zeros(CondVar.shape)
-# startTime = time.time()
-LowTri = np.linalg.cholesky(CondVar)
-UpTri = LowTri.T
-for j in range(len(B)):
-    Var_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
-
-
-Prec_inv = np.zeros(Prec_Mat.shape)
-# startTime = time.time()
-LowTri = np.linalg.cholesky(Prec_Mat)
-UpTri = LowTri.T
-for j in range(len(Prec_Mat)):
-    Prec_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
-
-print(np.allclose(CondVar, Prec_inv))
-print(np.allclose(Var_inv,Prec_Mat))
-MargTime = time.time() - startTime
+# Var_inv = np.zeros(CondVar.shape)
+# # startTime = time.time()
+# LowTri = np.linalg.cholesky(CondVar)
+# UpTri = LowTri.T
+# for j in range(len(B)):
+#     Var_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
+#
+#
+# Prec_inv = np.zeros(Prec_Mat.shape)
+# # startTime = time.time()
+# LowTri = np.linalg.cholesky(Prec_Mat)
+# UpTri = LowTri.T
+# for j in range(len(Prec_Mat)):
+#     Prec_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
+#
+# print(np.allclose(CondVar, Prec_inv))
+# print(np.allclose(Var_inv,Prec_Mat))
+# MargTime = time.time() - startTime
 print('Post Mean in ' + str(MargTime) + ' s')
 
 relErrO3 = np.linalg.norm(MargInteg -VMR_O3[:,0]) / np.linalg.norm(MargInteg) * 100
@@ -499,23 +506,23 @@ ax1.set_yscale('log')
 plt.show(block = True)
 ##
 
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
-ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
-
-for i in range(0, 1000):
-    O3TrySampl =np.random.multivariate_normal(oldMargInteg, CondVar)
-    ax1.plot(O3TrySampl, height_values, c = "k", linewidth=0.1)
-    O3TrySampl =np.random.multivariate_normal(oldMargInteg, Prec_inv)
-    ax1.plot(O3TrySampl, height_values, c = "r", linewidth=0.1)
-
-ax1.set_xlabel(r'ozone volume mixing ratio ')
-ax1.set_ylabel('height in km')
-handles, labels = ax1.get_legend_handles_labels()
-ax1.legend(loc = 'upper right')
-ax1.set_ylim([height_values[0], height_values[-1]])
-
-
-plt.show(block = True)
+# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
+# ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
+#
+# for i in range(0, 1000):
+#     O3TrySampl =np.random.multivariate_normal(oldMargInteg, CondVar)
+#     ax1.plot(O3TrySampl, height_values, c = "k", linewidth=0.1)
+#     O3TrySampl =np.random.multivariate_normal(oldMargInteg, Prec_inv)
+#     ax1.plot(O3TrySampl, height_values, c = "r", linewidth=0.1)
+#
+# ax1.set_xlabel(r'ozone volume mixing ratio ')
+# ax1.set_ylabel('height in km')
+# handles, labels = ax1.get_legend_handles_labels()
+# ax1.legend(loc = 'upper right')
+# ax1.set_ylim([height_values[0], height_values[-1]])
+#
+#
+# plt.show(block = True)
 
 ##
 TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
@@ -707,7 +714,7 @@ B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
 
 
 f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
-f_0_2 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
 f_0_3 =  0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
 
 f_0_4 = 0# -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
@@ -799,18 +806,20 @@ for p in range(0,BinHistStart):
     SetB = ATA + SetLambda * L
 
     LowTri = np.linalg.cholesky(SetB)
-    UpTri = LowTri.T
-    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    #UpTri = LowTri.T
+    B_inv_A_trans_y = scy.linalg.cho_solve((LowTri,True),ATy[:,0])
 
     MargResults[p, :] = B_inv_A_trans_y * lambHist[p] / np.sum(lambHist)
     B_inv_Res[p, :] = B_inv_A_trans_y
 
-    B_inv = np.zeros(SetB.shape)
-    # startTime = time.time()
-    LowTri = np.linalg.cholesky(SetB)
-    UpTri = LowTri.T
-    for j in range(len(B)):
-        B_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
+    #LowTri = np.linalg.cholesky(SetB)
+    B_inv = scy.linalg.cho_solve((LowTri,True),IDiag)
+    # B_inv = np.zeros(SetB.shape)
+    # # startTime = time.time()
+    # LowTri = np.linalg.cholesky(SetB)
+    # UpTri = LowTri.T
+    # for j in range(len(B)):
+    #     B_inv[:, j] = lu_solve(LowTri, UpTri, IDiag[:, j])
 
     VarB[p] = B_inv * lambHist[p] / np.sum(lambHist)
     gamInt[p] = 1 / SetGamma * gamHist[p] / np.sum(gamHist)
@@ -820,7 +829,7 @@ oldMargInteg =np.sum(MargResults,0)  / theta_scale_O3
 MargInteg= np.copy(oldMargInteg)
 
 MargTime = time.time() - startTime
-print('Post Mean in ' + str(MargTime) + ' s')
+print('Sec Post Mean in ' + str(MargTime) + ' s')
 
 
 
@@ -1041,10 +1050,15 @@ NormLCurveZoom = np.zeros(len(lamLCurveZoom))
 xTLxCurveZoom = np.zeros(len(lamLCurveZoom))
 for i in range(len(lamLCurveZoom)):
     B = (ATA + lamLCurveZoom[i] * L)
-
+    # LowTri = np.linalg.cholesky(B)
+    # UpTri = LowTri.T
+    # x = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    # lu, piv = scy.linalg.lu_factor(B)
+    # x = scy.linalg.lu_solve((lu, piv), ATy[:, 0])
     LowTri = np.linalg.cholesky(B)
-    UpTri = LowTri.T
-    x = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    # ForwSub = np.linalg.solve(LowTri, ATy[:,0])
+    # x = np.linalg.solve(LowTri.T, ForwSub)
+    x = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
 
     NormLCurveZoom[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
     xTLxCurveZoom[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
@@ -1070,10 +1084,17 @@ lam_opt_elbow = lamLCurveZoom[ np.where(NormLCurveZoom == knee_point)[0][0]]
 print('Elbow: ', lam_opt_elbow)
 
 B = (ATA + lam_opt * L)
-#x_opt, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
+# #x_opt, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
+# LowTri = np.linalg.cholesky(B)
+# UpTri = LowTri.T
+# x_opt = lu_solve(LowTri, UpTri, ATy[0::, 0])
+# lu, piv = scy.linalg.lu_factor(B)
+# x_opt = scy.linalg.lu_solve((lu, piv), ATy[:, 0])
+
 LowTri = np.linalg.cholesky(B)
-UpTri = LowTri.T
-x_opt = lu_solve(LowTri, UpTri, ATy[0::, 0])
+ForwSub = np.linalg.solve(LowTri, ATy[:, 0])
+x_opt = np.linalg.solve(LowTri.T, ForwSub)
+
 LNormOpt = np.linalg.norm( np.matmul(A,x_opt) - y[0::,0])#, ord = 2)
 xTLxOpt = np.sqrt(np.matmul(np.matmul(x_opt.T, L), x_opt))
 
@@ -1277,7 +1298,7 @@ delta_lam = lambBinEdges - lam0
 GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + np.log(g_0)
 taylorG = np.exp(GApprox)
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,0, 0, 0)
-taylorF = f_tayl(delta_lam, f_0, f_0_1,0, 0,0, 0, 0)
+#taylorF = f_tayl(delta_lam, f_0, f_0_1,0, 0,0, 0, 0)
 fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 
 axs.plot(lam,f_func, color = fCol, zorder = 2, linestyle=  'dotted')
@@ -1317,10 +1338,10 @@ ax2.spines['left'].set_visible(False)
 
 
 axins = axs.inset_axes([0.05,0.5,0.4,0.45])
-axins.plot(lam,f_func, color = fCol, zorder=0, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
+axins.plot(lam,f_func, color = fCol, zorder=1, linestyle=  'dotted', linewidth = 3, label = '$f(\lambda)$')
 axins.axvline( minimum[1], color = gmresCol, label = r'$\lambda_0$')
 
-axins.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 1, label = 'approximation' )
+axins.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 0, label = 'approximation' )
 
 axins.set_ylim(0.95 * taylorF[0],1.5 * taylorF[-1])
 axins.set_xlabel('$\lambda$')
@@ -1549,16 +1570,16 @@ fig3, ax1 = plt.subplots(figsize= (4.369032793690328, 4.369032793690328/2), tigh
 
 currNorm = RMSDiffNorm[3:]
 ax1.plot(range(3,3+ len(currNorm )),currNorm *100)
-ax1.plot(np.linspace(1,TotBinNum-1),0.05 /np.linspace(1,TotBinNum-1) *100, linestyle = '--', color = 'k', label = r'$\propto 1/N$')
+ax1.plot(np.linspace(1,TotBinNum-1),1/np.linspace(1,TotBinNum-1)*3 , linestyle = '--', color = 'k', label = r'$\propto 1/N$')
 ax1.set_xlim([3,3+ len(currNorm )])
 ax1.axvline(20, linewidth = 0.8, color = "k")
 ax1.axhline(RMSDiffNorm[20]*100, linewidth = 0.8, color = "k")
-ax1.text(21,RMSDiffNorm[20]*105, f"rel. RMS error of {RMSDiffNorm[20]*100:.2f}  for 20 bins")
+ax1.text(21,RMSDiffNorm[20]*105, f"rel. RMS error of {RMSDiffNorm[20]*100:.2f}")
 
 ax1.set_xlabel('number of bins')
 ax1.set_ylabel('relative RMS in $\%$')
-#ax1.set_yscale('log')
-#ax1.set_xscale('log')
+ax1.set_yscale('log')
+ax1.set_xscale('log')
 ax1.legend()
 plt.savefig("relErrO3MeanVar.png", dpi =dpi)
 plt.show(block = True)
