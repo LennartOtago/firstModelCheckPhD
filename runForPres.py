@@ -141,10 +141,11 @@ def MinLogMargPost(params):#, coeff):
     m = SpecNumMeas
 
     Bp = ATA + lamb * L
-
-    LowTri = np.linalg.cholesky(Bp)
-    ForwSub = np.linalg.solve(LowTri, ATy[:,0])
-    B_inv_A_trans_y = np.linalg.solve(LowTri.T, ForwSub)
+    LowTri = scipy.linalg.cholesky(Bp, lower=True)
+    # LowTri = np.linalg.cholesky(Bp)
+    # ForwSub = np.linalg.solve(LowTri, ATy[:,0])
+    # B_inv_A_trans_y = np.linalg.solve(LowTri.T, ForwSub)
+    B_inv_A_trans_y = scy.linalg.cho_solve((LowTri,True),ATy[:,0])
 
     # UpTri = LowTri.T
     # # check if L L.H = B
@@ -152,12 +153,12 @@ def MinLogMargPost(params):#, coeff):
     # lu, piv = scy.linalg.lu_factor(Bp)
     # B_inv_A_trans_y = scy.linalg.lu_solve((lu, piv),ATy[:,0])
 
-    G = g(A, L,  lamb)
+    G = 2 * np.sum(np.log(np.diag(LowTri)))
     F = f(ATy, y,  B_inv_A_trans_y)
 
     return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gam) + 0.5 * G + 0.5 * gam * F +  ( betaD *  lamb * gam + betaG *gam)
-
-minimum = optimize.fmin(MinLogMargPost, [gamma0,1/gamma0* 1/ np.mean(vari)/15], maxiter = 25)
+fminFuncEval = 20
+minimum = optimize.fmin(MinLogMargPost, [gamma0,1/gamma0* 1/ np.mean(vari)/15], maxiter = fminFuncEval)
 gam0 = minimum[0]
 lam0 = minimum[1]
 print(minimum)
@@ -214,6 +215,7 @@ f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
 f_0 = f(ATy, y, B_inv_A_trans_y0)
 g_0 = g(A, L, lam0)
 delG = (np.log(g(A, L, univarGridO3[1][-1])) - np.log(g_0)) / (np.log(univarGridO3[1][-1]) - np.log(lam0))
+
 # lambBinEdges = np.linspace(500, 1.4e4, 100)
 # g_func = [g(A, L,  lam) for lam in lambBinEdges]
 #
@@ -272,16 +274,8 @@ delG = (np.log(g(A, L, univarGridO3[1][-1])) - np.log(g_0)) / (np.log(univarGrid
 
 number_samples = 10000
 burnIn = 100
-f_0 = f(ATy, y, B_inv_A_trans_y0)
-#wLam = 2e2#5.5e2
-#wgam = 1e-5
-#wdelt = 1e-1
 
-alphaG = 1
-alphaD = 1
-rate = f_0 / 2 + betaG + betaD * lam0
-# draw gamma with a gibs step
-shape = SpecNumMeas/2 + alphaD + alphaG
+
 
 #f_new = f_0
 #g_old = g(A, L,  lambdas[0])
@@ -375,6 +369,32 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
 
 startTime = time.time()
 #first_number_samples = 100000
+
+minimum = optimize.fmin(MinLogMargPost, [gamma0,1/gamma0* 1/ np.mean(vari)/15], maxiter = fminFuncEval)
+gam0 = minimum[0]
+lam0 = minimum[1]
+
+B = (ATA + lam0 * L)
+LowTri = scipy.linalg.cholesky(B, lower=True)
+IDiag = np.eye(len(L))
+#B_inv = scy.linalg.cho_solve((LowTri, True), IDiag)
+B_inv_A_trans_y0 = scy.linalg.cho_solve((LowTri, True), ATy[:, 0])
+B_inv_L = scy.linalg.cho_solve((LowTri, True), L)
+#B_inv_A_trans_y0 = B_inv @ ATy[:, 0]
+#B_inv_L = B_inv @ L
+f_0 = f(ATy, y, B_inv_A_trans_y0)
+g_0 = 2 * np.sum(np.log(np.diag(LowTri)))
+delG = (np.log(g(A, L, univarGridO3[1][-1])) - np.log(g_0)) / (np.log(univarGridO3[1][-1]) - np.log(lam0))
+
+alphaG = 1
+alphaD = 1
+rate = f_0 / 2 + betaG + betaD * lam0
+# draw gamma with a gibs step
+shape = SpecNumMeas/2 + alphaD + alphaG
+
+f_0_1 = np.matmul(np.matmul(ATy[:, 0].T, B_inv_L), B_inv_A_trans_y0)
+f_0_2 = -1 * np.matmul(np.matmul(ATy[:, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+
 lambdas ,gammas, k = MHwG(number_samples, burnIn, lam0, gam0, f_0, g_0)
 elapsed = time.time() - startTime
 print('MTC Done in ' + str(elapsed) + ' s')
@@ -415,14 +435,15 @@ for p in range(0,BinHistStart):
     SetGamma = gamBinEdges[p] + (gamBinEdges[p] + gamBinEdges[p + 1]) / 2
     SetB = ATA + SetLambda * L
 
-    LowTri = np.linalg.cholesky(SetB)
-    UpTri = LowTri.T
-    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    LowTri = scipy.linalg.cholesky(SetB, lower = True)
+    #UpTri = LowTri.T
+    #B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    B_inv_A_trans_y = scy.linalg.cho_solve((LowTri, True), ATy[:, 0])
 
     MargResults[p, :] = B_inv_A_trans_y * lambHist[p] / np.sum(lambHist)
     B_inv_Res[p, :] = B_inv_A_trans_y
 
-    LowTri = np.linalg.cholesky(SetB)
+    #LowTri = np.linalg.cholesky(SetB)
     B_inv = scy.linalg.cho_solve((LowTri,True),IDiag)
 
     # B_inv = np.zeros(SetB.shape)
@@ -678,7 +699,7 @@ A = RealMap @ np.copy(A)
 ATA = A.T @ A
 ATy = A.T @ y
 
-minimum = optimize.fmin(MinLogMargPost, [gamma0,1/gamma0* 1/ np.mean(vari)/15], maxiter = 25)
+minimum = optimize.fmin(MinLogMargPost, [gamma0,1/gamma0* 1/ np.mean(vari)/15], maxiter = fminFuncEval)
 gam0 = minimum[0]
 lam0 = minimum[1]
 print(minimum)
@@ -805,7 +826,8 @@ for p in range(0,BinHistStart):
     SetGamma = gamBinEdges[p] + (gamBinEdges[p] + gamBinEdges[p + 1]) / 2
     SetB = ATA + SetLambda * L
 
-    LowTri = np.linalg.cholesky(SetB)
+    #LowTri = np.linalg.cholesky(SetB)
+    LowTri = scipy.linalg.cholesky(SetB, lower=True)
     #UpTri = LowTri.T
     B_inv_A_trans_y = scy.linalg.cho_solve((LowTri,True),ATy[:,0])
 
@@ -1042,7 +1064,7 @@ for i in range(len(lamLCurve)):
     NormLCurve[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
     xTLxCurve[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
 
-
+import kneed
 startTime  = time.time()
 #lamLCurveZoom = np.logspace(0,7,200)
 lamLCurveZoom = np.copy(lamLCurve )
@@ -1063,7 +1085,7 @@ for i in range(len(lamLCurveZoom)):
     NormLCurveZoom[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
     xTLxCurveZoom[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
 
-import kneed
+
 
 # calculate and show knee/elbow
 kneedle = kneed.KneeLocator(NormLCurveZoom, xTLxCurveZoom, curve='convex', direction='decreasing', online = True, S = 1, interp_method="interp1d")
@@ -1574,7 +1596,7 @@ ax1.plot(np.linspace(1,TotBinNum-1),1/np.linspace(1,TotBinNum-1)*3 , linestyle =
 ax1.set_xlim([3,3+ len(currNorm )])
 ax1.axvline(20, linewidth = 0.8, color = "k")
 ax1.axhline(RMSDiffNorm[20]*100, linewidth = 0.8, color = "k")
-ax1.text(21,RMSDiffNorm[20]*105, f"rel. RMS error of {RMSDiffNorm[20]*100:.2f}")
+ax1.text(21,RMSDiffNorm[20]*105, f"rel. RMS error of {RMSDiffNorm[20]*100:.2f}$\%$")
 
 ax1.set_xlabel('number of bins')
 ax1.set_ylabel('relative RMS in $\%$')

@@ -785,6 +785,33 @@ plt.legend()
 ax1.set_xscale('log')
 plt.show(block = True)
 
+
+
+
+##
+dpi = 300
+PgWidthPt = 421/2
+defBack = mpl.get_backend()
+mpl.use(defBack)
+mpl.rcParams.update(mpl.rcParamsDefault)
+plt.rcParams.update({'font.size': 10,#1/0.3 *fraction *
+                     'text.usetex': True,
+                     'font.family' : 'serif',
+                     'font.serif'  : 'cm',
+                     'text.latex.preamble': r'\usepackage{bm, amsmath, amssymb,amsfonts}'})
+
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+ax1.plot((A/2 * nonLinA) @ theta,tang_heights_lin, label = 'noise-free data', color = 'k')
+ax1.plot(y,tang_heights_lin, label  = 'noisy data', linestyle = 'dotted', marker = 'o', markersize= 10, zorder = 1, color = 'r', linewidth = 1)
+ax1.set_xscale('log')
+ax1.legend()
+ax1.set_ylabel(r'tangent height $h_{\ell}$ in km')
+ax1.set_xlabel(r'spectral radiance in $\frac{\text{W} \text{cm}}{\text{m}^2 \text{sr}} $',labelpad=10)# color =dataCol,
+fig3.savefig('DataPlot.png', dpi = dpi)
+plt.show(block = True)
+
+
+
 ## new forwrad model
 
 
