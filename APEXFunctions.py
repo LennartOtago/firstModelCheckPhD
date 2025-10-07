@@ -214,7 +214,7 @@ def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp, VM
     # take linear
     num_mole = 1 / (constants.Boltzmann)
 
-    theta = num_mole * f_broad * 1e-4 * VMR_O3 * S[ind,0]
+    theta = num_mole * f_broad * 1e-6 * VMR_O3 * S[ind,0]
     ConcVal = - pressure_values * 1e2 * LineIntScal / temp * theta * 1e3
 
     afterTrans = np.zeros((m,n))

@@ -89,8 +89,8 @@ AscalConstKmToCm = 1e3
 ind = 623
 f_broad = 1#e-4
 scalingConst = 1#e11
-betaD = 1e-35
-betaG = 1e-35
+betaG = 1e-30
+betaD = 1e-20
 m,n = A_lin.shape
 SpecNumLayers = n
 SpecNumMeas = m
@@ -1049,7 +1049,7 @@ plt.show()
 '''L-curve refularoization
 '''
 
-lamLCurve = np.logspace(0,6,200)
+lamLCurve = np.logspace(-18,-10,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
@@ -1258,7 +1258,7 @@ plt.show()
 
 
 ##
-lam= np.logspace(-5,15,500)
+lam= np.logspace(-20,-10,500)
 f_func = np.zeros(len(lam))
 g_func = np.zeros(len(lam))
 

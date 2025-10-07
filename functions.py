@@ -156,52 +156,52 @@ def get_temp(height_value):
 
 
 
-def gen_measurement(meas_ang, layers, w_cross, VMR_O3, P, T, Source, obs_height=300):
-    '''generates Measurement given the input measurement angels and depending on the model layers in km
-    obs_height is given in km
-    '''
-
-    # exclude first layer at h = 0  and
-    # last layer at h = Observer
-    min_ind = 1
-    max_ind = -1
-    layers = layers[min_ind: max_ind]
-
-    w_cross = w_cross[min_ind: max_ind - 1]
-    VMR_O3 = VMR_O3[min_ind: max_ind - 1]
-    Source = Source[min_ind: max_ind - 1]
-    P = P[min_ind: max_ind - 1]
-    T = T[min_ind: max_ind - 1]
-
-    R = 6371
-    # get tangent height for each measurement layers[0:-1] #
-    tang_height = np.around((np.sin(meas_ang) * (obs_height + R)) - R, 2)
-    num_meas = len(tang_height)
-    # get dr's for measurements of different layers
-    A_height = np.zeros((num_meas, len(layers) - 1))
-    t = 0
-    for m in range(0, num_meas):
-
-        while layers[t] <= tang_height[m]:
-            t += 1
-        print(t)
-        # first dr
-        A_height[m, t - 1] = np.sqrt((layers[t] + R) ** 2 - (tang_height[m] + R) ** 2)
-        dr = A_height[m, t - 1]
-        for i in range(t, len(layers) - 1):
-            # A_height[j,i] =  (height_values[j+i+1] + R)/np.sqrt((height_values[j+i+1]+ R)**2 - (height_values[j]+ R)**2 ) * d_height[j+i]
-            A_height[m, i] = np.sqrt((layers[i + 1] + R) ** 2 - (tang_height[m] + R) ** 2) - dr
-            dr = dr + A_height[m, i]
-    # calc mearuements
-
-    R_gas = constants.Avogadro * constants.Boltzmann * 1e7  # in ..cm^3
-    # caculate number of molecules in one cm^3
-    num_mole = (P / (constants.Boltzmann * 1e7 * T))
-
-    THETA = (num_mole * w_cross * VMR_O3 * Source)
-    # 2 * A_height * 1e5....2 * np.matmul(A_height*1e5, THETA[1::]) A_height in km
-    # * 1e5 converts to cm
-    return 2 * np.matmul(A_height, THETA), 2 * A_height, THETA, tang_height
+# def gen_measurement(meas_ang, layers, w_cross, VMR_O3, P, T, Source, obs_height=300):
+#     '''generates Measurement given the input measurement angels and depending on the model layers in km
+#     obs_height is given in km
+#     '''
+#
+#     # exclude first layer at h = 0  and
+#     # last layer at h = Observer
+#     min_ind = 1
+#     max_ind = -1
+#     layers = layers[min_ind: max_ind]
+#
+#     w_cross = w_cross[min_ind: max_ind - 1]
+#     VMR_O3 = VMR_O3[min_ind: max_ind - 1]
+#     Source = Source[min_ind: max_ind - 1]
+#     P = P[min_ind: max_ind - 1]
+#     T = T[min_ind: max_ind - 1]
+#
+#     R = 6371
+#     # get tangent height for each measurement layers[0:-1] #
+#     tang_height = np.around((np.sin(meas_ang) * (obs_height + R)) - R, 2)
+#     num_meas = len(tang_height)
+#     # get dr's for measurements of different layers
+#     A_height = np.zeros((num_meas, len(layers) - 1))
+#     t = 0
+#     for m in range(0, num_meas):
+#
+#         while layers[t] <= tang_height[m]:
+#             t += 1
+#         print(t)
+#         # first dr
+#         A_height[m, t - 1] = np.sqrt((layers[t] + R) ** 2 - (tang_height[m] + R) ** 2)
+#         dr = A_height[m, t - 1]
+#         for i in range(t, len(layers) - 1):
+#             # A_height[j,i] =  (height_values[j+i+1] + R)/np.sqrt((height_values[j+i+1]+ R)**2 - (height_values[j]+ R)**2 ) * d_height[j+i]
+#             A_height[m, i] = np.sqrt((layers[i + 1] + R) ** 2 - (tang_height[m] + R) ** 2) - dr
+#             dr = dr + A_height[m, i]
+#     # calc mearuements
+#
+#     #R_gas = constants.Avogadro * constants.Boltzmann * 1e7  # in ..cm^3
+#     # caculate number of molecules in one cm^3
+#     num_mole = (P / (constants.Boltzmann * 1e7 * T))
+#
+#     THETA = (num_mole * w_cross * VMR_O3 * Source)
+#     # 2 * A_height * 1e5....2 * np.matmul(A_height*1e5, THETA[1::]) A_height in km
+#     # * 1e5 converts to cm
+#     return 2 * np.matmul(A_height, THETA), 2 * A_height, THETA, tang_height
 
 def composeAforO3(A_lin, temp, press, ind, set_temp):
 
@@ -234,10 +234,9 @@ def composeAforO3(A_lin, temp, press, ind, set_temp):
 
     # from : https://hitran.org/docs/definitions-and-units/
     HitrConst2 = 1.4387769  # in cm K
-    v_0 = wvnmbr[ind][0]
+    v_0 = wvnmbr[ind][0] # in cm^-1
 
-    f_broad = 1
-    scalingConst = 1#e11
+
     Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp) + g_prime[ind, 0] * np.exp(
         - HitrConst2 * (E[ind, 0] + v_0) / temp)
     Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
@@ -246,22 +245,22 @@ def composeAforO3(A_lin, temp, press, ind, set_temp):
                 1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
 
-    C1 = 2 * constants.h * constants.c ** 2 * v_0 ** 3 * 1e8
-    C2 = constants.h * constants.c * 1e2 * v_0 / (constants.Boltzmann * temp)
+    C1 = 2 * constants.h * constants.c ** 2 * v_0 ** 3
+    C2 = constants.h * constants.c * v_0 / (constants.Boltzmann * temp)
     # plancks function
-    Source = np.array(C1 / (np.exp(C2) - 1))
+    Source = np.array(C1 / (np.exp(C2) - 1)) # in W m^2/cm^3
+    # for number density of air molec / m^3
+    num_mole = 1 / (constants.Boltzmann)
 
-    # take linear
-    num_mole = 1 / (constants.Boltzmann)  # * temp_values)
-
-    AscalConstKmToCm = 1e3
+    kmTom = 1e3 # for dx integration
     SpecNumMeas, SpecNumLayers = np.shape(A_lin)
 
     # 1e2 for pressure values from hPa to Pa
-    A_scal = press.reshape((SpecNumLayers, 1)) * 1e2 * LineIntScal * Source * AscalConstKmToCm / (set_temp)
-    theta_scale = num_mole *  f_broad * 1e-4 * scalingConst * S[ind, 0]
+    A_scal = press.reshape((SpecNumLayers, 1)) * 1e2 * LineIntScal * Source / set_temp
+    # 1e4 for W/cm^2 to W/m^2 and S[ind, 0] in cm^2 / molec
+    theta_scale = num_mole * 1e4 * S[ind, 0] * kmTom
     A = A_lin * A_scal.T
-    #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
+
     return A, theta_scale
 
 '''generate forward map accoring to trapezoidal rule'''
@@ -304,7 +303,7 @@ def gen_trap_rul(dxs):
 #     val[-1] = dxs[-1] * 0.5
 #     return val
 
-def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime,g_prime):
+def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_values, VMR_O3, wvnmbr, S, E,g_doub_prime,g_prime):
     '''careful that A_lin is just dx values
     maybe do A_lin_copy = np.copy(A_lin/2)
     A_lin_copy[:,-1] = A_lin_copy[:,-1] * 2
@@ -319,11 +318,10 @@ def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_val
     # g_doub_prime = np.loadtxt('g_doub_prime.txt').reshape((909,1))
 
     # from : https://hitran.org/docs/definitions-and-units/
+    # all calc in CGS
     HitrConst2 = 1.4387769  # in cm K
-    v_0 = wvnmbr[ind][0]
+    v_0 = wvnmbr[ind][0] # in cm^-1
 
-    f_broad = 1
-    #scalingConst = 1e11
     Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp_values) + g_prime[ind, 0] * np.exp(
         - HitrConst2 * (E[ind, 0] + v_0) / temp_values)
     Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
@@ -335,10 +333,11 @@ def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_val
 
 
     # take linear
-    num_mole = 1 / (constants.Boltzmann)
-
-    theta = num_mole * f_broad * 1e-4 * VMR_O3.reshape((SpecNumLayers,1)) * S[ind,0]
-    ConcVal = - pressure_values.reshape((SpecNumLayers, 1)) * 1e2 * LineIntScal / temp_values * theta * AscalConstKmToCm
+    #Boltzmann constant in CGS
+    num_mole = 1 / (1.3806 * 10**(-16))
+    theta = num_mole * VMR_O3.reshape((SpecNumLayers,1)) * S[ind,0]
+    #  1e2 * 1e-1 for pressure hPa to Ba and 1e5 for km to cm
+    ConcVal = - pressure_values.reshape((SpecNumLayers, 1)) * 1e2 * 1e-1 * LineIntScal / temp_values * theta * 1e5
 
     afterTrans = np.zeros((SpecNumMeas, SpecNumLayers))
     preTrans = np.zeros((SpecNumMeas, SpecNumLayers))
@@ -657,241 +656,3 @@ def lu_solve(L, U, b):
     return back_substitution(U, y)
 
 
-def composeAforPress(A_lin, temp, O3, ind):
-    files = '634f1dc4.par'  # /home/lennartgolks/Python /Users/lennart/PycharmProjects
-
-    my_data = pd.read_csv(files, header=None)
-    data_set = my_data.values
-
-    size = data_set.shape
-    wvnmbr = np.zeros((size[0], 1))
-    S = np.zeros((size[0], 1))
-    F = np.zeros((size[0], 1))
-    g_air = np.zeros((size[0], 1))
-    g_self = np.zeros((size[0], 1))
-    E = np.zeros((size[0], 1))
-    n_air = np.zeros((size[0], 1))
-    g_doub_prime = np.zeros((size[0], 1))
-    g_prime = np.zeros((size[0], 1))
-
-    for i, lines in enumerate(data_set):
-        wvnmbr[i] = float(lines[0][5:15])  # in 1/cm
-        S[i] = float(lines[0][16:25])  # in cm/mol
-        F[i] = float(lines[0][26:35])
-        g_air[i] = float(lines[0][35:40])
-        g_self[i] = float(lines[0][40:45])
-        E[i] = float(lines[0][46:55])
-        n_air[i] = float(lines[0][55:59])
-        g_doub_prime[i] = float(lines[0][148:153])
-        g_prime[i] = float(lines[0][155:160])
-
-    # from : https://hitran.org/docs/definitions-and-units/
-    HitrConst2 = 1.4387769  # in cm K
-    v_0 = wvnmbr[ind][0]
-
-    f_broad = 1
-    w_cross = f_broad * 1e-4 * O3
-    scalingConst = 1#e11
-
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp) + g_prime[ind, 0] * np.exp(
-        - HitrConst2 * (E[ind, 0] + v_0) / temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
-        - HitrConst2 * (E[ind, 0] + v_0) / 296)
-    LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
-                1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
-                              1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
-
-    C1 = 2 * constants.h * constants.c ** 2 * v_0 ** 3 * 1e8
-    C2 = constants.h * constants.c * 1e2 * v_0 / (constants.Boltzmann * temp)
-    # plancks function
-    Source = np.array(C1 / (np.exp(C2) - 1))
-    SpecNumMeas, SpecNumLayers = np.shape(A_lin)
-    # take linear
-    num_mole = 1 / (constants.Boltzmann)  # * temp_values)
-
-    AscalConstKmToCm = 1e3
-    # 1e2 for pressure values from hPa to Pa
-    A_scal = 1e2 * LineIntScal * Source * AscalConstKmToCm * w_cross.reshape((SpecNumLayers, 1)) * scalingConst * S[ind, 0] * num_mole / temp
-
-    A = A_lin * A_scal.T
-    #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
-    return A, 1
-
-def composeAforTemp(A_lin, press, O3, ind, old_temp):
-    files = '634f1dc4.par'  # /home/lennartgolks/Python /Users/lennart/PycharmProjects
-
-    my_data = pd.read_csv(files, header=None)
-    data_set = my_data.values
-
-    size = data_set.shape
-    wvnmbr = np.zeros((size[0], 1))
-    S = np.zeros((size[0], 1))
-    F = np.zeros((size[0], 1))
-    g_air = np.zeros((size[0], 1))
-    g_self = np.zeros((size[0], 1))
-    E = np.zeros((size[0], 1))
-    n_air = np.zeros((size[0], 1))
-    g_doub_prime = np.zeros((size[0], 1))
-    g_prime = np.zeros((size[0], 1))
-
-    for i, lines in enumerate(data_set):
-        wvnmbr[i] = float(lines[0][5:15])  # in 1/cm
-        S[i] = float(lines[0][16:25])  # in cm/mol
-        F[i] = float(lines[0][26:35])
-        g_air[i] = float(lines[0][35:40])
-        g_self[i] = float(lines[0][40:45])
-        E[i] = float(lines[0][46:55])
-        n_air[i] = float(lines[0][55:59])
-        g_doub_prime[i] = float(lines[0][148:153])
-        g_prime[i] = float(lines[0][155:160])
-
-    # from : https://hitran.org/docs/definitions-and-units/
-    HitrConst2 = 1.4387769  # in cm K
-    v_0 = wvnmbr[ind][0]
-
-    f_broad = 1
-    w_cross = f_broad * 1e-4 * O3
-    scalingConst = 1#e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] /  old_temp) + g_prime[ind, 0] * np.exp(
-        - HitrConst2 * (E[ind, 0] + v_0) / old_temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
-        - HitrConst2 * (E[ind, 0] + v_0) / 296)
-    LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / old_temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
-                1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / old_temp)) / (
-                              1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
-
-    C1 = 2 * constants.h * constants.c ** 2 * v_0 ** 3 * 1e8
-    C2 = constants.h * constants.c * 1e2 * v_0 / (constants.Boltzmann * old_temp)
-    # plancks function
-    Source = np.array(C1 / (np.exp(C2) - 1))
-    SpecNumMeas, SpecNumLayers = np.shape(A_lin)
-    # take linear
-    num_mole = 1 / (constants.Boltzmann)  # * temp_values)
-
-    AscalConstKmToCm = 1e3
-    # 1e2 for pressure values from hPa to Pa
-    A_scal = 1e2 * LineIntScal * Source * AscalConstKmToCm * w_cross.reshape((SpecNumLayers, 1)) * scalingConst * S[ind, 0] * num_mole * press.reshape((SpecNumLayers, 1))
-
-    A = A_lin * A_scal.T
-    #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
-    return A, 1
-
-def composeAforTempPress(A_lin, O3, ind, old_temp):
-    files = '634f1dc4.par'  # /home/lennartgolks/Python /Users/lennart/PycharmProjects
-
-    my_data = pd.read_csv(files, header=None)
-    data_set = my_data.values
-
-    size = data_set.shape
-    wvnmbr = np.zeros((size[0], 1))
-    S = np.zeros((size[0], 1))
-    F = np.zeros((size[0], 1))
-    g_air = np.zeros((size[0], 1))
-    g_self = np.zeros((size[0], 1))
-    E = np.zeros((size[0], 1))
-    n_air = np.zeros((size[0], 1))
-    g_doub_prime = np.zeros((size[0], 1))
-    g_prime = np.zeros((size[0], 1))
-
-    for i, lines in enumerate(data_set):
-        wvnmbr[i] = float(lines[0][5:15])  # in 1/cm
-        S[i] = float(lines[0][16:25])  # in cm/mol
-        F[i] = float(lines[0][26:35])
-        g_air[i] = float(lines[0][35:40])
-        g_self[i] = float(lines[0][40:45])
-        E[i] = float(lines[0][46:55])
-        n_air[i] = float(lines[0][55:59])
-        g_doub_prime[i] = float(lines[0][148:153])
-        g_prime[i] = float(lines[0][155:160])
-
-    # from : https://hitran.org/docs/definitions-and-units/
-    HitrConst2 = 1.4387769  # in cm K
-    v_0 = wvnmbr[ind][0]
-
-    f_broad = 1
-    w_cross = f_broad * 1e-4 * O3
-    scalingConst = 1#e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / old_temp) + g_prime[ind, 0] * np.exp(
-        - HitrConst2 * (E[ind, 0] + v_0) / old_temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
-        - HitrConst2 * (E[ind, 0] + v_0) / 296)
-    LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / old_temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
-                1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / old_temp)) / (
-                              1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
-
-    C1 = 2 * constants.h * constants.c ** 2 * v_0 ** 3 * 1e8
-    C2 = constants.h * constants.c * 1e2 * v_0 / (constants.Boltzmann * old_temp)
-    # plancks function
-    Source = np.array(C1 / (np.exp(C2) - 1))
-    SpecNumMeas, SpecNumLayers = np.shape(A_lin)
-    # take linear
-    num_mole = 1 / (constants.Boltzmann)  # * temp_values)
-
-    AscalConstKmToCm = 1e3
-    # 1e2 for pressure values from hPa to Pa
-    A_scal = 1e2 * LineIntScal * Source * AscalConstKmToCm * w_cross.reshape((SpecNumLayers, 1)) * scalingConst * S[ind, 0] * num_mole
-
-    A = A_lin * A_scal.T
-    #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
-    return A, 1
-
-def composeAplain(A_lin, ind, temp):
-
-    files = '634f1dc4.par'  # /home/lennartgolks/Python /Users/lennart/PycharmProjects
-
-    my_data = pd.read_csv(files, header=None)
-    data_set = my_data.values
-
-    size = data_set.shape
-    wvnmbr = np.zeros((size[0], 1))
-    S = np.zeros((size[0], 1))
-    F = np.zeros((size[0], 1))
-    g_air = np.zeros((size[0], 1))
-    g_self = np.zeros((size[0], 1))
-    E = np.zeros((size[0], 1))
-    n_air = np.zeros((size[0], 1))
-    g_doub_prime = np.zeros((size[0], 1))
-    g_prime = np.zeros((size[0], 1))
-
-    for i, lines in enumerate(data_set):
-        wvnmbr[i] = float(lines[0][5:15])  # in 1/cm
-        S[i] = float(lines[0][16:25])  # in cm/mol
-        F[i] = float(lines[0][26:35])
-        g_air[i] = float(lines[0][35:40])
-        g_self[i] = float(lines[0][40:45])
-        E[i] = float(lines[0][46:55])
-        n_air[i] = float(lines[0][55:59])
-        g_doub_prime[i] = float(lines[0][148:153])
-        g_prime[i] = float(lines[0][155:160])
-
-    # from : https://hitran.org/docs/definitions-and-units/
-    HitrConst2 = 1.4387769  # in cm K
-    v_0 = wvnmbr[ind][0]
-
-    f_broad = 1
-    scalingConst = 1#e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp) + g_prime[ind, 0] * np.exp(
-        - HitrConst2 * (E[ind, 0] + v_0) / temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
-        - HitrConst2 * (E[ind, 0] + v_0) / 296)
-    LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
-                1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
-                              1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
-
-    C1 = 2 * constants.h * constants.c ** 2 * v_0 ** 3 * 1e8
-    C2 = constants.h * constants.c * 1e2 * v_0 / (constants.Boltzmann * temp)
-    # plancks function
-    Source = np.array(C1 / (np.exp(C2) - 1))
-
-    # take linear
-    num_mole = 1 / (constants.Boltzmann)  # * temp_values)
-
-    AscalConstKmToCm = 1e3
-    SpecNumMeas, SpecNumLayers = np.shape(A_lin)
-
-    # 1e2 for pressure values from hPa to Pa
-    A_scal = 1e2 * LineIntScal * Source * AscalConstKmToCm
-    A = A_lin * A_scal.T
-    theta_scale = num_mole * f_broad * 1e-4 * scalingConst * S[ind, 0]
-    #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
-    return A , theta_scale
