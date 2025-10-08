@@ -852,7 +852,7 @@ pressure_values = np.copy(pressure_values[:EndInd])
 VMR_O3[startInd:EndInd] = np.copy(VMR_O3[startInd::2])
 VMR_O3 = np.copy(VMR_O3[:EndInd])
 SpecNumLayers = len(height_values)
-
+n =len(height_values)
 
 NOfNeigh = 2#4
 neigbours = np.zeros((len(height_values),NOfNeigh))
@@ -1106,7 +1106,7 @@ for i in range(0, 2):
 
 #f_new = f_0
 #g_old = g(A, L,  lambdas[0])
-lamMax = 1.5 * lam0
+lamMax = 0.3 * lam0
 g_0 = g(A, L, lam0)
 delG = (g(A, L, lamMax) - g_0)/ (np.log(lamMax) - np.log(lam0))
 def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
@@ -1301,8 +1301,8 @@ delta_lam = lambBinEdges - lam0
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,f_0_4, f_0_5, f_0_6)
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2,f_0_3,0, 0, 0)
 g_0 = g(A, L,lam0)
-lamMax = min(lambBinEdges)
-delG = (g(A, L, lamMax) - g_0)/ (np.log(lamMax) - np.log(lam0))
+lamMax = max(lambBinEdges)
+delG = (g(A, L, lamMax) - g(A, L,min(lambBinEdges)))/ (np.log(lamMax) - np.log(min(lambBinEdges)))
 
 GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + g_0
 taylorG = GApprox
@@ -1555,7 +1555,7 @@ print('bla')
 # '''
 
 #lamLCurve = np.logspace(1,7,200)
-lamLCurve = np.logspace(-5,5,200)
+lamLCurve = np.logspace(-7,-1,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))

@@ -384,7 +384,8 @@ B_inv_L = scy.linalg.cho_solve((LowTri, True), L)
 #B_inv_L = B_inv @ L
 f_0 = f(ATy, y, B_inv_A_trans_y0)
 g_0 = 2 * np.sum(np.log(np.diag(LowTri)))
-delG = (g(A, L, univarGridO3[1][-1]) - g_0) / (np.log(univarGridO3[1][-1]) - np.log(lam0))
+#delG = (g(A, L, univarGridO3[1][-1]) - g_0) / (np.log(univarGridO3[1][-1]) - np.log(lam0))
+delG = (g(A, L, univarGridO3[1][-1]) - g(A, L, univarGridO3[1][0]) )/ (np.log(univarGridO3[1][-1]) - np.log(univarGridO3[1][0]))
 
 alphaG = 1
 alphaD = 1
@@ -393,7 +394,7 @@ rate = f_0 / 2 + betaG + betaD * lam0
 shape = SpecNumMeas/2 + alphaD + alphaG
 
 f_0_1 = np.matmul(np.matmul(ATy[:, 0].T, B_inv_L), B_inv_A_trans_y0)
-f_0_2 = -1 * np.matmul(np.matmul(ATy[:, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+f_0_2 = 0#-1 * np.matmul(np.matmul(ATy[:, 0].T, B_inv_L_2), B_inv_A_trans_y0)
 f_0_3 = 0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
 
 lambdas ,gammas, k = MHwG(number_samples, burnIn, lam0, gam0, f_0, g_0)
@@ -401,7 +402,7 @@ elapsed = time.time() - startTime
 print('MTC Done in ' + str(elapsed) + ' s')
 
 
-
+firstLamSamp = np.copy(lambdas)
 print('acceptance ratio: ' + str(k/(number_samples+burnIn)))
 deltas = lambdas * gammas
 np.savetxt('FirstSamples.txt', np.vstack((gammas[burnIn::], deltas[burnIn::], lambdas[burnIn::])).T, header = 'gammas \t deltas \t lambdas \n Acceptance Ratio: ' + str(k/number_samples) + '\n Elapsed Time: ' + str(elapsed), fmt = '%.15f \t %.15f \t %.15f')
@@ -736,7 +737,7 @@ B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
 
 
 f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
-f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+f_0_2 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
 f_0_3 =  0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
 
 f_0_4 = 0# -1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
@@ -756,7 +757,7 @@ f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
 
 f_0 = f(ATy, y, B_inv_A_trans_y0)
 g_0 = g(A, L, lam0)
-delG = (g(A, L, univarGridO3[1][-1]) - g_0)/ (np.log(univarGridO3[1][-1]) - np.log(lam0))
+delG = (g(A, L, univarGridO3[1][-1]) - g(A, L, univarGridO3[1][0]) )/ (np.log(univarGridO3[1][-1]) - np.log(univarGridO3[1][0]))
 
 ## calc root mean sqaure error for approxiamation
 def ApproxMargPost(params):#, coeff):
@@ -1050,7 +1051,7 @@ plt.show()
 '''L-curve refularoization
 '''
 
-lamLCurve = np.logspace(-2,3,200)
+lamLCurve = np.logspace(-7,-1,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
@@ -1259,7 +1260,7 @@ plt.show()
 
 
 ##
-lam= np.logspace(-5,10,500)
+lam= np.logspace(-15,10,500)
 f_func = np.zeros(len(lam))
 g_func = np.zeros(len(lam))
 
@@ -1300,6 +1301,7 @@ def f_tayl( delta_lam, f_0, f_1, f_2, f_3, f_4, f_5, f_6):
 
 ##
 
+lambHist, lambBinEdges = np.histogram(firstLamSamp, bins= BinHist, density= True)
 
 f_0 = f(ATy, y, B_inv_A_trans_y0)
 g_0 = g(A, L, lam0)
@@ -1319,11 +1321,14 @@ minInd = np.argmin(abs(lam - lambBinEdges[0]))
 maxInd = np.argmin(abs(lam - lambBinEdges[-1]))
 delta_lam = lambBinEdges - lam0
 #taylorG = g_tayl(delta_lam,g_0, g_0_1, g_0_2, g_0_3,g_0_4, 0,0)
-delG = abs(g(A, L, univarGridO3[1][-1]) - g_0) / abs(np.log(univarGridO3[1][-1]) - np.log(lam0))
+#delG = abs(g(A, L, univarGridO3[1][-1]) - g_0) / abs(np.log(univarGridO3[1][-1]) - np.log(lam0))
+lamMax = max(lambBinEdges)
+lamMin= min(lambBinEdges)
+delG = (g(A, L, lamMax) - g(A, L, lamMin) )/ (np.log(lamMax) - np.log(lamMin))
 
 GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + g_0
 taylorG =GApprox
-taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, 0,0, 0, 0)
+taylorF = f_tayl(delta_lam, f_0, f_0_1, 0, 0,0, 0, 0)
 #taylorF = f_tayl(delta_lam, f_0, f_0_1,0, 0,0, 0, 0)
 fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 
@@ -1503,7 +1508,7 @@ def piFunc(lamb, gam):
 def piFuncTayl(lamb, gam):
     #gam =  minimum[0]
 
-    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, f_0_2 ,f_0_3,0, 0, 0)
+    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, 0 ,0,0, 0, 0)
     GApp = (np.log(lamb) - np.log(lam0)) * delG + g_0
     taylorG = GApp
     return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 * taylorG + 0.5 * gam * taylorF + (betaD * lamb * gam + betaG * gam) #- 440
@@ -1528,7 +1533,7 @@ print("max Abs err " + str(MaxabsMargErr))
 print("max rel err " + str(relMargMaxErr))
 print("Abs rms err " + str(absRMSMargErr))
 print("rel rms err " + str(relRMSMargErr))
-currConst = -400
+currConst = -350
 TrueMarg = np.exp(-np.copy(TrueMarg)+currConst)
 ApproxMarg = np.exp(-np.copy(ApproxMarg)+currConst)
 MaxabsMargErr = np.max(abs(TrueMarg - ApproxMarg))

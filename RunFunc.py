@@ -86,7 +86,7 @@ def composeAforO3(A_lin, temp, press, ind, wvnmbr, g_doub_prime, g_prime, E, S):
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
 
     C1 = 2 * constants.h * constants.c ** 2 * v_0 ** 3
-    C2 = constants.h * constants.c * v_0 / (constants.Boltzmann * temp)
+    C2 = constants.h * constants.c * 1e2 * v_0 / (constants.Boltzmann * temp)
     # plancks function
     Source = np.array(C1 / (np.exp(C2) - 1)) # in W m^2/cm^3/sr
     # for number density of air molec / m^3 and 1e2 for pressure values from hPa to Pa
