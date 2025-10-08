@@ -72,13 +72,11 @@ def set_size(width, fraction=1):
 
 def composeAforO3(A_lin, temp, press, ind, wvnmbr, g_doub_prime, g_prime, E, S):
 
-
     # from : https://hitran.org/docs/definitions-and-units/
     HitrConst2 = 1.4387769  # in cm K
-    v_0 = wvnmbr[ind][0]
+    v_0 = wvnmbr[ind][0] # in cm^-1
 
-    f_broad = 1
-    scalingConst = 1#e11
+
     Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp) + g_prime[ind, 0] * np.exp(
         - HitrConst2 * (E[ind, 0] + v_0) / temp)
     Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
@@ -87,57 +85,23 @@ def composeAforO3(A_lin, temp, press, ind, wvnmbr, g_doub_prime, g_prime, E, S):
                 1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
 
-    C1 = 2 * constants.h * constants.c ** 2 * v_0 ** 3 * 1e8
-    C2 = constants.h * constants.c * 1e2 * v_0 / (constants.Boltzmann * temp)
+    C1 = 2 * constants.h * constants.c ** 2 * v_0 ** 3
+    C2 = constants.h * constants.c * v_0 / (constants.Boltzmann * temp)
     # plancks function
-    Source = np.array(C1 / (np.exp(C2) - 1))
+    Source = np.array(C1 / (np.exp(C2) - 1)) # in W m^2/cm^3/sr
+    # for number density of air molec / m^3 and 1e2 for pressure values from hPa to Pa
+    num_mole = press * 1e2 / (constants.Boltzmann * temp)
+    kmTom = 1e3  # for dx integration
+    # 1e4 for W cm/cm^2 to W cm/m^2 and S[ind, 0] in cm^2 / molec
+    theta_scale = num_mole * 1e4 * S[ind, 0] * kmTom
 
-    # take linear
-    num_mole = 1 / (constants.Boltzmann)  # * temp_values)
+    A_scal = LineIntScal * Source * theta_scale
 
-    AscalConstKmToCm = 1e3
-    SpecNumMeas, SpecNumLayers = np.shape(A_lin)
-    # 1e2 for pressure values from hPa to Pa
-    A_scal = press.reshape((SpecNumLayers, 1)) * 1e2 * LineIntScal * Source * AscalConstKmToCm / (temp)
-    theta_scale = num_mole *  f_broad * 1e-4 * scalingConst * S[ind, 0]
     A = A_lin * A_scal.T
-    #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
-    return A, theta_scale
+
+    return A, 1
 
 
-def composeAforO3withTemp(A_lin, temp, press, ind, wvnmbr, g_doub_prime, g_prime, E, S, newTemp):
-
-
-    # from : https://hitran.org/docs/definitions-and-units/
-    HitrConst2 = 1.4387769  # in cm K
-    v_0 = wvnmbr[ind][0]
-
-    f_broad = 1
-    scalingConst = 1#e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp) + g_prime[ind, 0] * np.exp(
-        - HitrConst2 * (E[ind, 0] + v_0) / temp)
-    Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
-        - HitrConst2 * (E[ind, 0] + v_0) / 296)
-    LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
-                1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
-                              1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
-
-    C1 = 2 * constants.h * constants.c ** 2 * v_0 ** 3 * 1e8
-    C2 = constants.h * constants.c * 1e2 * v_0 / (constants.Boltzmann * temp)
-    # plancks function
-    Source = np.array(C1 / (np.exp(C2) - 1))
-
-    # take linear
-    num_mole = 1 / (constants.Boltzmann)  # * temp_values)
-
-    AscalConstKmToCm = 1e3
-    SpecNumMeas, SpecNumLayers = np.shape(A_lin)
-    # 1e2 for pressure values from hPa to Pa
-    A_scal = press.reshape((SpecNumLayers, 1)) * 1e2 * LineIntScal * Source * AscalConstKmToCm / (newTemp)
-    theta_scale = num_mole *  f_broad * 1e-4 * scalingConst * S[ind, 0]
-    A = A_lin * A_scal.T
-    #np.savetxt('AMat.txt', A, fmt='%.15f', delimiter='\t')
-    return A, theta_scale
 
 def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, gamma0, newCondMean, CondVar, AscalConstKmToCm, A_lin, temp_values, pressure_values, ind, scalingConst, relMapErrDat, wvnmbr, S, E,g_doub_prime, g_prime):
     '''Find map from linear to non-linear data'''
@@ -162,9 +126,9 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
             ProfRand = test#np.random.randint(low=0, high=SampleRounds)
             # Results = np.loadtxt(f'Res{testSet}.txt')
 
-            O3_Prof = np.copy(Results[ProfRand])
+            O3_Prof = np.copy(Results[ProfRand]).reshape((SpecNumLayers,1))
             #O3_Prof[O3_Prof < 0] = 0
-            nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, O3_Prof, AscalConstKmToCm, wvnmbr, S, E, g_doub_prime, g_prime)
+            nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, O3_Prof, wvnmbr, S, E, g_doub_prime, g_prime)
             noise = np.random.normal(0, np.sqrt(1 / gamma0), SpecNumMeas)
             # noise = np.zeros(SpecNumMeas)
 
@@ -191,9 +155,9 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
         testNonLinY = np.zeros((testNum, SpecNumMeas))
 
         for k in range(0, testNum):
-            currO3 = testO3[k]
+            currO3 = testO3[k].reshape((SpecNumLayers,1))
             noise = np.random.normal(0, np.sqrt(1 / gamma0), SpecNumMeas)
-            nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, currO3 , AscalConstKmToCm, wvnmbr, S, E, g_doub_prime, g_prime)
+            nonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, currO3 , wvnmbr, S, E, g_doub_prime, g_prime)
 
             testDataY[k] = np.matmul(currMap @ (A_O3 * 2), currO3.reshape((SpecNumLayers, 1)) * theta_scale_O3).reshape(SpecNumMeas)# + noise
             testNonLinY[k] = np.matmul(A_O3 * nonLinA, currO3.reshape((SpecNumLayers, 1)) * theta_scale_O3).reshape(
@@ -245,41 +209,35 @@ def gen_trap_rul(dxs):
     sumMat = sumMat + np.triu(Ones,1) - np.triu(Ones,2)
     return 0.5*(dxs @ np.copy(sumMat[:-1,:]))
 
-def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime, g_prime):
+def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_values, VMR_O3, wvnmbr, S, E,g_doub_prime,g_prime):
     '''careful that A_lin is just dx values
     maybe do A_lin_copy = np.copy(A_lin/2)
     A_lin_copy[:,-1] = A_lin_copy[:,-1] * 2
     if A_lin has been generated for linear data'''
 
-    SpecNumLayers = len(temp_values)#
-    SpecNumMeas = len(tang_heights)
-    temp = temp_values.reshape((SpecNumLayers, 1))
-    # wvnmbr = np.loadtxt('wvnmbr.txt').reshape((909,1))
-    # S = np.loadtxt('S.txt').reshape((909,1))
-    # E = np.loadtxt('E.txt').reshape((909,1))
-    # g_doub_prime = np.loadtxt('g_doub_prime.txt').reshape((909,1))
-
     # from : https://hitran.org/docs/definitions-and-units/
+    # all calc in CGS
     HitrConst2 = 1.4387769  # in cm K
-    v_0 = wvnmbr[ind][0]
+    v_0 = wvnmbr[ind][0] # in cm^-1
 
-    f_broad = 1
-    #scalingConst = 1e11
-    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp) + g_prime[ind, 0] * np.exp(
-        - HitrConst2 * (E[ind, 0] + v_0) / temp)
+    Q = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / temp_values) + g_prime[ind, 0] * np.exp(
+        - HitrConst2 * (E[ind, 0] + v_0) / temp_values)
     Q_ref = g_doub_prime[ind, 0] * np.exp(- HitrConst2 * E[ind, 0] / 296) + g_prime[ind, 0] * np.exp(
         - HitrConst2 * (E[ind, 0] + v_0) / 296)
-    LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
-                1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp)) / (
+    LineIntScal = Q_ref / Q * np.exp(- HitrConst2 * E[ind, 0] / temp_values) / np.exp(- HitrConst2 * E[ind, 0] / 296) * (
+                1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / temp_values)) / (
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
 
 
 
-    # take linear
-    num_mole = 1 / (constants.Boltzmann)
+    num_mole = 1 / constants.Boltzmann
+    # 1e-4 cm^2/molec to m^2/molec
+    theta = num_mole * VMR_O3 * S[ind,0] * 1e-4
+    # 1e2 for pressure hPa to Pa and 1e5 for km to m
+    ConcVal = - pressure_values * 1e2 * LineIntScal / temp_values * theta * 1e3
 
-    theta = num_mole * f_broad * 1e-4 * VMR_O3.reshape((SpecNumLayers,1)) * S[ind,0]
-    ConcVal = - pressure_values.reshape((SpecNumLayers, 1)) * 1e2 * LineIntScal / temp_values * theta * AscalConstKmToCm
+    SpecNumMeas = len(tang_heights)
+    SpecNumLayers = len(VMR_O3)
 
     afterTrans = np.zeros((SpecNumMeas, SpecNumLayers))
     preTrans = np.zeros((SpecNumMeas, SpecNumLayers))
@@ -308,7 +266,6 @@ def calcNonLin(tang_heights, dxs,  height_values, pressure_values, ind, temp_val
         preTrans[i, -1] = 1
 
     return preTrans + afterTrans
-
 
 def forward_substitution(L, b):
     # Get number of rows

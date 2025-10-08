@@ -60,7 +60,7 @@ ATy = np.matmul(A.T, y)
 #B_inv_A_trans_y0 = np.loadtxt('B_inv_A_trans_y0.txt')
 VMR_O3 = np.loadtxt(dir +'VMR_O3.txt')
 VMR_O3 = VMR_O3.reshape((len(VMR_O3), 1))
-pressure_values = np.loadtxt(dir +'pressure_values.txt')
+pressure_values = np.loadtxt(dir +'pressure_values.txt').reshape((len(height_values),1))
 L = np.loadtxt(dir +'GraphLaplacian.txt')
 theta_scale_O3 = np.loadtxt(dir + 'theta_scale_O3.txt')
 num_mole = np.loadtxt(dir + 'num_mole.txt')
@@ -89,8 +89,8 @@ AscalConstKmToCm = 1e3
 ind = 623
 f_broad = 1#e-4
 scalingConst = 1#e11
-betaG = 1e-30
-betaD = 1e-20
+betaG = 1e-35
+betaD = 1e-35
 m,n = A_lin.shape
 SpecNumLayers = n
 SpecNumMeas = m
@@ -195,13 +195,13 @@ B_inv_L_5 = np.matmul(B_inv_L_4, B_inv_L)
 B_inv_L_6 = np.matmul(B_inv_L_4, B_inv_L_2)
 
 
-f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
-f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
-f_0_3 =  0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
-f_0_4 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
-f_0_5 = 0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
-f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
-
+# f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
+# f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+# f_0_3 =  0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
+# f_0_4 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+# f_0_5 = 0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
+# f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
+#
 
 
 # g_0_1 = np.trace(B_inv_L)
@@ -211,10 +211,10 @@ f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
 # g_0_5 = 0#1 /120 * np.trace(B_inv_L_5)
 # g_0_6 = 0#-1 /720 * np.trace(B_inv_L_6)
 
-
-f_0 = f(ATy, y, B_inv_A_trans_y0)
-g_0 = g(A, L, lam0)
-delG = (np.log(g(A, L, univarGridO3[1][-1])) - np.log(g_0)) / (np.log(univarGridO3[1][-1]) - np.log(lam0))
+#
+# f_0 = f(ATy, y, B_inv_A_trans_y0)
+# g_0 = g(A, L, lam0)
+# delG = (g(A, L, univarGridO3[1][0]) - g_0) / (np.log(univarGridO3[1][0]) - np.log(lam0))
 
 # lambBinEdges = np.linspace(500, 1.4e4, 100)
 # g_func = [g(A, L,  lam) for lam in lambBinEdges]
@@ -319,12 +319,12 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
         #delta_g = g(A, L, lam_p) - g(A, L, lambdas[t])
 
 
-        Glam_p = (np.log(lam_p) - np.log(lam0)) * delG  + np.log(g_0)
-        Gcurr = (np.log(lambdas[t]) - np.log(lam0)) * delG + np.log(g_0)
+        Glam_p = (np.log(lam_p) - np.log(lam0)) * delG  + g_0
+        Gcurr = (np.log(lambdas[t]) - np.log(lam0)) * delG + g_0
         # taylorG = g_tayl(lamb - minimum[1], g_0, g_0_1, g_0_2, g_0_3, g_0_5, 0 ,0)
         # taylorG = g(A, L, lamb)
         #taylorG = np.exp(GApprox)
-        delta_g = np.exp(Glam_p) - np.exp(Gcurr)
+        delta_g = Glam_p - Gcurr
         log_MH_ratio = ((SpecNumLayers)/ 2) * (np.log(lam_p) - np.log(lambdas[t])) - 0.5 * (delta_g + gammas[t] * delta_f) - betaD * gammas[t] * delta_lam
 
         #accept or rejeict new lam_p
@@ -384,7 +384,7 @@ B_inv_L = scy.linalg.cho_solve((LowTri, True), L)
 #B_inv_L = B_inv @ L
 f_0 = f(ATy, y, B_inv_A_trans_y0)
 g_0 = 2 * np.sum(np.log(np.diag(LowTri)))
-delG = (np.log(g(A, L, univarGridO3[1][-1])) - np.log(g_0)) / (np.log(univarGridO3[1][-1]) - np.log(lam0))
+delG = (g(A, L, univarGridO3[1][-1]) - g_0) / (np.log(univarGridO3[1][-1]) - np.log(lam0))
 
 alphaG = 1
 alphaD = 1
@@ -394,6 +394,7 @@ shape = SpecNumMeas/2 + alphaD + alphaG
 
 f_0_1 = np.matmul(np.matmul(ATy[:, 0].T, B_inv_L), B_inv_A_trans_y0)
 f_0_2 = -1 * np.matmul(np.matmul(ATy[:, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+f_0_3 = 0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
 
 lambdas ,gammas, k = MHwG(number_samples, burnIn, lam0, gam0, f_0, g_0)
 elapsed = time.time() - startTime
@@ -755,7 +756,7 @@ f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
 
 f_0 = f(ATy, y, B_inv_A_trans_y0)
 g_0 = g(A, L, lam0)
-delG = (np.log(g(A, L, univarGridO3[1][-1])) - np.log(g_0)) / (np.log(univarGridO3[1][-1]) - np.log(lam0))
+delG = (g(A, L, univarGridO3[1][-1]) - g_0)/ (np.log(univarGridO3[1][-1]) - np.log(lam0))
 
 ## calc root mean sqaure error for approxiamation
 def ApproxMargPost(params):#, coeff):
@@ -768,14 +769,14 @@ def ApproxMargPost(params):#, coeff):
     n = SpecNumLayers
     m = SpecNumMeas
 
-    Glam_p = (np.log(lamb) - np.log(lam0)) * delG + np.log(g_0)
+    Glam_p = (np.log(lamb) - np.log(lam0)) * delG + g_0
 
 
     delta_lam_p = lamb - lam0
     delta_f = f_0_1 * delta_lam_p + f_0_2 * delta_lam_p ** 2 + f_0_3 * delta_lam_p ** 3
     F = f_0 + delta_f
 
-    G = np.exp(Glam_p)
+    G =  Glam_p
 
 
     return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gam) + 0.5 * G + 0.5 * gam * F +  ( betaD *  lamb * gam + betaG *gam)
@@ -1049,7 +1050,7 @@ plt.show()
 '''L-curve refularoization
 '''
 
-lamLCurve = np.logspace(-18,-10,200)
+lamLCurve = np.logspace(-2,3,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
@@ -1161,56 +1162,56 @@ print('bla')
 
 np.savetxt('RegSol.txt',x_opt / theta_scale_O3, fmt = '%.15f', delimiter= '\t')
 ##
-testInd = 180
-print(xTLxCurveZoom[testInd])
-lam_test = lamLCurveZoom[testInd]
-B = (ATA + lam_test * L)
-LowTri = np.linalg.cholesky(B)
-UpTri = LowTri.T
-x_test = lu_solve(LowTri, UpTri, ATy[0::, 0])
-fig, ax = plt.subplots()
-ax.plot(x_test, height_values)
-
-fig, axs = plt.subplots()
-axs.scatter(NormLCurveZoom,xTLxCurveZoom)
-axs.scatter(NormLCurveZoom[testInd],xTLxCurveZoom[testInd], color = 'r')
-axs.set_xscale('log')
-axs.set_yscale('log')
-plt.show(block = True)
+# testInd = 180
+# print(xTLxCurveZoom[testInd])
+# lam_test = lamLCurveZoom[testInd]
+# B = (ATA + lam_test * L)
+# LowTri = np.linalg.cholesky(B)
+# UpTri = LowTri.T
+# x_test = lu_solve(LowTri, UpTri, ATy[0::, 0])
+# fig, ax = plt.subplots()
+# ax.plot(x_test, height_values)
+#
+# fig, axs = plt.subplots()
+# axs.scatter(NormLCurveZoom,xTLxCurveZoom)
+# axs.scatter(NormLCurveZoom[testInd],xTLxCurveZoom[testInd], color = 'r')
+# axs.set_xscale('log')
+# axs.set_yscale('log')
+# plt.show(block = True)
 
 # je smaller xLx desto smoother
 # lagrange multiplier smoothest possible with given Ax-y
 ## make lagrange multiplier plot
 import matplotlib.cm as cm
-np.random.seed(5)
-playA = np.random.randint(0,2,size= (2,2))
-playL = np.eye(2)#*2
-#playL[0,1] = -1
-#playL[1,0] = -1
-X  = np.arange(-10, 20, 0.25)
-Y  = np.arange(-10, 20, 0.25)
-playDat = playA @ np.array([1,1]).reshape((2,1)) +  np.random.normal(15,1,size=2).reshape((2,1))
-LagrX, LagrY = np.meshgrid( X, Y)
-
-
-
-Z1 = np.zeros((len(LagrX),len(LagrX)))
-Z2 = np.zeros((len(LagrX),len(LagrX)))
-for i in range(0,len(Y)):
-    for j in range(0, len(Y)):
-        #Z1[i, j] = np.sqrt(LagrX[0][i]**2 +LagrY[0][j]**2)
-        Z1[i,j] = np.array([X[i], Y[j]]).reshape((2,1)).T @ playL @ np.array([X[i], Y[j]]).reshape((2,1))
-        Z2[i,j] = np.sqrt(np.sum((playDat - playA @ np.array([X[i], Y[j]]).reshape((2,1)))**2))
-
-#Z = np.sqrt(LagrX**2 +LagrY**2)
-
-fig, ax = plt.subplots()
-#CS = ax.contour(LagrX, LagrY, np.sqrt(LagrX**2 +LagrY**2))
-CS = ax.contour(LagrX, LagrY, Z1)
-CS = ax.contour(LagrX, LagrY, Z2)
-ax.clabel(CS, fontsize=10)
-ax.set_title('Simplest default with labels')
-plt.show(block = True)
+# np.random.seed(5)
+# playA = np.random.randint(0,2,size= (2,2))
+# playL = np.eye(2)#*2
+# #playL[0,1] = -1
+# #playL[1,0] = -1
+# X  = np.arange(-10, 20, 0.25)
+# Y  = np.arange(-10, 20, 0.25)
+# playDat = playA @ np.array([1,1]).reshape((2,1)) +  np.random.normal(15,1,size=2).reshape((2,1))
+# LagrX, LagrY = np.meshgrid( X, Y)
+#
+#
+#
+# Z1 = np.zeros((len(LagrX),len(LagrX)))
+# Z2 = np.zeros((len(LagrX),len(LagrX)))
+# for i in range(0,len(Y)):
+#     for j in range(0, len(Y)):
+#         #Z1[i, j] = np.sqrt(LagrX[0][i]**2 +LagrY[0][j]**2)
+#         Z1[i,j] = np.array([X[i], Y[j]]).reshape((2,1)).T @ playL @ np.array([X[i], Y[j]]).reshape((2,1))
+#         Z2[i,j] = np.sqrt(np.sum((playDat - playA @ np.array([X[i], Y[j]]).reshape((2,1)))**2))
+#
+# #Z = np.sqrt(LagrX**2 +LagrY**2)
+#
+# fig, ax = plt.subplots()
+# #CS = ax.contour(LagrX, LagrY, np.sqrt(LagrX**2 +LagrY**2))
+# CS = ax.contour(LagrX, LagrY, Z1)
+# CS = ax.contour(LagrX, LagrY, Z2)
+# ax.clabel(CS, fontsize=10)
+# ax.set_title('Simplest default with labels')
+# plt.show(block = True)
 
 ##
 
@@ -1258,7 +1259,7 @@ plt.show()
 
 
 ##
-lam= np.logspace(-20,-10,500)
+lam= np.logspace(-5,10,500)
 f_func = np.zeros(len(lam))
 g_func = np.zeros(len(lam))
 
@@ -1313,13 +1314,16 @@ gCol = [230/255, 159/255, 0]
 gmresCol = [204/255, 121/255, 167/255]
 #lam0 = minimum[1]
 # find min ind and max ind for lambda
+#lambBinEdges = univarGridO3[1]
 minInd = np.argmin(abs(lam - lambBinEdges[0]))
 maxInd = np.argmin(abs(lam - lambBinEdges[-1]))
 delta_lam = lambBinEdges - lam0
 #taylorG = g_tayl(delta_lam,g_0, g_0_1, g_0_2, g_0_3,g_0_4, 0,0)
-GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + np.log(g_0)
-taylorG = np.exp(GApprox)
-taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,0, 0, 0)
+delG = abs(g(A, L, univarGridO3[1][-1]) - g_0) / abs(np.log(univarGridO3[1][-1]) - np.log(lam0))
+
+GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + g_0
+taylorG =GApprox
+taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, 0,0, 0, 0)
 #taylorF = f_tayl(delta_lam, f_0, f_0_1,0, 0,0, 0, 0)
 fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 
@@ -1430,8 +1434,8 @@ for j in range(len(lambBinEdges)):
 
 
 # taylorG = g_tayl(delta_lam,g_0, g_0_1, g_0_2, g_0_3,g_0_4, 0,0)
-GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG + np.log(g_0)
-taylorG = np.exp(GApprox)
+GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG + g_0
+taylorG =GApprox
 MaxabsGErr = np.max(abs(g_True - taylorG))
 
 absRMSGErr = np.sqrt(np.mean((g_True - taylorG)**2))
@@ -1499,9 +1503,9 @@ def piFunc(lamb, gam):
 def piFuncTayl(lamb, gam):
     #gam =  minimum[0]
 
-    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, 0 ,0,0, 0, 0)
-    GApp = (np.log(lamb) - np.log(lam0)) * delG + np.log(g_0)
-    taylorG = np.exp(GApp)
+    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, f_0_2 ,f_0_3,0, 0, 0)
+    GApp = (np.log(lamb) - np.log(lam0)) * delG + g_0
+    taylorG = GApp
     return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 * taylorG + 0.5 * gam * taylorF + (betaD * lamb * gam + betaG * gam) #- 440
     #return  0.5 * taylorG + 0.5 * gam * taylorF
 

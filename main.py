@@ -43,8 +43,8 @@ PgWidthPt = 245
 PgWidthPt =  fraction * 421/2 #phd
 n_bins = 20
 burnIn = 50
-betaG = 1e-30
-betaD = 1e-20
+betaG = 1e-35
+betaD = 1e-35
 #Colors
 #pyTCol = [230/255,159/255, 0/255]
 pyTCol = [213/255,94/255, 0/255]
@@ -176,7 +176,7 @@ for i in range(1, SpecNumLayers):
 new_calc_temp[-1] = temp_func( height_values[-1])
 height_values = np.around(height_values,2).reshape((SpecNumLayers,1))
 temp_values = np.around(new_calc_temp,2).reshape((SpecNumLayers,1))
-pressure_values = new_calc_press.reshape(SpecNumLayers)
+pressure_values = new_calc_press.reshape((SpecNumLayers,1))
 
 # startInd = 23
 # EndInd = len(height_values[startInd::2]) + startInd
@@ -610,7 +610,7 @@ np.savetxt('wvnmbr.txt', wvnmbr, fmt = '%.15f', delimiter= '\t')
 np.savetxt('g_doub_prime.txt', g_doub_prime, fmt = '%.15f', delimiter= '\t')
 np.savetxt('g_prime.txt', g_prime, fmt = '%.15f', delimiter= '\t')
 np.savetxt('E.txt', E, fmt = '%.15f', delimiter= '\t')
-np.savetxt('S.txt', S, fmt = '%.15f', delimiter= '\t')
+np.savetxt('S.txt', S, fmt = '%.35f', delimiter= '\t')
 #np.savetxt('LineIntScal.txt', LineIntScal, fmt = '%.30f', delimiter= '\t')
 
 
@@ -638,7 +638,7 @@ np.savetxt('S.txt', S, fmt = '%.15f', delimiter= '\t')
 # plt.show()
 
 
-AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, temp_values)
+AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind)
 A = 2*AO3
 
 # # ##
@@ -754,6 +754,7 @@ print("Condition Number A^T A: " + str(orderOfMagnitude(cond_ATA)))
 #theta[-1] = 0
 #Ax = np.matmul(A, theta)
 Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
+linNoiseFreeDat = Ax
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
@@ -852,6 +853,7 @@ VMR_O3[startInd:EndInd] = np.copy(VMR_O3[startInd::2])
 VMR_O3 = np.copy(VMR_O3[:EndInd])
 SpecNumLayers = len(height_values)
 
+
 NOfNeigh = 2#4
 neigbours = np.zeros((len(height_values),NOfNeigh))
 for i in range(0,len(height_values)):
@@ -878,7 +880,7 @@ np.savetxt('tang_heights_lin.txt',tang_heights_lin, fmt = '%.15f', delimiter= '\
 np.savetxt('A_lin_dx.txt',A_lin_dx, fmt = '%.15f', delimiter= '\t')
 
 A_lin = gen_sing_map(A_lin_dx, tang_heights_lin, height_values)
-AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, temp_values)
+AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind)
 A = 2*AO3
 ATA = np.matmul(A.T,A)
 y = np.copy(nonLinY)
@@ -964,7 +966,7 @@ def MinLogMargPost(params):#, coeff):
     # delta = params[1]
     gam = params[0]
     lamb = params[1]
-
+    #print(lamb)
     if lamb < 0  or gam < 0:
         return np.nan
 
@@ -994,7 +996,7 @@ print(minimum)
 """ finally calc f and g with a linear solver adn certain lambdas
  using the gmres"""
 
-lam= np.logspace(-20,-10,500)
+lam= np.logspace(-10,15,500)
 f_func = np.zeros(len(lam))
 g_func = np.zeros(len(lam))
 
@@ -1299,19 +1301,18 @@ delta_lam = lambBinEdges - lam0
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,f_0_4, f_0_5, f_0_6)
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2,f_0_3,0, 0, 0)
 g_0 = g(A, L,lam0)
-lamMax = max(lambBinEdges)
+lamMax = min(lambBinEdges)
 delG = (g(A, L, lamMax) - g_0)/ (np.log(lamMax) - np.log(lam0))
 
 GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + g_0
 taylorG = GApprox
-fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)#, dpi = dpi)
-axs.plot(lam,f_func, color = fCol, zorder = 2, linestyle=  'dotted')
-ax2 = axs.twinx() # ax1 and ax2 share y-axis
-ax2.plot(lam,g_func, color = gCol, zorder = 2, linestyle=  'dashed')
-axs.set_xscale('log')
-axs.set_yscale('log')
-plt.show(block =True)
-##
+# fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)#, dpi = dpi)
+# axs.plot(lam,f_func, color = fCol, zorder = 2, linestyle=  'dotted')
+# ax2 = axs.twinx() # ax1 and ax2 share y-axis
+# ax2.plot(lam,g_func, color = gCol, zorder = 2, linestyle=  'dashed')
+# axs.set_xscale('log')
+# axs.set_yscale('log')
+# plt.show(block =True)
 
 fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)#, dpi = dpi)
 
@@ -1554,7 +1555,7 @@ print('bla')
 # '''
 
 #lamLCurve = np.logspace(1,7,200)
-lamLCurve = np.logspace(-20,-10,200)
+lamLCurve = np.logspace(-5,5,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
