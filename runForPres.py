@@ -1374,7 +1374,7 @@ axins.axvline( minimum[1], color = gmresCol, label = r'$\lambda_0$')
 
 axins.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 0, label = 'approximation' )
 
-axins.set_ylim(0.95 * taylorF[0],1.5 * taylorF[-1])
+axins.set_ylim(0.9 * taylorF[0],1 * taylorF[-1])
 axins.set_xlabel('$\lambda$')
 axins.set_yscale('log')
 axins.set_xscale('log')
@@ -1400,7 +1400,7 @@ axin2.tick_params(axis='y', which='both', length=0)
 axin2.plot(lam,g_func, color = gCol, zorder=3, linestyle=  'dashed', linewidth = 3,label = '$g(\lambda)$')
 
 axin2.plot(lambBinEdges, taylorG, color = 'k', linewidth = 1, zorder = 2 )
-axin2.set_ylim(0.8 * taylorG[0],1.05 * taylorG[-1])
+axin2.set_ylim(1.01 * taylorG[0],0.8 * taylorG[-1])
 axin2.set_xlim(min(lambBinEdges),max(lambBinEdges))
 axin2.set_xscale('log')
 lines2, lab2 = axin2.get_legend_handles_labels()
@@ -1601,7 +1601,7 @@ fig3, ax1 = plt.subplots(figsize= (4.369032793690328, 4.369032793690328/2), tigh
 
 currNorm = RMSDiffNorm[3:]
 ax1.plot(range(3,3+ len(currNorm )),currNorm *100)
-ax1.plot(np.linspace(1,TotBinNum-1),1/np.linspace(1,TotBinNum-1)*3 , linestyle = '--', color = 'k', label = r'$\propto 1/N$')
+ax1.plot(np.linspace(1,TotBinNum-1),1/np.linspace(1,TotBinNum-1)*5 , linestyle = '--', color = 'k', label = r'$\propto 1/N$')
 ax1.set_xlim([3,3+ len(currNorm )])
 ax1.axvline(20, linewidth = 0.8, color = "k")
 ax1.axhline(RMSDiffNorm[20]*100, linewidth = 0.8, color = "k")

@@ -1,30 +1,10 @@
-import numpy as np
+from APEXFunctions import *
 import matplotlib as mpl
-from puwr import tauint, correlated_data
-#from importetFunctions import *
-import time
-import pickle as pl
-#import matlab.engine
-from functions import *
-from errors import *
-from scipy import constants, optimize
-from scipy.sparse.linalg import gmres
 import matplotlib.pyplot as plt
-
-
 import pandas as pd
-from numpy.random import uniform, normal, gamma
 import scipy as scy
 from matplotlib.ticker import FuncFormatter
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
-
-import os
-cwd = os.getcwd()
-dir_path = os.path.dirname(os.path.realpath(__file__))
-from pathlib import Path
-path = Path(cwd) # Path("/here/your/path/file.txt")
-parentDir = str( path.parent.absolute())
-
+import time
 
 """ for plotting figures,
 PgWidth in points, either collumn width page with of Latex"""
@@ -55,15 +35,8 @@ dataCol = [225/255, 190/255, 106/255]
 regCol = [212/255, 17/255, 89/255]
 #MargCol = [86/255, 180/255, 233/255]
 MargCol = [255/255, 194/255, 10/255]
-defBack = mpl.get_backend()
-mpl.use(defBack)
-mpl.rcParams.update(mpl.rcParamsDefault)
-plt.rcParams.update({'font.size': fraction * 12,
-                     'text.usetex': True,
-                     'font.family' : 'serif',
-                     'font.serif'  : 'cm',
-                     'text.latex.preamble': r'\usepackage{bm, amsmath}'})
 
+TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
 
 ResCol = "#1E88E5"#"#0072B2"
 MeanCol = 'k'#"#FFC107"#"#d62728"
@@ -71,8 +44,22 @@ RegCol = "#D81B60"#"#D55E00"
 TrueCol = 'green' # "#004D40" #'k'
 DatCol =  'gray' # 'k'"#332288"#"#009E73"
 
+postCol = 'C1'
 
-tol = 1e-8
+
+dpi = 300
+PgWidthPt = 421/2
+defBack = mpl.get_backend()
+mpl.use(defBack)
+mpl.rcParams.update(mpl.rcParamsDefault)
+plt.rcParams.update({'font.size': 10,
+                     'text.usetex': True,
+                     'font.family' : 'serif',
+                     'font.serif'  : 'cm',
+                     'text.latex.preamble': r'\usepackage{bm, amsmath, amssymb,amsfonts}'})
+
+
+
 
 df = pd.read_excel('ExampleOzoneProfiles.xlsx')
 
@@ -85,7 +72,7 @@ O3 = df['Ozone (VMR)'].values
 O3[O3<0] = 0
 #dir = '/home/lennartgolks/PycharmProjects/'
 #dir = '/Users/lennart/PycharmProjects/'
-dat = np.loadtxt(parentDir + '/openData/testProf.txt')
+dat = np.loadtxt('testProf.txt')
 #dat = np.loadtxt('/home/lennartgolks/PycharmProjects/openData/testProf.txt')
 press = dat[0,:]
 O3 = dat[1,:]
@@ -156,9 +143,6 @@ calc_temp[-1] = temp_func( actual_heights[-1])
 """ analayse forward map without any real data values"""
 heights = actual_heights#[1:]
 SpecNumLayers = len(VMR_O3)
-#height_values = heights[minInd:maxInd].reshape((SpecNumLayers,1))
-#height_values = np.around(heights[minInd:maxInd][::skipInd].reshape((SpecNumLayers,1)),2)
-#temp_values =  np.around(calc_temp[minInd:maxInd][::skipInd],2)
 
 MinH = min(heights[minInd:maxInd])
 MaxH = max(heights[minInd:maxInd])
@@ -176,16 +160,16 @@ for i in range(1, SpecNumLayers):
 new_calc_temp[-1] = temp_func( height_values[-1])
 height_values = np.around(height_values,2).reshape((SpecNumLayers,1))
 temp_values = np.around(new_calc_temp,2).reshape((SpecNumLayers,1))
-pressure_values = new_calc_press.reshape(SpecNumLayers)
-
+pressure_values = new_calc_press.reshape((SpecNumLayers,1))
 
 SpecNumLayers = len(height_values)
-##
 
 R_Earth = 6356#6371 # earth radiusin km
 ObsHeight = 500 # in km
 
-
+##
+#np.savetxt('height_values.txt', height_values, fmt = '%.30f', delimiter= '\t')
+#np.savetxt('pressure_values.txt', pressure_values, fmt = '%.30f', delimiter= '\t')
 
 ''' do svd for one specific set up for linear case and then exp case'''
 
@@ -197,38 +181,11 @@ MaxAng = np.arcsin((height_values[-1]+ R_Earth) / (R_Earth + ObsHeight))
 MinAng = np.arcsin((height_values[0] + R_Earth) / (R_Earth + ObsHeight))
 
 
-##
-pointAcc = 0.00075#0.00045
-meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
-b = 0.3
-meas_ang1 = np.array(np.exp(b * np.linspace(0,len(meas_ang)-1 ,len(meas_ang))))
-meas_ang1 = np.flip(meas_ang[-1] - (meas_ang[-1]-meas_ang[0]) * meas_ang1/np.max(meas_ang1))
-A_lin_dx1, tang_heights_lin1, extraHeight = gen_forward_map(meas_ang1,height_values,ObsHeight,R_Earth)
-b = -0.3
-meas_ang2 = np.array(np.exp(b * np.linspace(0,len(meas_ang)-1 ,len(meas_ang))))
-meas_ang2 = np.flip(meas_ang[0] + (meas_ang[-1]-meas_ang[0]) * meas_ang2/np.max(meas_ang2))
-A_lin_dx2, tang_heights_lin2, extraHeight = gen_forward_map(meas_ang2,height_values,ObsHeight,R_Earth)
-
-pointAcc = 0.00075 / 2
-meas_ang3 = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
-A_lin_dx3, tang_heights_lin3, extraHeight = gen_forward_map(meas_ang3,height_values,ObsHeight,R_Earth)
-
-pointAcc = 0.00055
-meas_ang4 = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
-A_lin_dx4, tang_heights_lin4, extraHeight = gen_forward_map(meas_ang4,height_values,ObsHeight,R_Earth)
-
-
-
 
 ##
 pointAcc = 0.00085
 meas_angChosen = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))[:30]
 A_lin_dx, tang_heights_linChosen, extraHeight = gen_forward_map(meas_angChosen,height_values,ObsHeight,R_Earth)
-
-pointAcc = 0.00075
-meas_angNormal = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
-A_lin_dx, tang_heights_linNormal, extraHeight = gen_forward_map(meas_angNormal,height_values,ObsHeight,R_Earth)
-
 
 
 
@@ -236,10 +193,16 @@ A_lin_dx, tang_heights_linNormal, extraHeight = gen_forward_map(meas_angNormal,h
 A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_angChosen,height_values,ObsHeight,R_Earth)
 SpecNumMeas = len(tang_heights_lin)
 m = SpecNumMeas
+np.savetxt('tang_heights_lin.txt',tang_heights_lin, fmt = '%.15f', delimiter= '\t')
+np.savetxt('A_lin_dx.txt',A_lin_dx, fmt = '%.15f', delimiter= '\t')
 
 A_lin = gen_sing_map(A_lin_dx, tang_heights_lin, height_values)
 
-
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+#ax1.scatter(range(len(meas_ang)),meas_ang1, label = 'case 1')
+ax1.scatter(range(len(tang_heights_lin)),tang_heights_lin, label = 'case 2')
+#ax1.scatter(range(len(meas_ang)),meas_ang, s = 10, label = 'case 3')
+plt.show(block = True)
 
 #condition number for A
 A_lin = A_lin
@@ -258,9 +221,7 @@ for j in range(0, SpecNumMeas):
 print('Distance through layers check: ' + str(np.allclose( sum(A_lin_dx.T,0), tot_r[:,0])))
 
 
-
-
-
+##
 #taylor exapnsion for f to do so we need y (data)
 
 ''' load data and pick wavenumber/frequency'''
@@ -317,13 +278,13 @@ np.savetxt('S.txt',S, delimiter= '\t')
 #load constants in si annd convert to cgs units by multiplying
 h = scy.constants.h #* 1e7#in J Hz^-1
 c_cgs = constants.c * 1e2# in m/s
-k_b_cgs = constants.Boltzmann #* 1e7#in J K^-1
+k_b = constants.Boltzmann #* 1e7#in J K^-1
 #T = temp_values[0:-1] #in K
 N_A = constants.Avogadro # in mol^-1
 R = constants.gas_constant
 
 
-#mol_M = 48 #g/mol for Ozone
+mol_M = 48 #g/mol for Ozone
 #ind = 293
 ind = 623
 #pick wavenumber in cm^-1
@@ -333,65 +294,12 @@ lamba = 1/v_0
 f_0 = c_cgs*v_0
 print("Frequency " + str(np.around(v_0*c_cgs/1e9,2)) + " in GHz")
 
-C1 =2 * scy.constants.h * scy.constants.c**2 * v_0**3 * 1e8
-C2 = scy.constants.h * scy.constants.c * 1e2 * v_0  / (scy.constants.Boltzmann * temp_values )
-#plancks function
-Source = np.array(C1 /(np.exp(C2) - 1) ).reshape((SpecNumLayers,1))
-
-#differs from HITRAN, implemented as in Urban et al
-T_ref = 296 #K usually
-p_ref = pressure_values[0]
-
-
-
-
-'''weighted absorption cross section according to Hitran and MIPAS instrument description
-S is: The spectral line intensity (cm^−1/(molecule cm^−2))
-f_broad in (1/cm^-1) is the broadening due to pressure and doppler effect,
- usually one can describe this as the convolution of Lorentz profile and Gaussian profile
- VMR_O3 is the ozone profile in units of molecule (unitless)
- has to be extended if multiple gases are to be monitored
- I multiply with 1e-4 to go from cm^2 to m^2
- '''
-f_broad = 1
-w_cross =  VMR_O3 * f_broad * 1e-4
-#w_cross[0], w_cross[-1] = 0, 0
-
-#from : https://hitran.org/docs/definitions-and-units/
-HitrConst2 = 1.4387769 # in cm K
-
-# internal partition sum
-Q = g_doub_prime[ind,0] * np.exp(- HitrConst2 * E[ind,0]/ temp_values) + g_prime[ind,0] * np.exp(- HitrConst2 * (E[ind,0] + v_0) / temp_values)
-Q_ref = g_doub_prime[ind,0] * np.exp(- HitrConst2 * E[ind,0]/ 296) + g_prime[ind,0] * np.exp(- HitrConst2 * (E[ind,0] + v_0)/ 296)
-LineInt = S[ind,0] * Q_ref / Q * np.exp(- HitrConst2 * E[ind,0]/ temp_values)/ np.exp(- HitrConst2 * E[ind,0]/ 296) * (1 - np.exp(- HitrConst2 * wvnmbr[ind,0]/ temp_values))/ (1- np.exp(- HitrConst2 * wvnmbr[ind,0]/ 296))
-LineIntScal =  Q_ref / Q * np.exp(- HitrConst2 * E[ind,0]/ temp_values)/ np.exp(- HitrConst2 * E[ind,0]/ 296) * (1 - np.exp(- HitrConst2 * wvnmbr[ind,0]/ temp_values))/ (1- np.exp(- HitrConst2 * wvnmbr[ind,0]/ 296))
-
-
-# fig, axs = plt.subplots(tight_layout=True)
-# plt.plot(LineInt,height_values)
-# plt.show()
-
-''' calculate model depending on where the Satellite is and 
-how many measurements we want to do in between the max angle and min angle
- or max height and min height..
- we specify the angles
- because measurment will collect more than just the stuff around the tangent height'''
-
-#take linear
-num_mole = 1 / ( scy.constants.Boltzmann )#* temp_values)
-
-AscalConstKmToCm = 1e3
-#1e2 for pressure values from hPa to Pa
-A_scal = pressure_values.reshape((SpecNumLayers,1)) * 1e2 * LineIntScal * Source * AscalConstKmToCm/ ( temp_values)
-scalingConst = 1#e11
-#theta =(num_mole * w_cross.reshape((SpecNumLayers,1)) * Source * scalingConst )
-theta = num_mole * w_cross.reshape((SpecNumLayers,1)) * scalingConst * S[ind,0]
 
 
 
 
 
-AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, temp_values)
+AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind)
 A = 2*AO3
 
 
@@ -408,44 +316,49 @@ print("Condition Number A^T A: " + str(orderOfMagnitude(cond_ATA)))
 #theta[-1] = 0
 #Ax = np.matmul(A, theta)
 Ax =np.matmul(A, VMR_O3 * theta_scale_O3)
+linNoiseFreeDat = Ax
 #convolve measurements and add noise
 #y = add_noise(Ax, 0.01)
 #y[y<=0] = 0
 SNR = 60#35000
 SNR = 150
+#y, gam0 = add_noise(Ax.reshape((SpecNumMeas,1)), SNR)
+##
+#y = Ax.reshape((SpecNumMeas,1)) + np.random.normal(0,0.00025,size=(SpecNumMeas,1))
+
 y, gam0  = add_noise_Blokk(Ax,SNR)
+
 ##
 
-nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime,g_prime)
+nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, wvnmbr, S, E,g_doub_prime,g_prime)
 OrgData = np.matmul(AO3 * nonLinA,VMR_O3 * theta_scale_O3)
 DatErr = np.linalg.norm( OrgData -  Ax) / np.linalg.norm(OrgData) * 100
 print('DataErr '+ str(DatErr))
 
+Ax =np.matmul(2*AO3, VMR_O3 * theta_scale_O3)
 
 
-##
 noise = np.random.normal(0, np.sqrt(1 / gam0), size = OrgData.shape)
 nonLinY = (OrgData + noise).reshape((SpecNumMeas,1))
 Liny = (Ax + noise).reshape((SpecNumMeas,1))
 
 
-y = np.copy(nonLinY)
+fig3, ax1 = plt.subplots(tight_layout = True,figsize=set_size(245, fraction=fraction))
+
+ax1.scatter(nonLinY, tang_heights_lin)
+ax1.plot(nonLinY, tang_heights_lin, label = 'noisy')
+ax1.plot(Ax, tang_heights_lin, label = 'noise free')
+plt.legend()
+ax1.set_xscale('log')
+plt.show(block = True)
+
+
 
 
 ##
-dpi = 300
-PgWidthPt = 421/2
-defBack = mpl.get_backend()
-mpl.use(defBack)
-mpl.rcParams.update(mpl.rcParamsDefault)
-plt.rcParams.update({'font.size': 10,#1/0.3 *fraction *
-                     'text.usetex': True,
-                     'font.family' : 'serif',
-                     'font.serif'  : 'cm',
-                     'text.latex.preamble': r'\usepackage{bm, amsmath, amssymb,amsfonts}'})
 
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-ax1.plot((A/2 * nonLinA) @ theta,tang_heights_lin, label = 'noise-free data', color = 'k')
+ax1.plot((A/2 * nonLinA) @ (VMR_O3 * theta_scale_O3),tang_heights_lin, label = 'noise-free data', color = 'k')
 ax1.plot(y,tang_heights_lin, label  = 'noisy data', linestyle = 'dotted', marker = 'o', markersize= 10, zorder = 1, color = 'r', linewidth = 1)
 ax1.set_xscale('log')
 ax1.legend()
@@ -476,6 +389,7 @@ pressure_values = np.copy(pressure_values[:EndInd])
 VMR_O3[startInd:EndInd] = np.copy(VMR_O3[startInd::2])
 VMR_O3 = np.copy(VMR_O3[:EndInd])
 SpecNumLayers = len(height_values)
+n =len(height_values)
 
 NOfNeigh = 2#4
 neigbours = np.zeros((len(height_values),NOfNeigh))
@@ -499,14 +413,18 @@ lowC_L = scy.linalg.cholesky(L, lower = True)
 
 ##
 A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_angChosen,height_values,ObsHeight,R_Earth)
+np.savetxt('tang_heights_lin.txt',tang_heights_lin, fmt = '%.15f', delimiter= '\t')
+np.savetxt('A_lin_dx.txt',A_lin_dx, fmt = '%.15f', delimiter= '\t')
 
 A_lin = gen_sing_map(A_lin_dx, tang_heights_lin, height_values)
-AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind, temp_values)
+AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind)
 A = 2*AO3
 ATA = np.matmul(A.T,A)
 y = np.copy(nonLinY)
 ATy = np.matmul(A.T, y)
-nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, AscalConstKmToCm, wvnmbr, S, E,g_doub_prime,g_prime)
+nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, wvnmbr, S, E,g_doub_prime,g_prime)
+
+
 
 
 
@@ -531,26 +449,26 @@ def MinLogMargPost(params):#, coeff):
     # delta = params[1]
     gam = params[0]
     lamb = params[1]
-
+    #print(lamb)
     if lamb < 0  or gam < 0:
         return np.nan
 
     n = SpecNumLayers
     m = SpecNumMeas
-
+    #print(lamb)
     Bp = ATA + lamb * L
 
     LowTri = np.linalg.cholesky(Bp)
     UpTri = LowTri.T
     # check if L L.H = B
-    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    B_inv_A_trans_y = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
 
     G = g(A, L,  lamb)
     F = f(ATy, y,  B_inv_A_trans_y)
 
     return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gam) + 0.5 * G + 0.5 * gam * F +  ( betaD *  lamb * gam + betaG *gam)
 
-minimum = optimize.fmin(MinLogMargPost, [gam0,1/gam0* 1/ np.mean(vari)/15], maxiter = 25)
+minimum = scy.optimize.fmin(MinLogMargPost, [gam0,1/gam0* 1/ np.mean(vari)/15], maxiter = 25)
 gam0 = minimum[0]
 lam0 = minimum[1]
 print(minimum)
@@ -561,7 +479,7 @@ print(minimum)
 """ finally calc f and g with a linear solver adn certain lambdas
  using the gmres"""
 
-lam= np.logspace(-5,15,500)
+lam= np.logspace(-10,15,500)
 f_func = np.zeros(len(lam))
 g_func = np.zeros(len(lam))
 
@@ -573,15 +491,12 @@ for j in range(len(lam)):
 
     #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
     LowTri = np.linalg.cholesky(B)
-    UpTri = LowTri.T
-    # check if L L.H = B
-    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+    B_inv_A_trans_y = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
 
     CheckB_inv_ATy = np.matmul(B, B_inv_A_trans_y)
-    if np.linalg.norm(ATy[0::, 0]- CheckB_inv_ATy)/np.linalg.norm(ATy[0::, 0])<=tol:
-        f_func[j] = f(ATy, y, B_inv_A_trans_y)
-    else:
-        f_func[j] = np.nan
+
+    f_func[j] = f(ATy, y, B_inv_A_trans_y)
 
     g_func[j] = g(A, L, lam[j])
 
@@ -596,18 +511,15 @@ lam0 = minimum[1]
 B = (ATA + lam0 * L)
 
 LowTri = np.linalg.cholesky(B)
-UpTri = LowTri.T
-# check if L L.H = B
-B_inv_A_trans_y0 = lu_solve(LowTri, UpTri,  ATy[0::, 0])
+
+B_inv_A_trans_y0 = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
 
 
 
-B_inv_L = np.zeros(np.shape(B))
 
-for i in range(len(B)):
-    LowTri = np.linalg.cholesky(B)
-    UpTri = LowTri.T
-    B_inv_L[:, i] = lu_solve(LowTri, UpTri,  L[:, i])
+
+LowTri = np.linalg.cholesky(B)
+B_inv_L = scy.linalg.cho_solve((LowTri,True),  L)
 
 
 B_inv_L_2 = np.matmul(B_inv_L, B_inv_L)
@@ -658,17 +570,16 @@ rate = f_0 / 2 + betaG + betaD * lam0
 shape = SpecNumMeas/2 + alphaD + alphaG
 index = 'sec'
 gridSize = 20
-univarGridO3 = np.zeros((2, gridSize))
-for i in range(0, 2):
-    univarGridO3[i] = np.loadtxt(parentDir + '/TTDecomposition/'+index +'uniVarGridMargO3' + str(i) + '.txt')
-
+#univarGridO3 = np.zeros((2, gridSize))
+# for i in range(0, 2):
+#     univarGridO3[i] = np.loadtxt(parentDir + '/TTDecomposition/'+index +'uniVarGridMargO3' + str(i) + '.txt')
+#
 
 #f_new = f_0
 #g_old = g(A, L,  lambdas[0])
+lamMax = 0.3 * lam0
 g_0 = g(A, L, lam0)
-delG = (np.log(g(A, L, univarGridO3[1][-1])) - np.log(g_0))/ (np.log(univarGridO3[1][-1]) - np.log(lam0))
-
-
+delG = (g(A, L, lamMax) - g_0)/ (np.log(lamMax) - np.log(lam0))
 def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
     wLam = lam0 * 0.8#8e3#7e1
 
@@ -694,10 +605,10 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
         #print(t)
 
         # # draw new lambda
-        lam_p = normal(lambdas[t], wLam)
+        lam_p = np.random.normal(lambdas[t], wLam)
 
         while lam_p < 0:#or lam_p > univarGridO3[1][-1]:
-               lam_p = normal(lambdas[t], wLam)
+               lam_p = np.random.normal(lambdas[t], wLam)
 
         delta_lam = lam_p - lambdas[t]
         delta_lam_t = lambdas[t] - lam0
@@ -707,17 +618,19 @@ def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
         #delta_g = g_0_1 * delta_lam + g_0_2 * (delta_lam_p**2 - delta_lam_t**2) + g_0_3 * (delta_lam_p**3 - delta_lam_t**3) #+ g_0_4 * (delta_lam_p**4 - delta_lam_t**4) #+ g_0_5 * delta_lam**5
         #delta_g = g(A, L, lam_p) - g(A, L, lambdas[t])
 
+        Glam_p  = (np.log(lam_p) - np.log(lam0)) * delG + g_0
 
-        Glam_p = (np.log(lam_p) - np.log(lam0)) * delG  + np.log(g_0)
-        Gcurr = (np.log(lambdas[t]) - np.log(lam0)) * delG + np.log(g_0)
+        Gcurr = (np.log(lambdas[t]) - np.log(lam0)) * delG + g_0
+
         # taylorG = g_tayl(lamb - minimum[1], g_0, g_0_1, g_0_2, g_0_3, g_0_5, 0 ,0)
         # taylorG = g(A, L, lamb)
         #taylorG = np.exp(GApprox)
-        delta_g = np.exp(Glam_p) - np.exp(Gcurr)
+        delta_g = Glam_p - Gcurr
+        #delta_g = g(A, L, lam_p) - g(A, L, lambdas[t])
         log_MH_ratio = ((SpecNumLayers)/ 2) * (np.log(lam_p) - np.log(lambdas[t])) - 0.5 * (delta_g + gammas[t] * delta_f) - betaD * gammas[t] * delta_lam
 
         #accept or rejeict new lam_p
-        u = uniform()
+        u = np.random.uniform()
 
         if np.log(u) <= np.min(log_MH_ratio,0):
             #accept
@@ -762,16 +675,17 @@ print('MTC Done in ' + str(elapsed) + ' s')
 
 print('acceptance ratio: ' + str(k/(number_samples+burnIn)))
 deltas = lambdas * gammas
+np.savetxt('samples.txt', np.vstack((gammas[burnIn::], deltas[burnIn::], lambdas[burnIn::])).T, header = 'gammas \t deltas \t lambdas \n Acceptance Ratio: ' + str(k/number_samples) + '\n Elapsed Time: ' + str(elapsed), fmt = '%.15f \t %.15f \t %.15f')
 
-gam_mean, gam_del, gam_tint, gam_d_tint= tauint([[gammas]],0)
-lam_mean, lam_del, lam_tint, lam_d_tint = tauint([[lambdas]],0)
+# gam_mean, gam_del, gam_tint, gam_d_tint= tauint([[gammas]],0)
+# lam_mean, lam_del, lam_tint, lam_d_tint = tauint([[lambdas]],0)
 
 ##
 
 BinHist = 30#n_bins
 lambHist, lambBinEdges = np.histogram(lambdas, bins= BinHist, density= True)
 gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
-
+delHist, delBinEdges = np.histogram(deltas, bins= BinHist, density= True)
 trace = [MinLogMargPost(np.array([lambdas[burnIn+ i],gammas[burnIn+ i]])) for i in range(number_samples)]
 
 
@@ -785,10 +699,10 @@ axs[0].set_xlabel(r'the noise precision $\gamma$')
 
 axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(lambBinEdges)[0])#10)
 axs[1].set_title(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
-
-axs[2].plot( range(number_samples), trace, color = 'k')
-axs[2].set_ylabel(r'$\pi(\bm{\theta}|\bm{y})$')
-axs[2].set_xlabel('number of samples')
+axs[2].bar(delBinEdges[1::],delHist*np.diff(delBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(delBinEdges)[0])#10)
+#axs[2].plot( range(number_samples), trace, color = 'k')
+#axs[2].set_ylabel(r'$\pi(\bm{\theta}|\bm{y})$')
+#axs[2].set_xlabel('number of samples')
 #plt.savefig('HistoPlotMain.png')
 plt.show()
 ##
@@ -799,20 +713,15 @@ around lam0 from gmres = '''
 B = (ATA + lam0 * L)
 
 LowTri = np.linalg.cholesky(B)
-UpTri = LowTri.T
-# check if L L.H = B
-B_inv_A_trans_y0 = lu_solve(LowTri, UpTri,  ATy[0::, 0])
+
+B_inv_A_trans_y0 = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
 
 
 
 
+LowTri = np.linalg.cholesky(B)
 
-B_inv_L = np.zeros(np.shape(B))
-
-for i in range(len(B)):
-    LowTri = np.linalg.cholesky(B)
-    UpTri = LowTri.T
-    B_inv_L[:, i] = lu_solve(LowTri, UpTri,  L[:, i])
+B_inv_L = scy.linalg.cho_solve((LowTri,True),  L)
 
 #relative_tol_L = rtol
 #CheckB_inv_L = np.matmul(B, B_inv_L)
@@ -857,10 +766,18 @@ delta_lam = lambBinEdges - lam0
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2, f_0_3,f_0_4, f_0_5, f_0_6)
 taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2,f_0_3,0, 0, 0)
 g_0 = g(A, L,lam0)
-#delG = (np.log(g(A, L, 1e4)) - np.log(g_0))/ (np.log(1e4) - np.log(lam0))
-GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + np.log(g_0)
-taylorG = np.exp(GApprox)
+lamMax = max(lambBinEdges)
+delG = (g(A, L, lamMax) - g(A, L,min(lambBinEdges)))/ (np.log(lamMax) - np.log(min(lambBinEdges)))
 
+GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + g_0
+taylorG = GApprox
+# fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)#, dpi = dpi)
+# axs.plot(lam,f_func, color = fCol, zorder = 2, linestyle=  'dotted')
+# ax2 = axs.twinx() # ax1 and ax2 share y-axis
+# ax2.plot(lam,g_func, color = gCol, zorder = 2, linestyle=  'dashed')
+# axs.set_xscale('log')
+# axs.set_yscale('log')
+# plt.show(block =True)
 
 fig,axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)#, dpi = dpi)
 
@@ -919,7 +836,7 @@ axin2.plot(lambBinEdges, taylorG, color = 'k', linewidth = 1, zorder = 2 )
 ax2.plot(lambBinEdges, taylorG , color = 'k', linewidth = 1, zorder = 1)
 ax2.axvline( minimum[1], color = gmresCol)
 
-axin2.set_ylim(0.8 * taylorG[0],1.05 * taylorG[-1])
+axin2.set_ylim(1.002*taylorG[0],0.995 * taylorG[-1])
 axin2.set_xlim(min(lambBinEdges),max(lambBinEdges))
 axin2.set_xscale('log')
 
@@ -940,9 +857,9 @@ ax2.spines['left'].set_visible(False)
 axs.legend(np.append(lines2,lines),np.append(lab2,lab0), loc = 'lower right')
 
 axins.set_xlim(min(lambBinEdges),max(lambBinEdges))
-fig.savefig('f_and_g_paper.png', bbox_inches='tight')
-plt.show()
-
+#fig.savefig('f_and_g_paper.png', bbox_inches='tight')
+plt.show(block = True)
+##
 # print max rel F taylor F error
 f_Checkfunc = np.zeros(len(lambBinEdges))
 for j in range(len(lambBinEdges)):
@@ -951,9 +868,7 @@ for j in range(len(lambBinEdges)):
 
     #B_inv_A_trans_y, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
     LowTri = np.linalg.cholesky(B)
-    UpTri = LowTri.T
-    # check if L L.H = B
-    B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    B_inv_A_trans_y = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
 
     f_Checkfunc[j] = f(ATy, y, B_inv_A_trans_y)
 
@@ -999,8 +914,7 @@ for p in range(paraSamp):
     # if exitCode != 0:
     #     print(exitCode)
     LowTri = np.linalg.cholesky(SetB)
-    UpTri = LowTri.T
-    B_inv_A_trans_y = lu_solve(LowTri, UpTri, RandX)
+    B_inv_A_trans_y = scy.linalg.cho_solve((LowTri,True),  RandX)
 
     #CheckB_inv = np.matmul(SetB, SetB_inv)
     #print(np.linalg.norm(np.eye(len(SetB)) - CheckB_inv) / np.linalg.norm(np.eye(len(SetB))) < tol)
@@ -1029,16 +943,13 @@ def postMeanAndVar(margPDF, Grid, ATy, ATA, L, Var):
         SetB = ATA + SetLambda * L
 
         LowTri = np.linalg.cholesky(SetB)
-        UpTri = LowTri.T
-        B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+        B_inv_A_trans_y = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
 
         MargResults[p, :] = B_inv_A_trans_y * margPDF[1,p]
 
         if Var == True:
             LowTri = np.linalg.cholesky(SetB)
-            UpTri = LowTri.T
-            for i in range(len(SetB)):
-                B_inv[p, :, i] = lu_solve(LowTri, UpTri,IDiag[:, i])
+            B_inv[p] = scy.linalg.cho_solve((LowTri,True),  IDiag)
             VarB[p] = B_inv[p] *  margPDF[1,p]
             gamInt[p] = 1/SetGamma *  margPDF[0,p]
 
@@ -1083,15 +994,27 @@ print('Post Mean in ' + str(MargTime) + ' s')
 
 print('Post Mean has ' + str(len(MargX[MargX <0]) ) + ' entries smaller than zeror')
 
+##
+"Fitting prob distr to hyperparameter histogram"
 
+def skew_norm_pdf(x,mean=0,w=1,skewP=0, scale = 0.1):
+    # adapated from:
+    # http://stackoverflow.com/questions/5884768/skew-normal-distribution-in-scipy
+    t = (x-mean) / w
+    return 2.0 * w * scy.stats.norm.pdf(t) * scy.stats.norm.cdf(skewP*t) * scale
+
+
+
+
+print('bla')
 
 ##
 # '''
 # L-curve refularoization
 # '''
 
-lamLCurve = np.logspace(1,7,200)
-lamLCurve = np.logspace(0,7,200)
+#lamLCurve = np.logspace(1,7,200)
+lamLCurve = np.logspace(-6,-1,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
@@ -1100,22 +1023,16 @@ xTLxCurve2 = np.zeros(len(lamLCurve))
 for i in range(len(lamLCurve)):
     B = (ATA + lamLCurve[i] * L)
 
-    #x, exitCode = gmres(B, ATy[0::, 0], rtol=tol)
     LowTri = np.linalg.cholesky(B)
-    UpTri = LowTri.T
-    x = lu_solve(LowTri, UpTri, ATy[0::, 0])
-    # if exitCode != 0:
-    #     print(exitCode)
-    #     NormLCurve[i] = np.nan
-    #     xTLxCurve[i] = np.nan
-    #
-    # else:
+
+    x = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
+
     NormLCurve[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
     xTLxCurve[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
 
 
 startTime  = time.time()
-lamLCurveZoom = np.logspace(0,7,200)
+#lamLCurveZoom = np.logspace(0,7,200)
 lamLCurveZoom = np.copy(lamLCurve)
 #lamLCurveZoom = np.logspace(-5,15,200)
 NormLCurveZoom = np.zeros(len(lamLCurveZoom))
@@ -1125,7 +1042,7 @@ for i in range(len(lamLCurveZoom)):
 
     LowTri = np.linalg.cholesky(B)
     UpTri = LowTri.T
-    x = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    x = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
 
     NormLCurveZoom[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
     xTLxCurveZoom[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
@@ -1154,8 +1071,7 @@ print('Elbow: ', lam_opt_elbow)
 B = (ATA + lam_opt * L)
 #x_opt, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
 LowTri = np.linalg.cholesky(B)
-UpTri = LowTri.T
-x_opt = lu_solve(LowTri, UpTri, ATy[0::, 0])
+x_opt = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
 LNormOpt = np.linalg.norm( np.matmul(A,x_opt) - y[0::,0])#, ord = 2)
 xTLxOpt = np.sqrt(np.matmul(np.matmul(x_opt.T, L), x_opt))
 
@@ -1204,7 +1120,7 @@ axs.set_xlabel(r'$|| \bm{Ax} - \bm{y}||$')
 handles, labels = axs.get_legend_handles_labels()
 
 axs.legend(handles = [handles[0],handles[1],handles[2]],loc = 'upper right',  frameon =True)
-plt.savefig('LCurve.png')
+#plt.savefig('LCurve.png')
 #plt.savefig('LCurve.png')
 #tikzplotlib.save("LCurve.tex")
 plt.show(block = True)
@@ -1214,7 +1130,7 @@ plt.show(block = True)
 #tikzplotlib.save("LCurve.pgf")
 print('bla')
 
-np.savetxt('RegSol.txt',x_opt /(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst), fmt = '%.15f', delimiter= '\t')
+#np.savetxt('RegSol.txt',x_opt /(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst), fmt = '%.15f', delimiter= '\t')
 ##
 
 
@@ -1269,7 +1185,7 @@ axs[0].set_xlabel(r'the noise precision $\gamma$')
 
 axs[1].bar(lambBinEdges[1::],lambHist*np.diff(lambBinEdges)[0], color = MTCCol, zorder = 0,width = np.diff(lambBinEdges)[0])#10)
 axs[1].set_title(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
-plt.savefig('HistoPlot.png')
+#plt.savefig('HistoPlot.png')
 plt.show()
 
 ##
@@ -1299,7 +1215,7 @@ delX = deltBinEdges[1::]
 normConst = np.sum(np.exp( -betaD * delX ))
 axT.plot(delX,np.round(np.exp( -betaD *  delX ))/normConst )
 
-plt.savefig('AllHistoPlot.png')
+#plt.savefig('AllHistoPlot.png')
 plt.show()
 
 ###
@@ -1307,7 +1223,7 @@ plt.close('all')
 
 TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
 
-XOPT = x_opt /(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst)
+XOPT = x_opt /theta_scale_O3
 postCol = 'C1'
 FirstSamp = 100#len(y)
 Sampls = np.random.multivariate_normal(MargX, MargVar,size=FirstSamp)
@@ -1388,7 +1304,7 @@ ax1.xaxis.set_label_position('bottom')
 ax1.spines[:].set_visible(False)
 #ax2.spines['top'].set_color(pyTCol)
 #fig3.savefig('FirstRecRes.png')
-plt.show()
+plt.show(block= True)
 
 
 relErr = np.linalg.norm(MargX - VMR_O3)/np.linalg.norm(VMR_O3) * 100
@@ -1396,6 +1312,5 @@ relErr = np.linalg.norm(MargX - VMR_O3)/np.linalg.norm(VMR_O3) * 100
 
 print(f'relative Error: {relErr:.2f} %')
 
-Samp = Results[::15,:] / (num_mole * S[ind, 0] * f_broad * 1e-4 * scalingConst)
+Samp = Results[::15,:] / theta_scale_O3
 
-np.savetxt('14Samples.txt', Samp, fmt = '%.15f', delimiter= '\t')

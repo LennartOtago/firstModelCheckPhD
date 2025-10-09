@@ -1555,7 +1555,7 @@ print('bla')
 # '''
 
 #lamLCurve = np.logspace(1,7,200)
-lamLCurve = np.logspace(-7,-1,200)
+lamLCurve = np.logspace(-6,-1,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
