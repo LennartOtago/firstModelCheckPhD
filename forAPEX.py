@@ -407,14 +407,11 @@ coL = np.tril(np.triu(np.ones((len(VMR_O3)-1,len(VMR_O3))),0),+1)
 
 for i in range(0,len(VMR_O3)-1):
         coL[i,i] = -1
-np.savetxt('GraphLaplacian.txt', L, header = 'Graph Lalplacian', fmt = '%.15f', delimiter= '\t')
 #cholesky decomposition of L for W1 and v1
 lowC_L = scy.linalg.cholesky(L, lower = True)
 
 ##
 A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_angChosen,height_values,ObsHeight,R_Earth)
-np.savetxt('tang_heights_lin.txt',tang_heights_lin, fmt = '%.15f', delimiter= '\t')
-np.savetxt('A_lin_dx.txt',A_lin_dx, fmt = '%.15f', delimiter= '\t')
 
 A_lin = gen_sing_map(A_lin_dx, tang_heights_lin, height_values)
 AO3, theta_scale_O3 = composeAforO3(A_lin, temp_values, pressure_values, ind)
@@ -1008,6 +1005,90 @@ def skew_norm_pdf(x,mean=0,w=1,skewP=0, scale = 0.1):
 
 print('bla')
 
+
+## do grid
+
+def CurrMarg(lamb, gam,G, F, n, m, betaG, betaD):
+
+    return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gam) + 0.5 * G + 0.5 * gam * F +  ( betaD *  lamb * gam + betaG *gam)
+
+startTime  = time.time()
+n = len(height_values)
+m = len(tang_heights_lin)
+gridSize = 20
+lamGrid = np.linspace(min(lambdas), max(lambdas), gridSize)
+gamGrid = np.linspace(min(gammas), max(gammas), gridSize)
+margGrid = np.zeros((gridSize,gridSize))
+means = np.zeros((gridSize,len(height_values)))
+CoVars = np.zeros((gridSize,len(height_values),len(height_values)))
+I = np.eye(n)
+for i in range(0,gridSize):
+    #lambdas
+    B = (ATA + lamGrid[i] * L)
+    LowTri = np.linalg.cholesky(B)
+    means[i] = scy.linalg.cho_solve((LowTri, True), ATy[:, 0])
+    currF = f(ATy, y,means[i])
+    currG = 2* np.sum(np.log(np.diag(LowTri)))
+    CoVars[i] = scy.linalg.cho_solve((LowTri, True), I)
+    for j in range(0, gridSize):
+        #gammas
+        margGrid[i,j] = np.exp(-CurrMarg(lamGrid[i], gamGrid[j], currG, currF, n, m, betaG, betaD)-500)
+
+
+
+unnormLamMarg = np.sum(margGrid, 1)
+unnormGamMarg = np.sum(margGrid, 0)
+lamMarg = unnormLamMarg / np.sum(unnormLamMarg )
+gamMarg = unnormGamMarg / np.sum(unnormGamMarg)
+
+postMean = np.sum(lamMarg.reshape((gridSize,1)) * means, axis= 0)
+
+
+postCovar = np.zeros((gridSize,len(height_values),len(height_values)))
+for i in range(0,gridSize):
+    postCovar[i] = CoVars[i] * lamMarg[i]
+
+FinalPostCovar =  np.sum(postCovar, axis = 0) * np.sum(( gamMarg / gamGrid))
+
+
+FullPostTime = time.time() - startTime
+print('Elapsed Time to calc: ' + str(FullPostTime))
+
+
+##
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
+
+ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 1.5, markersize =7)
+
+line3 = ax1.plot(postMean,height_values[:,0], markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.',  label = r'$\text{E}_{\bm{x},\bm{\theta}|\bm{y}} [\bm{x}]$', markersize =3, linewidth =1)#, markerfacecolor = 'none'
+line3 = ax1.errorbar(postMean,height_values,  xerr = np.sqrt(np.diag(FinalPostCovar)), markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.', label = 'posterior mean ', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
+
+
+ax1.set_xlabel(r'ozone volume mixing ratio ')
+
+
+plt.show(block= True)
+n_bins = 20
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} )#, dpi = dpi)
+
+axs[0].hist(gammas, bins=n_bins)
+
+axT = axs[0].twinx()
+axT.plot(gamGrid,gamMarg)
+axT.set_ylim(0)
+axs[0].set_xlabel(r'the noise precision $\gamma$')
+axs[0].set_ylabel(r'the smoothnes parameter $\delta$')
+
+axs[1].hist(lambdas, bins=n_bins)
+axT = axs[1].twinx()
+axT.plot(lamGrid,lamMarg)
+axT.set_ylim(0)
+axs[1].set_title(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
+
+plt.show(block= True)
+
+
+
 ##
 # '''
 # L-curve refularoization
@@ -1030,7 +1111,7 @@ for i in range(len(lamLCurve)):
     NormLCurve[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
     xTLxCurve[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
 
-
+import kneed
 startTime  = time.time()
 #lamLCurveZoom = np.logspace(0,7,200)
 lamLCurveZoom = np.copy(lamLCurve)
@@ -1041,15 +1122,10 @@ for i in range(len(lamLCurveZoom)):
     B = (ATA + lamLCurveZoom[i] * L)
 
     LowTri = np.linalg.cholesky(B)
-    UpTri = LowTri.T
     x = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
 
     NormLCurveZoom[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
     xTLxCurveZoom[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
-
-
-
-import kneed
 
 # calculate and show knee/elbow
 kneedle = kneed.KneeLocator(NormLCurveZoom, xTLxCurveZoom, curve='convex', direction='decreasing', online = True, S = 1, interp_method="interp1d")
@@ -1267,6 +1343,10 @@ ax1.plot(XOPT, height_values[:,0], markerfacecolor = 'none', markeredgecolor = R
 
 line3 = ax1.plot(MargX,height_values[:,0], markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.',  label = r'$\text{E}_{\bm{x},\bm{\theta}|\bm{y}} [\bm{x}]$', markersize =3, linewidth =1)#, markerfacecolor = 'none'
 line3 = ax1.errorbar(MargX,height_values,  xerr = np.sqrt(np.diag(MargVar)), markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.', label = 'posterior mean ', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
+
+line3 = ax1.errorbar(postMean,height_values,  xerr = np.sqrt(np.diag(FinalPostCovar)), markeredgecolor ="r", color = "r" ,zorder=4, marker = '.', label = 'posterior mean ', markersize =3, linewidth =0.5, capsize = 3)#, markerfacecolor = 'none'
+
+
 
 #E$_{\mathbf{x},\mathbf{\theta}| \mathbf{y}}[h(\mathbf{x})]$
 # markersize = 6

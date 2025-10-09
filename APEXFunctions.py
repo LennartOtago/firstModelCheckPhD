@@ -6,7 +6,7 @@ import math
 import scipy as scy
 
 def f(ATy, y, B_inv_A_trans_y):
-    return np.matmul(y[0::,0].T, y[0::,0]) - np.matmul(ATy[0::,0].T,B_inv_A_trans_y)
+    return np.matmul(y[:,0].T, y[:,0]) - np.matmul(ATy[:,0].T,B_inv_A_trans_y)
 
 
 def orderOfMagnitude(number):
