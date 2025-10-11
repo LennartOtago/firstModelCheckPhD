@@ -1015,40 +1015,41 @@ def CurrMarg(lamb, gam,G, F, n, m, betaG, betaD):
 startTime  = time.time()
 n = len(height_values)
 m = len(tang_heights_lin)
-gridSize = 20
+gridSize = 50
 lamGrid = np.linspace(min(lambdas), max(lambdas), gridSize)
 gamGrid = np.linspace(min(gammas), max(gammas), gridSize)
 margGrid = np.zeros((gridSize,gridSize))
+unNormlamMarg = np.zeros(gridSize)
 means = np.zeros((gridSize,len(height_values)))
 CoVars = np.zeros((gridSize,len(height_values),len(height_values)))
+postCovar = np.zeros((gridSize,len(height_values),len(height_values)))
 I = np.eye(n)
 for i in range(0,gridSize):
     #lambdas
     B = (ATA + lamGrid[i] * L)
     LowTri = np.linalg.cholesky(B)
-    means[i] = scy.linalg.cho_solve((LowTri, True), ATy[:, 0])
-    currF = f(ATy, y,means[i])
+    currX = scy.linalg.cho_solve((LowTri, True), ATy[:, 0])
+    currF = f(ATy, y,currX)
     currG = 2* np.sum(np.log(np.diag(LowTri)))
     CoVars[i] = scy.linalg.cho_solve((LowTri, True), I)
-    for j in range(0, gridSize):
-        #gammas
-        margGrid[i,j] = np.exp(-CurrMarg(lamGrid[i], gamGrid[j], currG, currF, n, m, betaG, betaD)-500)
+    # gammas
+    margGrid[i, :] = np.exp(-CurrMarg(lamGrid[i], gamGrid, currG, currF, n, m, betaG, betaD) - 500)
+    unNormlamMarg[i] = np.sum(margGrid[i, :])
+
+    postCovar[i] = CoVars[i] * unNormlamMarg[i]
+    means[i] =  currX * unNormlamMarg[i]
 
 
 
-unnormLamMarg = np.sum(margGrid, 1)
 unnormGamMarg = np.sum(margGrid, 0)
-lamMarg = unnormLamMarg / np.sum(unnormLamMarg )
 gamMarg = unnormGamMarg / np.sum(unnormGamMarg)
+zLam = np.sum(unNormlamMarg)
+postMean = np.sum(means, axis= 0)/zLam
 
-postMean = np.sum(lamMarg.reshape((gridSize,1)) * means, axis= 0)
+lamMarg = unNormlamMarg/zLam
 
 
-postCovar = np.zeros((gridSize,len(height_values),len(height_values)))
-for i in range(0,gridSize):
-    postCovar[i] = CoVars[i] * lamMarg[i]
-
-FinalPostCovar =  np.sum(postCovar, axis = 0) * np.sum(( gamMarg / gamGrid))
+FinalPostCovar =  np.sum(postCovar, axis = 0)/zLam * np.sum( gamMarg / gamGrid)
 
 
 FullPostTime = time.time() - startTime
@@ -1095,7 +1096,7 @@ plt.show(block= True)
 # '''
 
 #lamLCurve = np.logspace(1,7,200)
-lamLCurve = np.logspace(-6,-1,200)
+lamLCurve = np.logspace(-7,-1,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
@@ -1124,7 +1125,7 @@ for i in range(len(lamLCurveZoom)):
     LowTri = np.linalg.cholesky(B)
     x = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
 
-    NormLCurveZoom[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
+    NormLCurveZoom[i] = np.linalg.norm( np.matmul(A,x) - y[:,0])
     xTLxCurveZoom[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
 
 # calculate and show knee/elbow
