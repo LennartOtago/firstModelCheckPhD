@@ -593,16 +593,32 @@ relMapErrDat = 4
 #Results = np.random.multivariate_normal(VMR_O3[:,0], CondVar,size=FirstSamp)
 currMap = np.eye(len(y))
 RealMap, relMapErr, LinDataY, NonLinDataY, testO3 = genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, gamma0, MargInteg, CondVar, AscalConstKmToCm, A_lin, temp_values, pressure_values, ind, scalingConst, relMapErrDat, wvnmbr, S, E, g_doub_prime, g_prime)
+np.savetxt('RealMap.txt',RealMap, fmt = '%.30f', delimiter= '\t')
+
 
 randInt = np.random.randint(len(y))
 
-np.savetxt('RealMap.txt',RealMap, fmt = '%.30f', delimiter= '\t')
+
 
 linTestDat = np.matmul(A,testO3[randInt] * theta_scale_O3)
 MapLinTestDat = np.matmul( RealMap @  A,testO3[randInt] * theta_scale_O3)
-nonLinTestDat = np.matmul( A/2 * nonLinA,testO3[randInt] * theta_scale_O3)
+testNonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, testO3[randInt].reshape((n,1)), wvnmbr, S, E, g_doub_prime, g_prime)
+nonLinTestDat = np.matmul( A/2 * testNonLinA,testO3[randInt] * theta_scale_O3)
 
 
+
+MapLinTestDat = np.matmul( RealMap @  A, MargInteg * theta_scale_O3)
+testNonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, MargInteg.reshape((n,1)), wvnmbr, S, E, g_doub_prime, g_prime)
+nonLinTestDat = np.matmul( A/2 * testNonLinA, MargInteg * theta_scale_O3)
+
+testErr = np.sqrt(np.sum((MapLinTestDat - nonLinTestDat)**2)/np.sum((nonLinTestDat)**2))
+
+#testErr = np.sqrt(np.sum((LinDataY - NonLinDataY)**2)/np.sum((NonLinDataY)**2))
+
+print(testErr)
+print('bla')
+
+##
 # ## test inverse and mach learning
 # #get inverse of linearDaty
 # testDat = 1000#SpecNumMeas

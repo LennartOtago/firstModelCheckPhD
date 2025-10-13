@@ -110,6 +110,7 @@ def genDataFindandtestMap(currMap, tang_heights_lin, A_lin_dx,  height_values, g
     relMapErr = np.copy(relMapErrDat)
     while np.max(relMapErr) >= relMapErrDat:
         Results = np.random.multivariate_normal(newCondMean, CondVar, size=SpecNumMeas)
+        Results[0] = newCondMean
         #Results[Results<0] = 0
         #for i in range(len(Results)):
             #print(i)
