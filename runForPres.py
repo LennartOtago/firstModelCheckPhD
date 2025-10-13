@@ -607,9 +607,9 @@ nonLinTestDat = np.matmul( A/2 * testNonLinA,testO3[randInt] * theta_scale_O3)
 
 
 
-MapLinTestDat = np.matmul( RealMap @  A, MargInteg * theta_scale_O3)
+MapLinTestDat = np.matmul( RealMap @  A, MargInteg.reshape((n,1)) * theta_scale_O3)
 testNonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, MargInteg.reshape((n,1)), wvnmbr, S, E, g_doub_prime, g_prime)
-nonLinTestDat = np.matmul( A/2 * testNonLinA, MargInteg * theta_scale_O3)
+nonLinTestDat = np.matmul( A/2 * testNonLinA, MargInteg.reshape((n,1)) * theta_scale_O3)
 
 testErr = np.sqrt(np.sum((MapLinTestDat - nonLinTestDat)**2)/np.sum((nonLinTestDat)**2))
 
@@ -695,6 +695,13 @@ plt.show()
 ##
 
 DatCol =  'gray'
+samplO3 = np.random.multivariate_normal(MargInteg, CondVar).reshape((n,1))
+
+MapLinTestDat = np.matmul( RealMap @  A, samplO3 * theta_scale_O3)
+testNonLinA = calcNonLin(tang_heights_lin, A_lin_dx,  height_values, pressure_values, ind, temp_values, samplO3, wvnmbr, S, E, g_doub_prime, g_prime)
+nonLinTestDat = np.matmul( A/2 * testNonLinA, samplO3 * theta_scale_O3)
+
+
 
 fig4, ax4 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 ax4.plot(linTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'linear $\bm{A}_L\bm{x}$', markersize = 18 , zorder = 0, color = DatCol )
