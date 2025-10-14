@@ -529,24 +529,121 @@ ax1.set_yscale('log')
 plt.show(block = True)
 ##
 
-# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
-# ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
-#
-# for i in range(0, 1000):
-#     O3TrySampl =np.random.multivariate_normal(oldMargInteg, CondVar)
-#     ax1.plot(O3TrySampl, height_values, c = "k", linewidth=0.1)
-#     O3TrySampl =np.random.multivariate_normal(oldMargInteg, Prec_inv)
-#     ax1.plot(O3TrySampl, height_values, c = "r", linewidth=0.1)
-#
-# ax1.set_xlabel(r'ozone volume mixing ratio ')
-# ax1.set_ylabel('height in km')
-# handles, labels = ax1.get_legend_handles_labels()
-# ax1.legend(loc = 'upper right')
-# ax1.set_ylim([height_values[0], height_values[-1]])
-#
-#
-# plt.show(block = True)
+## regularization
+'''L-curve refularoization
+'''
 
+lamLCurve = np.logspace(-7,-1,200)
+#lamLCurve = np.linspace(1e-15,1e3,200)
+
+NormLCurve = np.zeros(len(lamLCurve))
+xTLxCurve = np.zeros(len(lamLCurve))
+xTLxCurve2 = np.zeros(len(lamLCurve))
+for i in range(len(lamLCurve)):
+    B = (ATA + lamLCurve[i] * L)
+    #x, exitCode = gmres(B, ATy[0::, 0], rtol=tol)
+    LowTri = np.linalg.cholesky(B)
+    UpTri = LowTri.T
+    x = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    NormLCurve[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
+    xTLxCurve[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
+
+import kneed
+startTime  = time.time()
+#lamLCurveZoom = np.logspace(0,7,200)
+lamLCurveZoom = np.copy(lamLCurve )
+NormLCurveZoom = np.zeros(len(lamLCurveZoom))
+xTLxCurveZoom = np.zeros(len(lamLCurveZoom))
+for i in range(len(lamLCurveZoom)):
+    B = (ATA + lamLCurveZoom[i] * L)
+    # LowTri = np.linalg.cholesky(B)
+    # UpTri = LowTri.T
+    # x = lu_solve(LowTri, UpTri, ATy[0::, 0])
+    # lu, piv = scy.linalg.lu_factor(B)
+    # x = scy.linalg.lu_solve((lu, piv), ATy[:, 0])
+    LowTri = np.linalg.cholesky(B)
+    # ForwSub = np.linalg.solve(LowTri, ATy[:,0])
+    # x = np.linalg.solve(LowTri.T, ForwSub)
+    x = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
+
+    NormLCurveZoom[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
+    xTLxCurveZoom[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
+
+
+
+# calculate and show knee/elbow
+kneedle = kneed.KneeLocator(NormLCurveZoom, xTLxCurveZoom, curve='convex', direction='decreasing', online = True, S = 1, interp_method="interp1d")
+knee_point = kneedle.knee
+
+elapsedtRegTime = time.time() - startTime
+print('Elapsed Time to find oprimal Reg Para: ' + str(elapsedtRegTime))
+#knee_point = kneedle.knee_y #
+
+lam_opt = lamLCurveZoom[ np.where(NormLCurveZoom == knee_point)[0][0]]
+print('Knee: ', lam_opt) #print('Elbow: ', elbow_point)
+np.savetxt('lam_opt.txt',[lam_opt], fmt = '%.15f')
+
+elbow_point = kneedle.elbow
+
+lam_opt_elbow = lamLCurveZoom[ np.where(NormLCurveZoom == knee_point)[0][0]]
+
+print('Elbow: ', lam_opt_elbow)
+
+B = (ATA + lam_opt * L)
+# #x_opt, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
+# LowTri = np.linalg.cholesky(B)
+# UpTri = LowTri.T
+# x_opt = lu_solve(LowTri, UpTri, ATy[0::, 0])
+# lu, piv = scy.linalg.lu_factor(B)
+# x_opt = scy.linalg.lu_solve((lu, piv), ATy[:, 0])
+
+LowTri = np.linalg.cholesky(B)
+ForwSub = np.linalg.solve(LowTri, ATy[:, 0])
+x_opt = np.linalg.solve(LowTri.T, ForwSub)
+
+LNormOpt = np.linalg.norm( np.matmul(A,x_opt) - y[0::,0])#, ord = 2)
+xTLxOpt = np.sqrt(np.matmul(np.matmul(x_opt.T, L), x_opt))
+
+regCol = 'C3'
+
+#generate samples and calc norms
+sampSize = 100
+xTLxRes = np.zeros(sampSize)
+NormRes = np.zeros(sampSize)
+
+for i in range(0,sampSize):
+    currSamp = np.random.multivariate_normal(MargInteg* theta_scale_O3,CondVar * theta_scale_O3 ** 2)
+
+    xTLxRes[i] =  np.sqrt(np.matmul(np.matmul(currSamp.T, L), currSamp))
+    NormRes[i] = np.linalg.norm( np.matmul(A,currSamp) - y[0::,0])
+
+currX = MargInteg* theta_scale_O3
+NormMargRes = np.linalg.norm( np.matmul(A,currX) - y[0::,0])
+xTLxMargRes = np.sqrt(np.matmul(np.matmul(currX.T, L), currX))
+
+
+
+fig, axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction) ,tight_layout = True)
+axs.scatter(NormLCurveZoom,xTLxCurveZoom, zorder = 0, color =  DatCol, s = 3.5, marker ='s', label = 'reg. solution')
+axs.scatter(NormRes, xTLxRes, color = ResCol, s = 3, marker = "+",label = r'posterior samples ')# ,mfc = 'black' , markeredgecolor='r',markersize=10,linestyle = 'None')
+axs.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 50, label = 'posterior mean',zorder=2)
+axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'max. curvature', s= 50,zorder=1)
+#axs.add_patch(mpl.patches.Rectangle((NormLCurveZoom[0], xTLxCurveZoom[-1]), abs(NormLCurveZoom[-1]-NormLCurveZoom[0]), abs(xTLxCurveZoom[-1]-xTLxCurveZoom[0]),facecolor='none'))
+
+axs.set_xscale('log')
+axs.set_yscale('log')
+axs.set_ylabel(r'$ \sqrt{\bm{x}^T \bm{L}\bm{x}}$', style='italic')
+axs.set_xlabel(r'$\lVert \bm{Ax} - \bm{y}\rVert_{L^2}$')
+handles, labels = axs.get_legend_handles_labels()
+axs.legend()
+#axs.legend(handles = [handles[0],handles[1],handles[2]],loc = 'upper right',  frameon =True)
+plt.savefig('LCurvePhD.png', dpi = dpi)
+
+plt.show(block = True)
+
+print('bla')
+
+np.savetxt('RegSol.txt',x_opt / theta_scale_O3, fmt = '%.15f', delimiter= '\t')
 ##
 TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
 
@@ -682,6 +779,8 @@ ax1.plot(testO3[randInt], height_values, markeredgecolor=binCol, color=binCol, z
 for i in range(1,FirstSamp):
     ax1.plot(testO3[i], height_values, markeredgecolor=binCol, color=binCol, zorder=1, marker='.', markersize=4,
              linewidth=0.75, alpha = alpha)
+
+ax1.plot(x_opt / theta_scale_O3,height_values[:,0],marker = 'v',markerfacecolor = RegCol, color = RegCol , label = r'reg. solution', zorder=2 ,linewidth = 2, markersize =8)
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
 
@@ -1070,121 +1169,7 @@ plt.savefig('FinalHistoPlot.png', dpi = dpi)
 plt.show()
 
 
-## regularization
-'''L-curve refularoization
-'''
 
-lamLCurve = np.logspace(-7,-1,200)
-#lamLCurve = np.linspace(1e-15,1e3,200)
-
-NormLCurve = np.zeros(len(lamLCurve))
-xTLxCurve = np.zeros(len(lamLCurve))
-xTLxCurve2 = np.zeros(len(lamLCurve))
-for i in range(len(lamLCurve)):
-    B = (ATA + lamLCurve[i] * L)
-    #x, exitCode = gmres(B, ATy[0::, 0], rtol=tol)
-    LowTri = np.linalg.cholesky(B)
-    UpTri = LowTri.T
-    x = lu_solve(LowTri, UpTri, ATy[0::, 0])
-    NormLCurve[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
-    xTLxCurve[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
-
-import kneed
-startTime  = time.time()
-#lamLCurveZoom = np.logspace(0,7,200)
-lamLCurveZoom = np.copy(lamLCurve )
-NormLCurveZoom = np.zeros(len(lamLCurveZoom))
-xTLxCurveZoom = np.zeros(len(lamLCurveZoom))
-for i in range(len(lamLCurveZoom)):
-    B = (ATA + lamLCurveZoom[i] * L)
-    # LowTri = np.linalg.cholesky(B)
-    # UpTri = LowTri.T
-    # x = lu_solve(LowTri, UpTri, ATy[0::, 0])
-    # lu, piv = scy.linalg.lu_factor(B)
-    # x = scy.linalg.lu_solve((lu, piv), ATy[:, 0])
-    LowTri = np.linalg.cholesky(B)
-    # ForwSub = np.linalg.solve(LowTri, ATy[:,0])
-    # x = np.linalg.solve(LowTri.T, ForwSub)
-    x = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
-
-    NormLCurveZoom[i] = np.linalg.norm( np.matmul(A,x) - y[0::,0])
-    xTLxCurveZoom[i] = np.sqrt(np.matmul(np.matmul(x.T, L), x))
-
-
-
-# calculate and show knee/elbow
-kneedle = kneed.KneeLocator(NormLCurveZoom, xTLxCurveZoom, curve='convex', direction='decreasing', online = True, S = 1, interp_method="interp1d")
-knee_point = kneedle.knee
-
-elapsedtRegTime = time.time() - startTime
-print('Elapsed Time to find oprimal Reg Para: ' + str(elapsedtRegTime))
-#knee_point = kneedle.knee_y #
-
-lam_opt = lamLCurveZoom[ np.where(NormLCurveZoom == knee_point)[0][0]]
-print('Knee: ', lam_opt) #print('Elbow: ', elbow_point)
-np.savetxt('lam_opt.txt',[lam_opt], fmt = '%.15f')
-
-elbow_point = kneedle.elbow
-
-lam_opt_elbow = lamLCurveZoom[ np.where(NormLCurveZoom == knee_point)[0][0]]
-
-print('Elbow: ', lam_opt_elbow)
-
-B = (ATA + lam_opt * L)
-# #x_opt, exitCode = gmres(B, ATy[0::, 0], rtol=tol, restart=25)
-# LowTri = np.linalg.cholesky(B)
-# UpTri = LowTri.T
-# x_opt = lu_solve(LowTri, UpTri, ATy[0::, 0])
-# lu, piv = scy.linalg.lu_factor(B)
-# x_opt = scy.linalg.lu_solve((lu, piv), ATy[:, 0])
-
-LowTri = np.linalg.cholesky(B)
-ForwSub = np.linalg.solve(LowTri, ATy[:, 0])
-x_opt = np.linalg.solve(LowTri.T, ForwSub)
-
-LNormOpt = np.linalg.norm( np.matmul(A,x_opt) - y[0::,0])#, ord = 2)
-xTLxOpt = np.sqrt(np.matmul(np.matmul(x_opt.T, L), x_opt))
-
-regCol = 'C3'
-
-#generate samples and calc norms
-sampSize = 100
-xTLxRes = np.zeros(sampSize)
-NormRes = np.zeros(sampSize)
-
-for i in range(0,sampSize):
-    currSamp = np.random.multivariate_normal(MargInteg* theta_scale_O3,CondVar * theta_scale_O3 ** 2)
-
-    xTLxRes[i] =  np.sqrt(np.matmul(np.matmul(currSamp.T, L), currSamp))
-    NormRes[i] = np.linalg.norm( np.matmul(A,currSamp) - y[0::,0])
-
-currX = MargInteg* theta_scale_O3
-NormMargRes = np.linalg.norm( np.matmul(A,currX) - y[0::,0])
-xTLxMargRes = np.sqrt(np.matmul(np.matmul(currX.T, L), currX))
-
-
-
-fig, axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction) ,tight_layout = True)
-axs.scatter(NormLCurveZoom,xTLxCurveZoom, zorder = 0, color =  DatCol, s = 3.5, marker ='s', label = 'reg. solution')
-axs.scatter(NormRes, xTLxRes, color = ResCol, s = 3, marker = "+",label = r'posterior samples ')# ,mfc = 'black' , markeredgecolor='r',markersize=10,linestyle = 'None')
-axs.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 50, label = 'posterior mean',zorder=2)
-axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'max. curvature', s= 50,zorder=1)
-#axs.add_patch(mpl.patches.Rectangle((NormLCurveZoom[0], xTLxCurveZoom[-1]), abs(NormLCurveZoom[-1]-NormLCurveZoom[0]), abs(xTLxCurveZoom[-1]-xTLxCurveZoom[0]),facecolor='none'))
-
-axs.set_xscale('log')
-axs.set_yscale('log')
-axs.set_ylabel(r'$ \sqrt{\bm{x}^T \bm{L}\bm{x}}$', style='italic')
-axs.set_xlabel(r'$\lVert \bm{Ax} - \bm{y}\rVert_{L^2}$')
-handles, labels = axs.get_legend_handles_labels()
-axs.legend()
-#axs.legend(handles = [handles[0],handles[1],handles[2]],loc = 'upper right',  frameon =True)
-plt.savefig('LCurvePhD.png', dpi = dpi)
-
-plt.show(block = True)
-
-print('bla')
-
-np.savetxt('RegSol.txt',x_opt / theta_scale_O3, fmt = '%.15f', delimiter= '\t')
 ##
 # testInd = 180
 # print(xTLxCurveZoom[testInd])
@@ -1263,7 +1248,6 @@ ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color
 #line3 = ax1.plot(MargInteg,height_values[:,0], markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.',  label = r'$\text{E}_{\mathbf{x},\mathbf{\theta}|\mathbf{y}} [\mathbf{x}]$', markersize =3, linewidth =1)#, markerfacecolor = 'none'
 line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr =3* np.sqrt(np.diag(CondVar)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
 ax1.errorbar(MargInteg,height_values[:,0],  yerr = np.zeros(len(height_values)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', label = r'posterior $\mu \pm 3\sigma$ ', markersize =3, linewidth =1, capsize = 3)
-ax1.plot(x_opt / theta_scale_O3,height_values[:,0],marker = 'v',markerfacecolor = RegCol, color = RegCol , label = r'reg. solution', zorder=2 ,linewidth = 2, markersize =8)
 
 line3 = ax1.errorbar(testTruncMean,height_values[:,0], xerr = np.sqrt(testTruncVar), markeredgecolor =postCol, color = postCol ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)
 for i in range(1,10):

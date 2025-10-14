@@ -312,12 +312,18 @@ meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
 b = 0.3
 meas_ang1 = np.array(np.exp(b * np.linspace(0,len(meas_ang)-1 ,len(meas_ang))))
 meas_ang1 = np.flip(meas_ang[-1] - (meas_ang[-1]-meas_ang[0]) * meas_ang1/np.max(meas_ang1))
+
+meas_ang1 =np.array(-1/ (1.25 ** np.linspace(0,len(meas_ang)-1 ,len(meas_ang)))  ) *  (MaxAng[0]-MinAng[0]) + MaxAng[0]
 A_lin_dx1, tang_heights_lin1, extraHeight = gen_forward_map(meas_ang1,height_values,ObsHeight,R_Earth)
+
 #ExpDecSingSNormal
 b = -0.3
 meas_ang2 = np.array(np.exp(b * np.linspace(0,len(meas_ang)-1 ,len(meas_ang))))
 meas_ang2 = np.flip(meas_ang[0] + (meas_ang[-1]-meas_ang[0]) * meas_ang2/np.max(meas_ang2))
+
+meas_ang2 =(np.array(1.25 ** np.linspace(0,len(meas_ang)-1 ,len(meas_ang))) / 1.25 **(len(meas_ang)-1)  ) * 0.99* (MaxAng[0]-MinAng[0]) + MinAng[0]
 A_lin_dx2, tang_heights_lin2, extraHeight = gen_forward_map(meas_ang2,height_values,ObsHeight,R_Earth)
+
 #SingSmore
 pointAcc = 0.00075 / 2
 meas_ang3 = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
@@ -351,13 +357,15 @@ A_lin_dx, tang_heights_linNormal, extraHeight = gen_forward_map(meas_angNormal,h
 
 
 A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_angChosen,height_values,ObsHeight,R_Earth)
-#A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_angNormal,height_values,ObsHeight,R_Earth)
+#A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_ang2,height_values,ObsHeight,R_Earth)
 SpecNumMeas = len(tang_heights_lin)
 m = SpecNumMeas
 np.savetxt('tang_heights_lin.txt',tang_heights_lin, fmt = '%.15f', delimiter= '\t')
 np.savetxt('A_lin_dx.txt',A_lin_dx, fmt = '%.15f', delimiter= '\t')
 
 A_lin = gen_sing_map(A_lin_dx, tang_heights_lin, height_values)
+
+#tang_heights_linNormal[:-1]- tang_heights_linNormal[1:]
 
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
 #ax1.scatter(range(len(meas_ang)),meas_ang1, label = 'case 1')
@@ -694,7 +702,7 @@ plt.savefig('MiddleVecA.png', dpi = dpi)
 ##
 np.allclose(A, U[:, :len(SingS)] @ np.diag(SingS) @ Vh[:len(SingS),:])
 
-#np.savetxt('SingSfewer.txt', SingS, fmt = '%.30f', delimiter = '\t')
+#np.savetxt('ExpDecSingSNormal.txt', SingS, fmt = '%.30f', delimiter = '\t')
 
 ExpIncSingSNormal = np.loadtxt('ExpIncSingSNormal.txt')
 ExpDecSingSNormal = np.loadtxt('ExpDecSingSNormal.txt')
@@ -713,7 +721,7 @@ ax1.axhline(max(SingS)/150, linestyle = '--', color = 'k', linewidth = 0.75)
 ax1.axhline(min(SingS), linestyle = '--', color = 'k', linewidth = 0.75)
 ax1.text(0.8 , 1.3*max(SingS)/150, r'SNR $\approx 150$', transform=ax1.get_yaxis_transform())
 
-ax1.text(0.01, 1.2*min(SingS), rf'SNR $\approx {(max(SingS)/min(SingS)):1.0e}$', transform=ax1.get_yaxis_transform())
+ax1.text(0.375, 0.25*min(SingS), rf'SNR $\approx {(max(SingS)/min(SingS)):1.0e}$', transform=ax1.get_yaxis_transform())
 ax1.set_yscale('log')
 ax1.set_xlim(0.01)
 ax1.set_ylabel(r'singular values of $\bm{A}$ at height')
