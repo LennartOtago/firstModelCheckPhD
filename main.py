@@ -306,6 +306,7 @@ MinAng = np.arcsin((height_values[0] + R_Earth) / (R_Earth + ObsHeight))
 
 
 ##
+
 pointAcc = 0.00075#0.00045
 meas_ang = np.array(np.arange(MinAng[0], MaxAng[0], pointAcc))
 #ExpIncSingSNormal
@@ -313,7 +314,8 @@ b = 0.3
 meas_ang1 = np.array(np.exp(b * np.linspace(0,len(meas_ang)-1 ,len(meas_ang))))
 meas_ang1 = np.flip(meas_ang[-1] - (meas_ang[-1]-meas_ang[0]) * meas_ang1/np.max(meas_ang1))
 
-meas_ang1 =np.array(-1/ (1.25 ** np.linspace(0,len(meas_ang)-1 ,len(meas_ang)))  ) *  (MaxAng[0]-MinAng[0]) + MaxAng[0]
+meas_ang1 =np.array(-1/ (1.25 ** np.linspace(0,len(meas_ang)-1 ,len(meas_ang)))  ) *  (MaxAng[0] - MinAng[0]) + MaxAng[0]
+meas_ang1 = np.copy(meas_ang1)
 A_lin_dx1, tang_heights_lin1, extraHeight = gen_forward_map(meas_ang1,height_values,ObsHeight,R_Earth)
 
 #ExpDecSingSNormal
@@ -398,6 +400,35 @@ print('Distance through layers check: ' + str(np.allclose( sum(A_lin_dx.T,0), to
 # ax1.set_yscale('log')
 #
 # plt.show(block = True)
+##
+MaxAngTry = MaxAng[0] - MinAng[0]
+meas_ang1 =np.array(-1/ (1.25 ** np.linspace(0,len(meas_ang)-1 ,len(meas_ang)))  ) * MaxAngTry + MaxAngTry
+meas_ang2 =(np.array(1.25 ** np.linspace(0,len(meas_ang)-1 ,len(meas_ang))) / 1.25 **(len(meas_ang)-1)  ) * 0.99* (MaxAngTry)
+pointAcc = 0.00075
+meas_angNormal = np.array(np.arange(0, MaxAngTry, pointAcc))
+pointAcc = 0.00085
+meas_angChosen = np.array(np.arange(0, MaxAngTry, pointAcc))[:30]
+pointAcc = 0.00075 / 2
+meas_ang3 = np.array(np.arange(0, MaxAngTry, pointAcc))
+
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+# ax1.scatter(range(len(meas_ang)),meas_ang1,s = 40, label = 'case 1', marker = 'v')
+# ax1.scatter(range(len(meas_ang)),meas_ang2,s = 25, label = 'case 2' )
+# ax1.scatter(range(len(meas_ang)),meas_ang, s = 10, label = 'case 3', c = RegCol, marker = 's')
+ax1.scatter(range(1,len(meas_ang1)+1),meas_ang1,s = 40, label = 'case 1', marker = 'v')
+ax1.scatter(range(1,len(meas_ang2)+1),meas_ang2,s = 25, label = 'case 2' )
+ax1.scatter(range(1,len(tang_heights_linNormal)+1),meas_angNormal, s = 20, label = 'case 3', c = RegCol, marker = 's')
+
+#ax1.scatter(range(len(tang_heights_lin3)),tang_heights_lin3,marker = '.', s= 10, c='k',label = 'case 5')
+ax1.scatter(range(1,len(tang_heights_lin3)+1),meas_ang3,marker = 'x', s= 15, c='g',label = 'case 4')
+ax1.scatter(range(1,len(tang_heights_linChosen)+1),meas_angChosen,marker = '.', s= 10, c='k',label = 'case 5')
+ax1.legend()
+ax1.set_ylabel(r'tangent height of $\Gamma_j$')
+ax1.set_xlabel(r'index j')
+ax1.set_xlim(0.01)
+
+plt.show(block = True)
+
 ##
 
 
