@@ -533,7 +533,7 @@ plt.show(block = True)
 '''L-curve refularoization
 '''
 
-lamLCurve = np.logspace(-7,-1,200)
+lamLCurve = np.logspace(-8,0,200)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
@@ -630,12 +630,15 @@ axs.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 50, labe
 axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'max. curvature', s= 50,zorder=1)
 #axs.add_patch(mpl.patches.Rectangle((NormLCurveZoom[0], xTLxCurveZoom[-1]), abs(NormLCurveZoom[-1]-NormLCurveZoom[0]), abs(xTLxCurveZoom[-1]-xTLxCurveZoom[0]),facecolor='none'))
 
+
 axs.set_xscale('log')
 axs.set_yscale('log')
 axs.set_ylabel(r'$ \sqrt{\bm{x}^T \bm{L}\bm{x}}$', style='italic')
 axs.set_xlabel(r'$\lVert \bm{Ax} - \bm{y}\rVert_{L^2}$')
 handles, labels = axs.get_legend_handles_labels()
 axs.legend()
+
+
 #axs.legend(handles = [handles[0],handles[1],handles[2]],loc = 'upper right',  frameon =True)
 plt.savefig('LCurvePhD.png', dpi = dpi)
 
@@ -1267,7 +1270,7 @@ plt.show()
 
 
 ##
-lam= np.logspace(-15,10,500)
+lam= np.logspace(-14,10,500)
 f_func = np.zeros(len(lam))
 g_func = np.zeros(len(lam))
 
@@ -1381,7 +1384,7 @@ axins.axvline( minimum[1], color = gmresCol, label = r'$\lambda_0$')
 
 axins.plot(lambBinEdges,taylorF , color = 'k', linewidth = 1, zorder = 0, label = 'approximation' )
 
-axins.set_ylim(0.9 * taylorF[0],1 * taylorF[-1])
+axins.set_ylim(0.8 * taylorF[0],1 * taylorF[-1])
 axins.set_xlabel('$\lambda$')
 axins.set_yscale('log')
 axins.set_xscale('log')
