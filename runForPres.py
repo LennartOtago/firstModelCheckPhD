@@ -1334,7 +1334,9 @@ delta_lam = lambBinEdges - lam0
 #delG = abs(g(A, L, univarGridO3[1][-1]) - g_0) / abs(np.log(univarGridO3[1][-1]) - np.log(lam0))
 lamMax = max(lambBinEdges)
 lamMin= min(lambBinEdges)
+
 delG = (g(A, L, lamMax) - g(A, L, lamMin) )/ (np.log(lamMax) - np.log(lamMin))
+#delG = (g(A, L, univarGridO3[1][-1]) - g(A, L, univarGridO3[1][0])) / (np.log(univarGridO3[1][-1]) - np.log(univarGridO3[1][0]))
 
 GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG  + g_0
 taylorG =GApprox
@@ -1411,7 +1413,7 @@ axin2.plot(lam,g_func, color = gCol, zorder=3, linestyle=  'dashed', linewidth =
 
 axin2.plot(lambBinEdges, taylorG, color = 'k', linewidth = 1, zorder = 2 )
 axin2.set_ylim(1.01 * taylorG[0],0.8 * taylorG[-1])
-axin2.set_xlim(min(lambBinEdges),max(lambBinEdges))
+#axin2.set_xlim(min(lambBinEdges),max(lambBinEdges))
 axin2.set_xscale('log')
 lines2, lab2 = axin2.get_legend_handles_labels()
 lines, lab0 = axins.get_legend_handles_labels()
@@ -1424,9 +1426,10 @@ plt.show(block = True)
 
 gamHist, gamBinEdges = np.histogram(gammas, bins=100)
 lambHist, lambBinEdges = np.histogram(lambdas, bins=100)
-index = '/home/lennartgolks/PycharmProjects/TTDecomposition/first'
-#lambBinEdges = np.loadtxt( index +'uniVarGridMargO3' + str(1) + '.txt')
-#gamBinEdges = np.loadtxt( index +'uniVarGridMargO3' + str(0) + '.txt')
+index = parentDir + '/TTDecomposition/first'
+
+lambBinEdges = np.loadtxt( index +'uniVarGridMargO3' + str(1) + '.txt')
+gamBinEdges = np.loadtxt( index +'uniVarGridMargO3' + str(0) + '.txt')
 
 delta_lam = lambBinEdges - lam0
 f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
@@ -1447,7 +1450,11 @@ for j in range(len(lambBinEdges)):
     f_True[j] = f(ATy, y, B_inv_A_trans_y)
     g_True[j] = g(A, L, lambBinEdges[j])
 
+delG = (g(A, L, univarGridO3[1][-1]) - g(A, L, univarGridO3[1][0])) / (np.log(univarGridO3[1][-1]) - np.log(univarGridO3[1][0]))
+lamMax = lam0 + 0.5 *lam0
+lamMin =  lam0 - 0.5 * lam0
 
+delG = (g(A, L, lamMax) - g(A, L, lamMin) )/ (np.log(lamMax) - np.log(lamMin))
 # taylorG = g_tayl(delta_lam,g_0, g_0_1, g_0_2, g_0_3,g_0_4, 0,0)
 GApprox = (np.log(lambBinEdges) - np.log(lam0)) * delG + g_0
 taylorG =GApprox
@@ -1518,7 +1525,7 @@ def piFunc(lamb, gam):
 def piFuncTayl(lamb, gam):
     #gam =  minimum[0]
 
-    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, 0 ,0,0, 0, 0)
+    taylorF = f_tayl(lamb - lam0, f_0, f_0_1, f_0_2,f_0_3,0, 0, 0)
     GApp = (np.log(lamb) - np.log(lam0)) * delG + g_0
     taylorG = GApp
     return -n / 2 * np.log(lamb) - (m / 2 + 1) * np.log(gam) + 0.5 * taylorG + 0.5 * gam * taylorF + (betaD * lamb * gam + betaG * gam) #- 440
