@@ -1470,6 +1470,7 @@ for j in range(len(lambBinEdges)):
     g_True[j] = g(A, L, lambBinEdges[j])
 
 lamMax = lam0 + 0.25 * lam0
+
 lamMin = lam0 - 0.25 * lam0
 delG = (g(A, L, lamMax) - g(A, L, lamMin) )/ (np.log(lamMax) - np.log(lamMin))
 
