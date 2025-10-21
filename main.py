@@ -694,41 +694,41 @@ plt.rcParams.update({'font.size':  10,
                      'text.latex.preamble': r'\usepackage{bm, amsmath}'})
 #nonLinA = calcNonLin(tang_heights_lin, A_lin_dx, height_values, pressure_values, ind, temp_values, VMR_O3, wvnmbr, S, E,g_doub_prime)
 
-# U, SingS, Vh = np.linalg.svd(A)#, full_matrices=True)
-#
-#
-# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-# for i in range(0,10):
-#     ax1.plot(Vh[i],height_values, linewidth = 0.85)
-#     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
-#
-# ax1.set_ylabel(r'height in km')
-# ax1.set_title(r'first 10 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
-# plt.savefig('SingVecA.png', dpi = dpi)
-#
-# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-# for i in range(20,len(SingS)):
-#     ax1.plot(Vh[i],height_values, linewidth = 0.85)
-#     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
-#
-# ax1.set_ylabel(r'height in km')
-# ax1.set_title(r'right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
-# plt.savefig('NullVecA.png', dpi = dpi)
-#
-# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-# for i in range(10,20):
-#     ax1.plot(Vh[i],height_values, linewidth = 0.85)
-#     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
-#
-# ax1.set_ylabel(r'height in km')
-# ax1.set_title(r'last 5 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
-#
-# plt.savefig('MiddleVecA.png', dpi = dpi)
-# #ax1.set_xlabel(r'index')
-# #ax1.text(max(Vh[19]), height_values[Vh[19] == max(Vh[19])], f'20')
-# #ax1.text(1.05*max(Vh[0]), height_values[Vh[0] == max(Vh[0])], f'1')
-# #ax1.text(1.05*max(Vh[3]), height_values[Vh[3] == max(Vh[3])], f'4')
-# #ax1.text(1.05*max(Vh[9]), height_values[Vh[9] == max(Vh[9])], f'10')
+U, SingS, Vh = np.linalg.svd(A)#, full_matrices=True)
+
+
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+for i in range(0,10):
+    ax1.plot(Vh[i],height_values, linewidth = 0.85)
+    ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
+
+ax1.set_ylabel(r'height in km')
+ax1.set_title(r'first 10 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
+plt.savefig('SingVecA.png', dpi = dpi)
+
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+for i in range(20,len(SingS)):
+    ax1.plot(Vh[i],height_values, linewidth = 0.85)
+    ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
+
+ax1.set_ylabel(r'height in km')
+ax1.set_title(r'last 10 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
+plt.savefig('NullVecA.png', dpi = dpi)
+
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+for i in range(10,20):
+    ax1.plot(Vh[i],height_values, linewidth = 0.85)
+    ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
+
+ax1.set_ylabel(r'height in km')
+ax1.set_title(r'right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
+
+plt.savefig('MiddleVecA.png', dpi = dpi)
+#ax1.set_xlabel(r'index')
+#ax1.text(max(Vh[19]), height_values[Vh[19] == max(Vh[19])], f'20')
+#ax1.text(1.05*max(Vh[0]), height_values[Vh[0] == max(Vh[0])], f'1')
+#ax1.text(1.05*max(Vh[3]), height_values[Vh[3] == max(Vh[3])], f'4')
+#ax1.text(1.05*max(Vh[9]), height_values[Vh[9] == max(Vh[9])], f'10')
 #
 ##
 # np.allclose(A, U[:, :len(SingS)] @ np.diag(SingS) @ Vh[:len(SingS),:])
