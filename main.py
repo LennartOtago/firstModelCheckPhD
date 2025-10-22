@@ -703,7 +703,7 @@ for i in range(0,10):
     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
 
 ax1.set_ylabel(r'height in km')
-ax1.set_title(r'first 10 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
+ax1.set_title(r'first 10 right singular vectors $\bm{v}_j$ of $\bm{A}_L$', fontsize=10)
 plt.savefig('SingVecA.png', dpi = dpi)
 
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
@@ -712,7 +712,7 @@ for i in range(20,len(SingS)):
     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
 
 ax1.set_ylabel(r'height in km')
-ax1.set_title(r'last 10 right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
+ax1.set_title(r'last 10 right singular vectors $\bm{v}_j$ of $\bm{A}_L$', fontsize=10)
 plt.savefig('NullVecA.png', dpi = dpi)
 
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
@@ -721,7 +721,7 @@ for i in range(10,20):
     ax1.text(1.15*max(Vh[i]), height_values[Vh[i] == max(Vh[i])], str(i+1))
 
 ax1.set_ylabel(r'height in km')
-ax1.set_title(r'right singular vectors $\bm{v}_i$ of $\bm{A}$', fontsize=10)
+ax1.set_title(r'right singular vectors $\bm{v}_j$ of $\bm{A}_L$', fontsize=10)
 
 plt.savefig('MiddleVecA.png', dpi = dpi)
 #ax1.set_xlabel(r'index')
@@ -733,37 +733,37 @@ plt.savefig('MiddleVecA.png', dpi = dpi)
 ##
 # np.allclose(A, U[:, :len(SingS)] @ np.diag(SingS) @ Vh[:len(SingS),:])
 
-#np.savetxt('ExpDecSingSNormal.txt', SingS, fmt = '%.30f', delimiter = '\t')
-#
-# ExpIncSingSNormal = np.loadtxt('ExpIncSingSNormal.txt')
-# ExpDecSingSNormal = np.loadtxt('ExpDecSingSNormal.txt')
-# SingSNormal = np.loadtxt('SingSNormal.txt')
-# SingSfewer = np.loadtxt('SingSfewer.txt')
-# SingSmore = np.loadtxt('SingSmore.txt')
-# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-# ax1.scatter(range(1,len(ExpIncSingSNormal)+1),ExpIncSingSNormal, label = 'case 1',s=40 , marker = 'v')
-# ax1.scatter(range(1,len(ExpDecSingSNormal)+1),ExpDecSingSNormal,s = 25, label = 'case 2')
-# ax1.scatter(range(1,len(SingSNormal)+1),SingSNormal,s = 20 ,label = 'case 3', c = RegCol, marker = 's')
-#
-# #ax1.scatter(range(len(SingSfewer)),SingSfewer,marker = '.', s= 10, c='r',label = 'case 5')
-# ax1.scatter(range(1,len(SingSmore)+1),SingSmore,marker = 'x', s= 15, c='g',label = 'case 4')
-# ax1.scatter(range(1,len(SingS)+1),SingS,marker = '.', s= 10, c='k',label = 'case 5')
-# ax1.axhline(max(SingS)/150, linestyle = '--', color = 'k', linewidth = 0.75)
-# ax1.axhline(min(SingS), linestyle = '--', color = 'k', linewidth = 0.75)
-# ax1.text(0.8 , 1.3*max(SingS)/150, r'SNR $\approx 150$', transform=ax1.get_yaxis_transform())
-#
-# ax1.text(0.375, 0.25*min(SingS), rf'SNR $\approx {(max(SingS)/min(SingS)):1.0e}$', transform=ax1.get_yaxis_transform())
-# ax1.set_yscale('log')
-# ax1.set_xlim(0.01)
-# ax1.set_ylabel(r'singular values of $\bm{A}$ at height')
-# ax1.set_xlabel(r'index')
-# #ax2 = ax1.twinx()
-# #ax2.scatter(range(len(tang_heights_lin)),tang_heights_lin, c = 'C1', marker='*')
-# #ax2.set_ylabel('tangent height')
-# #fig3.savefig('EigAExp.png'
-# ax1.legend()
-# #plt.show(block = True)
-# plt.savefig('SingValA.png', dpi = dpi)
+# np.savetxt('ExpDecSingSNormal.txt', SingS, fmt = '%.30f', delimiter = '\t')
+
+ExpIncSingSNormal = np.loadtxt('ExpIncSingSNormal.txt')
+ExpDecSingSNormal = np.loadtxt('ExpDecSingSNormal.txt')
+SingSNormal = np.loadtxt('SingSNormal.txt')
+SingSfewer = np.loadtxt('SingSfewer.txt')
+SingSmore = np.loadtxt('SingSmore.txt')
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+ax1.scatter(range(1,len(ExpIncSingSNormal)+1),ExpIncSingSNormal, label = 'case 1',s=40 , marker = 'v')
+ax1.scatter(range(1,len(ExpDecSingSNormal)+1),ExpDecSingSNormal,s = 25, label = 'case 2')
+ax1.scatter(range(1,len(SingSNormal)+1),SingSNormal,s = 20 ,label = 'case 3', c = RegCol, marker = 's')
+
+#ax1.scatter(range(len(SingSfewer)),SingSfewer,marker = '.', s= 10, c='r',label = 'case 5')
+ax1.scatter(range(1,len(SingSmore)+1),SingSmore,marker = 'x', s= 15, c='g',label = 'case 4')
+ax1.scatter(range(1,len(SingS)+1),SingS,marker = '.', s= 10, c='k',label = 'case 5')
+ax1.axhline(max(SingS)/150, linestyle = '--', color = 'k', linewidth = 0.75)
+ax1.axhline(min(SingS), linestyle = '--', color = 'k', linewidth = 0.75)
+ax1.text(0.8 , 1.3*max(SingS)/150, r'SNR $\approx 150$', transform=ax1.get_yaxis_transform())
+
+ax1.text(0.375, 0.25*min(SingS), rf'SNR $\approx {(max(SingS)/min(SingS)):1.0e}$', transform=ax1.get_yaxis_transform())
+ax1.set_yscale('log')
+ax1.set_xlim(0.01)
+ax1.set_ylabel(r'singular values of $\bm{A}_L$ at height')
+ax1.set_xlabel(r'index j')
+#ax2 = ax1.twinx()
+#ax2.scatter(range(len(tang_heights_lin)),tang_heights_lin, c = 'C1', marker='*')
+#ax2.set_ylabel('tangent height')
+#fig3.savefig('EigAExp.png'
+ax1.legend()
+#plt.show(block = True)
+plt.savefig('SingValA.png', dpi = dpi)
 #
 # fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
 # # ax1.scatter(range(len(meas_ang)),meas_ang1,s = 40, label = 'case 1', marker = 'v')
