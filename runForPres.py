@@ -1075,6 +1075,7 @@ dimMargO3 = 2
 #gridSize = 25
 gmresCol = [204/255, 121/255, 167/255]
 index = 'first'
+trace = [-MinLogMargPost(np.array([lambdas[burnIn+ i],gammas[burnIn+ i]])) for i in range(number_samples)]
 
 margPDFO3 = np.zeros((dimMargO3, gridSize))
 univarGridO3 = np.zeros((dimMargO3, gridSize))
@@ -1119,13 +1120,13 @@ axs[0].set_xlabel(r'$\gamma$')
 axs[0].set_ylabel(r'$\lambda$')
 
 axs[1].plot(trace, color = 'k', linewidth = 0.1)
-axs[1].set_ylabel(r'$-\ln {\pi(\lambda, \gamma| \bm{y})}$')
+axs[1].set_ylabel(r'$\log {\pi(\lambda, \gamma| \bm{y})}$')
 #axs[1].set_yscale('log')
-axs[1].invert_yaxis()
+#axs[1].invert_yaxis()
 
 axs[1].set_xlabel('number of samples')
 plt.savefig('ScatterplusHistoPlusTT.png', dpi = dpi)
-plt.show()
+plt.show(block= True)
 
 ##
 # from matplotlib import cm
