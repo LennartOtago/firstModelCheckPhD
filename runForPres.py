@@ -1446,7 +1446,9 @@ B_inv_L_4 = np.matmul(B_inv_L_2, B_inv_L_2)
 
 gamHist, gamBinEdges = np.histogram(gammas, bins=100)
 lambHist, lambBinEdges = np.histogram(lambdas, bins=100)
-index = '/home/lennartgolks/PycharmProjects/TTDecomposition/first'
+
+index = parentDir + '/TTDecomposition/first'
+
 lambBinEdges = np.loadtxt( index +'uniVarGridMargO3' + str(1) + '.txt')
 gamBinEdges = np.loadtxt( index +'uniVarGridMargO3' + str(0) + '.txt')
 
