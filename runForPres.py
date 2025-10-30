@@ -624,10 +624,10 @@ xTLxMargRes = np.sqrt(np.matmul(np.matmul(currX.T, L), currX))
 
 
 fig, axs = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction) ,tight_layout = True)
-axs.scatter(NormLCurveZoom,xTLxCurveZoom, zorder = 0, color =  DatCol, s = 3.5, marker ='s', label = 'reg. solution')
+axs.scatter(NormLCurveZoom,xTLxCurveZoom, zorder = 0, color =  DatCol, s = 3.5, marker ='s', label = 'reg.~solution')
 axs.scatter(NormRes, xTLxRes, color = ResCol, s = 3, marker = "+",label = r'posterior samples ')# ,mfc = 'black' , markeredgecolor='r',markersize=10,linestyle = 'None')
 axs.scatter(NormMargRes, xTLxMargRes, color = MeanCol, marker = '.', s= 50, label = 'posterior mean',zorder=2)
-axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'max. curvature', s= 50,zorder=1)
+axs.scatter(knee_point, kneedle.knee_y, color = regCol, marker = 'v',label = 'max.~curvature', s= 50,zorder=1)
 #axs.add_patch(mpl.patches.Rectangle((NormLCurveZoom[0], xTLxCurveZoom[-1]), abs(NormLCurveZoom[-1]-NormLCurveZoom[0]), abs(xTLxCurveZoom[-1]-xTLxCurveZoom[0]),facecolor='none'))
 
 
@@ -1637,11 +1637,11 @@ fig3, ax1 = plt.subplots(figsize= (4.369032793690328, 4.369032793690328/2), tigh
 
 currNorm = RMSDiffNorm[3:]
 ax1.plot(range(3,3+ len(currNorm )),currNorm *100)
-ax1.plot(np.linspace(1,TotBinNum-1),1/np.linspace(1,TotBinNum-1)*5 , linestyle = '--', color = 'k', label = r'$\propto 1/N$')
+ax1.plot(np.linspace(1,TotBinNum-1),1/np.linspace(1,TotBinNum-1)*2 , linestyle = '--', color = 'k', label = r'$\propto 1/N$')
 ax1.set_xlim([3,3+ len(currNorm )])
 ax1.axvline(20, linewidth = 0.8, color = "k")
 ax1.axhline(RMSDiffNorm[20]*100, linewidth = 0.8, color = "k")
-ax1.text(21,RMSDiffNorm[20]*105, f"rel. RMS error of {RMSDiffNorm[20]*100:.2f}$\%$")
+ax1.text(21,RMSDiffNorm[20]*105, f"rel.~RMS error of {RMSDiffNorm[20]*100:.2f}$\%$")
 
 ax1.set_xlabel('number of bins')
 ax1.set_ylabel('relative RMS in $\%$')
