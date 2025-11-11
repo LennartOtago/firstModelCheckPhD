@@ -25,6 +25,7 @@ n_bins = 20
 burnIn = 50
 betaG = 1e-35
 betaD = 1e-35
+betas = [betaG, betaD]
 #Colors
 #pyTCol = [230/255,159/255, 0/255]
 pyTCol = [213/255,94/255, 0/255]
@@ -437,35 +438,10 @@ for j in range(1,len(theta)-1):
 if np.mean(vari) == 0:
     vari = 1
 ##
-#find minimum for first guesses
-'''params[1] = delta
-params[0] = gamma'''
-def MinLogMargPost(params):#, coeff):
 
-    # gamma = params[0]
-    # delta = params[1]
-    gam = params[0]
-    lamb = params[1]
-    #print(lamb)
-    if lamb < 0  or gam < 0:
-        return np.nan
+MinFunc = lambda params : MinLogMargPost(params, A, y, L, ATA, ATy, betas)
 
-    n = SpecNumLayers
-    m = SpecNumMeas
-    #print(lamb)
-    Bp = ATA + lamb * L
-
-    LowTri = np.linalg.cholesky(Bp)
-    UpTri = LowTri.T
-    # check if L L.H = B
-    B_inv_A_trans_y = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
-
-    G = g(A, L,  lamb)
-    F = f(ATy, y,  B_inv_A_trans_y)
-
-    return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gam) + 0.5 * G + 0.5 * gam * F +  ( betaD *  lamb * gam + betaG *gam)
-
-minimum = scy.optimize.fmin(MinLogMargPost, [gam0,1/gam0* 1/ np.mean(vari)/15], maxiter = 25)
+minimum = scy.optimize.fmin(MinFunc, [gam0,1/gam0* 1/ np.mean(vari)/15], maxiter = 25)
 gam0 = minimum[0]
 lam0 = minimum[1]
 print(minimum)
@@ -577,94 +553,11 @@ gridSize = 20
 lamMax = 0.3 * lam0
 g_0 = g(A, L, lam0)
 delG = (g(A, L, lamMax) - g_0)/ (np.log(lamMax) - np.log(lam0))
-def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0):
-    wLam = lam0 * 0.8#8e3#7e1
 
-    alphaG = 1
-    alphaD = 1
-    k = 0
-
-    gammas = np.zeros(number_samples + burnIn)
-    #deltas = np.zeros(number_samples + burnIn)
-    lambdas = np.zeros(number_samples + burnIn)
-
-    gammas[0] = gamma0
-    lambdas[0] = lam0
-
-
-
-    shape = SpecNumMeas / 2 + alphaD + alphaG
-    rate = f_0 / 2 + betaG + betaD * lam0
-
-    #f_new = np.copy(f_0)
-    #rate_old = np.copy(rate)
-    for t in range(number_samples + burnIn-1):
-        #print(t)
-
-        # # draw new lambda
-        lam_p = np.random.normal(lambdas[t], wLam)
-
-        while lam_p < 0:#or lam_p > univarGridO3[1][-1]:
-               lam_p = np.random.normal(lambdas[t], wLam)
-
-        delta_lam = lam_p - lambdas[t]
-        delta_lam_t = lambdas[t] - lam0
-        delta_lam_p = lam_p - lam0
-
-        delta_f = f_0_1 * delta_lam + f_0_2 * (delta_lam_p**2 - delta_lam_t**2) + f_0_3 *(delta_lam_p**3 - delta_lam_t**3) #+ f_0_4 * (delta_lam_p**4 - delta_lam_t**4) #+ f_0_5 * delta_lam**5
-        #delta_g = g_0_1 * delta_lam + g_0_2 * (delta_lam_p**2 - delta_lam_t**2) + g_0_3 * (delta_lam_p**3 - delta_lam_t**3) #+ g_0_4 * (delta_lam_p**4 - delta_lam_t**4) #+ g_0_5 * delta_lam**5
-        #delta_g = g(A, L, lam_p) - g(A, L, lambdas[t])
-
-        Glam_p  = (np.log(lam_p) - np.log(lam0)) * delG + g_0
-
-        Gcurr = (np.log(lambdas[t]) - np.log(lam0)) * delG + g_0
-
-        # taylorG = g_tayl(lamb - minimum[1], g_0, g_0_1, g_0_2, g_0_3, g_0_5, 0 ,0)
-        # taylorG = g(A, L, lamb)
-        #taylorG = np.exp(GApprox)
-        delta_g = Glam_p - Gcurr
-        #delta_g = g(A, L, lam_p) - g(A, L, lambdas[t])
-        log_MH_ratio = ((SpecNumLayers)/ 2) * (np.log(lam_p) - np.log(lambdas[t])) - 0.5 * (delta_g + gammas[t] * delta_f) - betaD * gammas[t] * delta_lam
-
-        #accept or rejeict new lam_p
-        u = np.random.uniform()
-
-        if np.log(u) <= np.min(log_MH_ratio,0):
-            #accept
-            k = k + 1
-            lambdas[t + 1] = lam_p
-            #only calc when lambda is updated
-            #f_old = np.copy(f_new)
-            #rate_old = np.copy(rate)
-            #f_new = f_0 + delta_f
-            #B = (ATA + lam_p * L)
-            #LowTri = np.linalg.cholesky(B)
-            #UpTri = LowTri.T
-            #B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
-
-            #f_new = f(ATy, y, B_inv_A_trans_y)
-            delta_lam_p = lam_p - lam0
-            delta_f = f_0_1 * delta_lam_p + f_0_2 * delta_lam_p ** 2 + f_0_3 * delta_lam_p ** 3#+ f_0_4 * delta_lam_p ** 4
-            f_new = f_0 + delta_f
-            #f_new = np.copy( f_p)
-            # g_old = np.copy(g_new)
-            rate = f_new / 2 + betaG + betaD * lam_p  # lambdas[t+1]
-            if rate <= 0:
-                print('scale < 0')
-        else:
-            #rejcet
-            lambdas[t + 1] = np.copy(lambdas[t])
-
-
-        gammas[t+1] = np.random.gamma(shape = shape, scale = 1/rate)
-
-        #deltas[t+1] = lambdas[t+1] * gammas[t+1]
-
-    return lambdas, gammas,k
-
+fTaylor = f_0_1, f_0_2, f_0_3, f_0_4
 
 startTime = time.time()
-lambdas ,gammas, k = MHwG(number_samples, burnIn, lam0, gam0, f_0, g_0)
+lambdas ,gammas, k =  MHwG(number_samples, burnIn, lam0, gam0, f_0, g_0, fTaylor, betas, A, L)
 elapsed = time.time() - startTime
 print('MTC Done in ' + str(elapsed) + ' s')
 
@@ -683,7 +576,7 @@ BinHist = 30#n_bins
 lambHist, lambBinEdges = np.histogram(lambdas, bins= BinHist, density= True)
 gamHist, gamBinEdges = np.histogram(gammas, bins= BinHist, density= True)
 delHist, delBinEdges = np.histogram(deltas, bins= BinHist, density= True)
-trace = [MinLogMargPost(np.array([lambdas[burnIn+ i],gammas[burnIn+ i]])) for i in range(number_samples)]
+trace = [MinFunc(np.array([lambdas[burnIn+ i],gammas[burnIn+ i]])) for i in range(number_samples)]
 
 
 fig, axs = plt.subplots(3, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction) )#, dpi = dpi)
@@ -1005,38 +898,57 @@ def skew_norm_pdf(x,mean=0,w=1,skewP=0, scale = 0.1):
 
 print('bla')
 
-
 ## do grid
 
 def CurrMarg(lamb, gam,G, F, n, m, betaG, betaD):
 
     return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gam) + 0.5 * G + 0.5 * gam * F +  ( betaD *  lamb * gam + betaG *gam)
 
-startTime  = time.time()
+
 n = len(height_values)
 m = len(tang_heights_lin)
-gridSize = 50
+gridSize = 25
 lamGrid = np.linspace(min(lambdas), max(lambdas), gridSize)
 gamGrid = np.linspace(min(gammas), max(gammas), gridSize)
 margGrid = np.zeros((gridSize,gridSize))
+FGrid= np.zeros(gridSize)
+GGrid= np.zeros(gridSize)
 unNormlamMarg = np.zeros(gridSize)
 means = np.zeros((gridSize,len(height_values)))
 CoVars = np.zeros((gridSize,len(height_values),len(height_values)))
+TrueCoVars = np.zeros((gridSize,len(height_values),len(height_values)))
 postCovar = np.zeros((gridSize,len(height_values),len(height_values)))
+TruePostCovar = np.zeros((gridSize,len(height_values),len(height_values)))
 I = np.eye(n)
+MinFunc = lambda params : MinLogMargPost(params, A, y, L, ATA, ATy, betas)
+
+startTime  = time.time()
+# minimum = scy.optimize.fmin(MinFunc, [gam0,1/gam0* 1/ np.mean(vari)/15], maxiter = 20)
+# gam0 = minimum[0]
+# lam0 = minimum[1]
+
+# B = (ATA + lam0 * L)
+# LowTri = np.linalg.cholesky(B)
+# MeanCoVars0 = scy.linalg.cho_solve((LowTri, True), I)
+
 for i in range(0,gridSize):
     #lambdas
     B = (ATA + lamGrid[i] * L)
     LowTri = np.linalg.cholesky(B)
     currX = scy.linalg.cho_solve((LowTri, True), ATy[:, 0])
-    currF = f(ATy, y,currX)
-    currG = 2* np.sum(np.log(np.diag(LowTri)))
+    FGrid[i] = f(ATy, y, currX)
+    GGrid[i] = 2* np.sum(np.log(np.diag(LowTri)))
     CoVars[i] = scy.linalg.cho_solve((LowTri, True), I)
+
+    # delCov = (lamGrid[i] - lam0 ) * L
+    # CoVars[i] = MeanCoVars0- MeanCoVars0 @ (delCov @ MeanCoVars0)
+
     # gammas
-    margGrid[i, :] = np.exp(-CurrMarg(lamGrid[i], gamGrid, currG, currF, n, m, betaG, betaD) - 500)
+    margGrid[i, :] = np.exp(-CurrMarg(lamGrid[i], gamGrid, GGrid[i], FGrid[i], n, m, betaG, betaD) - 200)
     unNormlamMarg[i] = np.sum(margGrid[i, :])
 
     postCovar[i] = CoVars[i] * unNormlamMarg[i]
+    #TruePostCovar[i] = TrueCoVars[i] * unNormlamMarg[i]
     means[i] =  currX * unNormlamMarg[i]
 
 
@@ -1045,30 +957,314 @@ unnormGamMarg = np.sum(margGrid, 0)
 gamMarg = unnormGamMarg / np.sum(unnormGamMarg)
 zLam = np.sum(unNormlamMarg)
 postMean = np.sum(means, axis= 0)/zLam
-
 lamMarg = unNormlamMarg/zLam
-
-
 FinalPostCovar =  np.sum(postCovar, axis = 0)/zLam * np.sum( gamMarg / gamGrid)
 
 
+
+
 FullPostTime = time.time() - startTime
-print('Elapsed Time to calc: ' + str(FullPostTime))
+print(f'Elapsed Time to calc mean and covarianve on a {gridSize} x {gridSize} grid: {FullPostTime:.5f}')
 
 
-##
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
+## do grid
 
-ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 1.5, markersize =7)
+def CurrMarg(lamb, gam,G, F, n, m, betaG, betaD):
 
-line3 = ax1.plot(postMean,height_values[:,0], markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.',  label = r'$\text{E}_{\bm{x},\bm{\theta}|\bm{y}} [\bm{x}]$', markersize =3, linewidth =1)#, markerfacecolor = 'none'
-line3 = ax1.errorbar(postMean,height_values,  xerr = np.sqrt(np.diag(FinalPostCovar)), markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.', label = 'posterior mean ', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
+    return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gam) + 0.5 * G + 0.5 * gam * F +  ( betaD *  lamb * gam + betaG *gam)
 
 
-ax1.set_xlabel(r'ozone volume mixing ratio ')
+n = len(height_values)
+m = len(tang_heights_lin)
+gridSize = 25
+lamGrid = np.linspace(min(lambdas), max(lambdas), gridSize)
+gamGrid = np.linspace(min(gammas), max(gammas), gridSize)
+margGrid = np.zeros((gridSize,gridSize))
+FGrid= np.zeros(gridSize)
+GGrid= np.zeros(gridSize)
+unNormlamMarg = np.zeros(gridSize)
+means = np.zeros((gridSize,len(height_values)))
+CoVars = np.zeros((gridSize,len(height_values),len(height_values)))
+TrueCoVars = np.zeros((gridSize,len(height_values),len(height_values)))
+postCovar = np.zeros((gridSize,len(height_values),len(height_values)))
+TruePostCovar = np.zeros((gridSize,len(height_values),len(height_values)))
+I = np.eye(n)
+MinFunc = lambda params : MinLogMargPost(params, A, y, L, ATA, ATy, betas)
 
+startTime  = time.time()
+
+
+
+# B = (ATA + lam0 * 1.25 * L)
+# LowTri = np.linalg.cholesky(B)
+# MeanCoVars1 = scy.linalg.cho_solve((LowTri, True), I)
+
+for i in range(0,gridSize):
+    #lambdas
+    B = (ATA + lamGrid[i] * L)
+    LowTri = np.linalg.cholesky(B)
+    currX = scy.linalg.cho_solve((LowTri, True), ATy[:, 0])
+    FGrid[i] = f(ATy, y, currX)
+    GGrid[i] = 2* np.sum(np.log(np.diag(LowTri)))
+    FGrid[i] = f(ATy, y, currX)
+    GGrid[i] = 2* np.sum(np.log(np.diag(LowTri)))
+    #TrueCoVars[i] = scy.linalg.cho_solve((LowTri, True), I)
+
+    #delCov = (lamGrid[i] - lam0 ) * L
+    #CoVars[i] = MeanCoVars0- MeanCoVars0 @ (delCov @ MeanCoVars0)
+    # if abs(lamGrid[i] - lam0 *1.25) < abs(lamGrid[i] - lam0 *0.75):
+    #     delCov = (lamGrid[i] - lam0 *1.25) * L
+    #     CoVars[i] = MeanCoVars1 - MeanCoVars1 @ ( delCov @ MeanCoVars1 )
+    # elif abs(lamGrid[i] - lam0 *1.25) > abs(lamGrid[i] - lam0 *0.75):
+    #     delCov = (lamGrid[i] - lam0 * 0.75) * L
+    #     CoVars[i] = MeanCoVars0 - MeanCoVars0 @ (delCov @ MeanCoVars0)
+    # gammas
+    margGrid[i, :] = np.exp(-CurrMarg(lamGrid[i], gamGrid, GGrid[i], FGrid[i], n, m, betaG, betaD) - 200)
+    unNormlamMarg[i] = np.sum(margGrid[i, :])
+
+    #postCovar[i] = CoVars[i] * unNormlamMarg[i]
+    #TruePostCovar[i] = TrueCoVars[i] * unNormlamMarg[i]
+    #means[i] =  currX * unNormlamMarg[i]
+
+
+
+unnormGamMarg = np.sum(margGrid, 0)
+gamMarg = unnormGamMarg / np.sum(unnormGamMarg)
+zLam = np.sum(unNormlamMarg)
+#postMean = np.sum(means, axis= 0)/zLam
+lamMarg = unNormlamMarg/zLam
+#FinalPostCovar =  np.sum(postCovar, axis = 0)/zLam * np.sum( gamMarg / gamGrid)
+
+
+
+rankL = np.linalg.matrix_rank(ATA)
+#lamMean = np.sum(lamGrid * lamMarg)
+#LowTriLapl = np.linalg.cholesky(L)
+#LowTriLaplInv = scy.linalg.cho_solve((LowTriLapl, True), np.eye(n))
+
+#lu, d, perm = scy.linalg.ldl(LowTriLaplInv @ (ATA @ LowTriLaplInv))
+#eigval, eigvect = np.linalg.eig(LowTriLaplInv @ (ATA @ LowTriLaplInv))
+
+#(gamSampl[i] * ATA + lamSampl[i] * gamSampl[i] * L)
+
+
+# RTO
+numRTOSampl = 125
+condPostSampl = np.zeros((numRTOSampl,n))
+seeds = np.random.uniform(low=0.0, high=1.0, size=(numRTOSampl,2))
+CDFLam = np.cumsum(lamMarg)
+LowTriL = np.linalg.cholesky(L)
+gamSampl = np.zeros(numRTOSampl)
+#lamSampl = np.zeros(numRTOSampl)
+lamSampl = np.interp(seeds[:, 0], CDFLam, lamGrid)
+currF = np.interp(lamSampl, lamGrid, FGrid)
+
+for i in range(0,numRTOSampl):
+
+    #currG = np.interp(lamSampl[i],lamGrid, GGrid)
+
+    #currMarg = np.exp(-CurrMarg(lamSampl[i], gamGrid, currG, currF, n, m, betaG, betaD) - 200)
+    #currMarg = np.interp(lamSampl[i],lamGrid,lamMarg)
+    # fig, axs = plt.subplots( tight_layout=True, figsize=set_size(PgWidthPt, fraction=fraction))  # , dpi = dpi)
+    #
+    # axs.plot( gamGrid, currMarg)
+    # plt.show(block=True)
+    #currCDF = np.cumsum(currMarg)/ np.sum(currMarg)
+    #gamSampl[i] = np.interp(seeds[i,1],currCDF,gamGrid)
+    shape = m / 2 + alphaD + alphaG
+    rate = currF[i] / 2 + betaG + betaD * lamSampl[i]
+    gamSampl[i] = np.random.gamma(shape = shape, scale = 1/rate)
+    B = ( ATA + lamSampl[i] * L)
+    LowTri = np.sqrt(gamSampl[i]) * np.linalg.cholesky(B)
+    #LowTri = np.sqrt( np.diag(gamSampl[i] *eigval+ lamSampl[i] * gamSampl[i]) ) @ eigvect
+    #v_1 = np.random.normal(0,1,size = m)
+    #v_2 = np.random.normal(0, 1, size=n)
+    v = np.random.normal(0, 1, size=n+m)
+    CurrATy = gamSampl[i] * ATy[:, 0] + np.sqrt(gamSampl[i]) * (A.T @  v[:m]) + np.sqrt(lamSampl[i] * gamSampl[i]) * (LowTriL @ v[m:])
+    condPostSampl[i] = scy.linalg.cho_solve((LowTri, True),  CurrATy )
+    #condPostSampl[i] = scy.linalg.cho_solve((LowTri, True), LowTriLaplInv @ (CurrATy @ LowTriLaplInv))
+
+RTOMean = np.mean(condPostSampl, axis =0)
+RTOSTD = np.sqrt(np.var(condPostSampl, axis =0))
+
+FullPostTime = time.time() - startTime
+print(f'Elapsed Time to take {numRTOSampl} samples via RTO : {FullPostTime:.5f}')
+n_bins = 20
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} )#, dpi = dpi)
+
+axs[0].hist(gamSampl, bins=n_bins)
+axT = axs[0].twinx()
+axT.plot(gamGrid,gamMarg)
+axT.set_ylim(0)
+axs[0].set_xlabel(r'the noise precision $\gamma$')
+axs[0].set_ylabel(r'the smoothnes parameter $\delta$')
+
+axs[1].hist(lamSampl, bins=n_bins)
+axT = axs[1].twinx()
+axT.plot(lamGrid,lamMarg)
+axT.set_ylim(0)
+axs[1].set_title(r'$\lambda =\delta / \gamma$, the regularization parameter', fontsize = 12)
 
 plt.show(block= True)
+
+
+
+
+## using approx
+
+n = len(height_values)
+m = len(tang_heights_lin)
+gridSize = 25
+lamGrid = np.linspace(min(lambdas), max(lambdas), gridSize)
+gamGrid = np.linspace(min(gammas), max(gammas), gridSize)
+ApproxMargGrid = np.zeros((gridSize,gridSize))
+ApproxUnNormlamMarg = np.zeros(gridSize)
+ApproxMeans = np.zeros((gridSize,len(height_values)))
+ApproxCoVars = np.zeros((gridSize,len(height_values),len(height_values)))
+ApproxPostCovar = np.zeros((gridSize,len(height_values),len(height_values)))
+
+I = np.eye(n)
+MinFunc = lambda params : MinLogMargPost(params, A, y, L, ATA, ATy, betas)
+
+startTime  = time.time()
+
+
+minimum = scy.optimize.fmin(MinFunc, [gam0,1/gam0* 1/ np.mean(vari)/15], maxiter = 20)
+gam0 = minimum[0]
+lam0 = minimum[1]
+
+
+B = (ATA + lam0 * L)
+LowTri = np.linalg.cholesky(B)
+MeanCoVars0 = scy.linalg.cho_solve((LowTri, True), I)
+B_inv_A_trans_y0 = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
+
+LowTri = np.linalg.cholesky(B)
+B_inv_L = scy.linalg.cho_solve((LowTri,True),  L)
+B_inv_L_2 = np.matmul(B_inv_L, B_inv_L)
+B_inv_L_3 = np.matmul(B_inv_L_2, B_inv_L)
+B_inv_L_4 = 0#np.matmul(B_inv_L_2, B_inv_L_2)
+B_inv_L_5 = 0#np.matmul(B_inv_L_4, B_inv_L)
+B_inv_L_6 = 0#np.matmul(B_inv_L_4, B_inv_L_2)
+
+
+f_0_1 = np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L), B_inv_A_trans_y0)
+f_0_2 = -1 * np.matmul(np.matmul(ATy[0::, 0].T, B_inv_L_2), B_inv_A_trans_y0)
+f_0_3 = 1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_3) ,B_inv_A_trans_y0)
+f_0_4 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_4) ,B_inv_A_trans_y0)
+f_0_5 = 0#1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_5) ,B_inv_A_trans_y0)
+f_0_6 = 0#-1 * np.matmul(np.matmul(ATy[0::, 0].T,B_inv_L_6) ,B_inv_A_trans_y0)
+
+
+
+f_0 = f(ATy, y, B_inv_A_trans_y0)
+
+delta_lam = lambBinEdges - lam0
+#taylorF = f_tayl(delta_lam, f_0, f_0_1, f_0_2,f_0_3,0, 0, 0)
+g_0 = g(A, L,lam0)
+lamMin = 0.75 * lam0
+lamMax = 1.25 * lam0
+delG = (g(A, L, lamMax) - g(A, L,lamMin))/ (np.log(lamMax) - np.log(lamMin))
+
+
+xx, yy = np.meshgrid(lamGrid, gamGrid)
+
+
+def GApprox(lamb):
+    return (np.log(lamb) - np.log(lam0)) * delG + g_0
+
+def FTayl(lamb):
+        return f_tayl(lamb-lam0, f_0, f_0_1, f_0_2,f_0_3,0, 0, 0)
+def ApproxMarg(lamb, gam, GApprox, FTayl, n, m, betaG, betaD):
+
+    return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gam) + 0.5 * GApprox(lamb) + 0.5 * gam * FTayl(lamb) +  ( betaD *  lamb * gam + betaG *gam)
+
+
+
+output = ApproxMarg(xx, yy, GApprox, FTayl, n, m, betaG, betaD)
+
+# for i in range(0,gridSize):
+#     #lambdas
+#     B = (ATA + lamGrid[i] * L)
+#     LowTri = np.linalg.cholesky(B)
+#     currX = scy.linalg.cho_solve((LowTri, True), ATy[:, 0])
+#     currF = FTayl(lamGrid[i])
+#     currG = 2* np.sum(np.log(np.diag(LowTri)))
+#     TrueCoVars[i] = scy.linalg.cho_solve((LowTri, True), I)
+#
+#
+#     # gammas
+#
+#
+#     TruePostCovar[i] = TrueCoVars[i] * UnNormlamMarg[i]
+#     TrueMeans[i] =  currX * UnNormlamMarg[i]
+#
+# ApproxTime = time.time() - startTime
+# print(f'Elapsed Time to find mean and covariance using all avail. approx : {ApproxTime:.5f}')
+
+
+
+## 'true' mean and covariance
+
+gridSize = 200
+TrueLamGrid = np.linspace(min(lambdas), max(lambdas), gridSize)
+TrueGamGrid = np.linspace(min(gammas), max(gammas), gridSize)
+TrueMargGrid = np.zeros((gridSize,gridSize))
+TrueUnNormlamMarg = np.zeros(gridSize)
+TrueMeans = np.zeros((gridSize,len(height_values)))
+
+TrueCoVars = np.zeros((gridSize,len(height_values),len(height_values)))
+
+TruePostCovar = np.zeros((gridSize,len(height_values),len(height_values)))
+I = np.eye(n)
+
+# LowTriLapl  = np.linalg.cholesky(L)
+# LaplInv = scy.linalg.cho_solve((LowTriLapl, True), np.eye(n))
+# LowTriLaplInv  = np.linalg.cholesky(LaplInv)
+# res = (LowTriLaplInv.T  @  L) @ LowTriLaplInv
+
+
+
+
+startTime  = time.time()
+for i in range(0,gridSize):
+    #lambdas
+    #B = (ATA + TrueLamGrid[i] * L)
+    #LowTri = np.linalg.cholesky(B)
+    B = (ATA + TrueLamGrid[i] * L)
+    LowTri = np.linalg.cholesky(B)
+
+    #LowTri =  np.sqrt( T np.diag(TrueLamGrid[i]) ) @ Z.T
+
+    currX = scy.linalg.cho_solve((LowTri, True), ATy[:, 0])
+    #currX = np.linalg.solve(LowTri , ATy[:, 0])
+    currF = f(ATy, y, currX)
+    #currG = 2* np.sum(np.log(np.diag(LowTri)))
+    currG = 2* np.sum(np.log(np.diag(LowTri))) #/ detLowTriLapl
+    TrueCoVars[i] = scy.linalg.cho_solve((LowTri, True), I)
+
+
+    # gammas
+    TrueMargGrid[i, :] = np.exp(-CurrMarg(TrueLamGrid[i], TrueGamGrid, currG, currF, n, m, betaG, betaD) - 200)
+    TrueUnNormlamMarg[i] = np.sum(TrueMargGrid[i, :])
+
+    TruePostCovar[i] = TrueCoVars[i] * TrueUnNormlamMarg[i]
+    TrueMeans[i] =  currX * TrueUnNormlamMarg[i]
+
+
+TrueUnnormGamMarg = np.sum(TrueMargGrid, 0)
+TrueGamMarg = TrueUnnormGamMarg / np.sum(TrueUnnormGamMarg)
+TrueZLam = np.sum(TrueUnNormlamMarg)
+TruePostMean = np.sum(TrueMeans, axis= 0)/TrueZLam
+
+TrueLamMarg = TrueUnNormlamMarg/TrueZLam
+
+
+TrueFinalPostCovar =  np.sum(TruePostCovar, axis = 0)/TrueZLam * np.sum( TrueGamMarg / TrueGamGrid)
+TruePostTime = time.time() - startTime
+print(f'Elapsed Time for "True" mean and cov: {TruePostTime:.5f}')
+
+##
 n_bins = 20
 fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction), gridspec_kw={'height_ratios': [3, 1]} )#, dpi = dpi)
 
@@ -1096,7 +1292,8 @@ plt.show(block= True)
 # '''
 
 #lamLCurve = np.logspace(1,7,200)
-lamLCurve = np.logspace(-7,-1,200)
+lenLCurve = 200
+lamLCurve = np.logspace(-7,-1,lenLCurve)
 #lamLCurve = np.linspace(1e-15,1e3,200)
 
 NormLCurve = np.zeros(len(lamLCurve))
@@ -1133,9 +1330,9 @@ kneedle = kneed.KneeLocator(NormLCurveZoom, xTLxCurveZoom, curve='convex', direc
 knee_point = kneedle.knee
 
 elapsedtRegTime = time.time() - startTime
-print('Elapsed Time to find oprimal Reg Para: ' + str(elapsedtRegTime))
+print(f'Elapsed Time to find oprimal Reg Para: {elapsedtRegTime:.5f}, with {lenLCurve} solves for x')
 #knee_point = kneedle.knee_y #
-
+##
 lam_opt = lamLCurveZoom[ np.where(NormLCurveZoom == knee_point)[0][0]]
 print('Knee: ', lam_opt) #print('Elbow: ', elbow_point)
 
@@ -1209,6 +1406,22 @@ print('bla')
 
 #np.savetxt('RegSol.txt',x_opt /(num_mole * S[ind,0]  * f_broad * 1e-4 * scalingConst), fmt = '%.15f', delimiter= '\t')
 ##
+##
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
+
+ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 1.5, markersize =7)
+
+#line3 = ax1.plot(postMean,height_values[:,0], markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.',  label = r'$\text{E}_{\bm{x},\bm{\theta}|\bm{y}} [\bm{x}]$', markersize =3, linewidth =1)#, markerfacecolor = 'none'
+#line3 = ax1.errorbar(postMean,height_values,  xerr = np.sqrt(np.diag(FinalPostCovar)), markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.', label = 'posterior mean ', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
+line3 = ax1.errorbar(RTOMean,height_values,  xerr = RTOSTD , markeredgecolor ='C1', color = 'C1' ,zorder=3, marker = '.', label = 'posterior mean ', markersize =3, linewidth =1, capsize = 3)
+
+line3 = ax1.errorbar(TruePostMean,height_values,  xerr = np.sqrt(np.diag(TrueFinalPostCovar)), markeredgecolor ='r', color = 'r' ,zorder=3, marker = '.', label = 'posterior mean ', markersize =3, linewidth =1, capsize = 3)
+
+ax1.set_xlabel(r'ozone volume mixing ratio ')
+
+
+plt.show(block= True)
+
 
 
 ## make scatter plot for results

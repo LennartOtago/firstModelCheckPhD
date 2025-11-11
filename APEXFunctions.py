@@ -126,7 +126,6 @@ def composeAforO3(A_lin, temp, press, ind):
                               1 - np.exp(- HitrConst2 * wvnmbr[ind, 0] / 296))
 
     C1 = 2 * constants.h * constants.c ** 2 * v_0 ** 3
-    # 1e2 for cm^-1
     C2 = constants.h * constants.c * 1e2 * v_0 / (constants.Boltzmann * temp)
     # plancks function
     Source = np.array(C1 / (np.exp(C2) - 1)) # in W m^2/cm^3/sr
@@ -141,7 +140,6 @@ def composeAforO3(A_lin, temp, press, ind):
     A = A_lin * A_scal.T
 
     return A,  1
-
 '''generate forward map accoring to trapezoidal rule'''
 def gen_sing_map(dxs, tang_heights, heights):
     m,n = dxs.shape
@@ -310,3 +308,123 @@ def f_tayl( delta_lam, f_0, f_1, f_2, f_3, f_4, f_5, f_6):
     """calculate taylor series for """
 
     return f_0 + f_1 * delta_lam + f_2 * delta_lam**2 + f_3 * delta_lam**3 + f_4 * delta_lam**4 + f_5 * delta_lam**5 + f_6 * delta_lam**6
+
+
+def MHwG(number_samples, burnIn, lam0, gamma0, f_0, g_0, fTaylor, betas, A, L):
+    wLam = lam0 * 0.8#8e3#7e1
+    betaG, betaD  = betas
+    alphaG = 1
+    alphaD = 1
+    f_0_1, f_0_2, f_0_3, f_0_4 = fTaylor
+
+    NumMeas, NumLay = A.shape
+    k = 0
+
+    gammas = np.zeros(number_samples + burnIn)
+    #deltas = np.zeros(number_samples + burnIn)
+    lambdas = np.zeros(number_samples + burnIn)
+
+    gammas[0] = gamma0
+    lambdas[0] = lam0
+    lamMax = 1.25 * lam0
+    lamMin = 0.75 * lam0
+    delG = (g(A, L, lamMax) - g(A, L, lamMin))/ (np.log(lamMax) - np.log(lamMin))
+
+
+    shape = NumMeas / 2 + alphaD + alphaG
+    rate = f_0 / 2 + betaG + betaD * lam0
+
+    #f_new = np.copy(f_0)
+    #rate_old = np.copy(rate)
+    for t in range(number_samples + burnIn-1):
+        #print(t)
+
+        # # draw new lambda
+        lam_p = np.random.normal(lambdas[t], wLam)
+
+        while lam_p < 0:#or lam_p > univarGridO3[1][-1]:
+               lam_p = np.random.normal(lambdas[t], wLam)
+
+        delta_lam = lam_p - lambdas[t]
+        delta_lam_t = lambdas[t] - lam0
+        delta_lam_p = lam_p - lam0
+
+        delta_f = f_0_1 * delta_lam + f_0_2 * (delta_lam_p**2 - delta_lam_t**2) + f_0_3 *(delta_lam_p**3 - delta_lam_t**3) #+ f_0_4 * (delta_lam_p**4 - delta_lam_t**4) #+ f_0_5 * delta_lam**5
+        #delta_g = g_0_1 * delta_lam + g_0_2 * (delta_lam_p**2 - delta_lam_t**2) + g_0_3 * (delta_lam_p**3 - delta_lam_t**3) #+ g_0_4 * (delta_lam_p**4 - delta_lam_t**4) #+ g_0_5 * delta_lam**5
+        #delta_g = g(A, L, lam_p) - g(A, L, lambdas[t])
+
+        Glam_p  = (np.log(lam_p) - np.log(lam0)) * delG + g_0
+
+        Gcurr = (np.log(lambdas[t]) - np.log(lam0)) * delG + g_0
+
+        # taylorG = g_tayl(lamb - minimum[1], g_0, g_0_1, g_0_2, g_0_3, g_0_5, 0 ,0)
+        # taylorG = g(A, L, lamb)
+        #taylorG = np.exp(GApprox)
+        delta_g = Glam_p - Gcurr
+        #delta_g = g(A, L, lam_p) - g(A, L, lambdas[t])
+        log_MH_ratio = (NumLay/ 2) * (np.log(lam_p) - np.log(lambdas[t])) - 0.5 * (delta_g + gammas[t] * delta_f) - betaD * gammas[t] * delta_lam
+
+        #accept or rejeict new lam_p
+        u = np.random.uniform()
+
+        if np.log(u) <= np.min(log_MH_ratio,0):
+            #accept
+            k = k + 1
+            lambdas[t + 1] = lam_p
+            #only calc when lambda is updated
+            #f_old = np.copy(f_new)
+            #rate_old = np.copy(rate)
+            #f_new = f_0 + delta_f
+            #B = (ATA + lam_p * L)
+            #LowTri = np.linalg.cholesky(B)
+            #UpTri = LowTri.T
+            #B_inv_A_trans_y = lu_solve(LowTri, UpTri, ATy[0::, 0])
+
+            #f_new = f(ATy, y, B_inv_A_trans_y)
+            delta_lam_p = lam_p - lam0
+            delta_f = f_0_1 * delta_lam_p + f_0_2 * delta_lam_p ** 2 + f_0_3 * delta_lam_p ** 3#+ f_0_4 * delta_lam_p ** 4
+            f_new = f_0 + delta_f
+            #f_new = np.copy( f_p)
+            # g_old = np.copy(g_new)
+            rate = f_new / 2 + betaG + betaD * lam_p  # lambdas[t+1]
+            if rate <= 0:
+                print('scale < 0')
+        else:
+            #rejcet
+            lambdas[t + 1] = np.copy(lambdas[t])
+
+
+        gammas[t+1] = np.random.gamma(shape = shape, scale = 1/rate)
+
+        #deltas[t+1] = lambdas[t+1] * gammas[t+1]
+
+    return lambdas, gammas,k
+
+#find minimum for first guesses
+'''params[1] = delta
+params[0] = gamma'''
+def MinLogMargPost(params, A, y, L, ATA, ATy, betas):#, coeff):
+
+    # gamma = params[0]
+    # delta = params[1]
+    gam = params[0]
+    lamb = params[1]
+    betaG, betaD  = betas
+    #print(lamb)
+    if lamb < 0  or gam < 0:
+        return np.nan
+
+    m, n = A.shape
+
+    #print(lamb)
+    Bp = ATA + lamb * L
+
+    LowTri = np.linalg.cholesky(Bp)
+    UpTri = LowTri.T
+    # check if L L.H = B
+    B_inv_A_trans_y = scy.linalg.cho_solve((LowTri,True),  ATy[:,0])
+
+    G = g(A, L,  lamb)
+    F = f(ATy, y,  B_inv_A_trans_y)
+
+    return -n/2 * np.log(lamb) - (m/2 + 1) * np.log(gam) + 0.5 * G + 0.5 * gam * F +  ( betaD *  lamb * gam + betaG *gam)
