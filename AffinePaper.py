@@ -34,7 +34,7 @@ binCol = 'C0'
 postCol = 'C1'
 priorCol = 'k'
 DatCol =  'gray'
-#TrueCol = 'C2'
+TrueCol = 'C2'
 alpha = 0.75
 
 
@@ -198,13 +198,21 @@ fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
 
-ax1.plot(postMean,height_values[:,0], markeredgecolor ='k', color = 'k' ,zorder=1, marker = '.', markersize =3, linewidth =1)
-ax1.plot(testO3Prof[-1],height_values[:,0], markeredgecolor ='k', color = 'k' ,zorder=1, marker = '.', markersize =3, linewidth =1)
+ax1.plot(postMean,height_values[:,0], markeredgecolor ='k', color = 'k' ,zorder=2, marker = '.', markersize =3, linewidth =1, label=r'posterior mean $\bm{\mu}_{\bm{x}|\bm{y}}$')
+currProf = np.copy(testO3Prof[0])
+currProf[currProf < 0] = 0
+ax1.plot(currProf, height_values[:, 0], markeredgecolor=binCol, color=binCol, zorder=1, marker='.', markersize=3,
+         linewidth=0.5, label = r'full cond.~post.~sample')
+
+for i in range(1, numRTOSampl):
+    currProf = np.copy(testO3Prof[i])
+    currProf[currProf<0] = 0
+    ax1.plot(currProf,height_values[:,0], markeredgecolor =binCol, color =binCol  ,zorder=1, marker = '.', markersize =3, linewidth =0.5)
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
 ax1.set_ylabel('height in km')
 handles, labels = ax1.get_legend_handles_labels()
-ax1.legend()
+ax1.legend(loc = 'upper right')
 ax1.set_ylim([height_values[0], height_values[-1]])
 
 plt.show(block= True)
@@ -243,8 +251,8 @@ print('bla')
 fig4, ax4 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout = True)
 ax4.plot(linTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'linear $\bm{A}_L\bm{x}$', markersize = 18 , zorder = 0, color = DatCol )
 relErr = np.linalg.norm( MapLinTestDat -  nonLinTestDat) / np.linalg.norm(MapLinTestDat) * 100
-ax4.plot(MapLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'mappped $\bm{MA}_L\bm{x}$' + f', rel. Err.: {relErr:.2f} \%', markersize = 7, zorder = 2, color ='k')
-ax4.plot(nonLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = 'o', label = r'non-linear $\bm{A_{NL}x}$', markersize = 10, zorder = 1, color = 'r')
+ax4.plot(MapLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = '*', label = r'$\bm{MA}_L\bm{x}$' + f', rel.~Err.: {relErr:.2f} \%', markersize = 7, zorder = 2, color ='k')
+ax4.plot(nonLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = 'o', label = r'non-linear $\bm{A}(\bm{x})$', markersize = 10, zorder = 1, color = 'r')
 ax4.legend()
 ax4.set_ylabel('(tangent) height in km')
 ax4.set_xlabel(r'spectral radiance in $\frac{\text{W} \text{cm}}{\text{m}^2 \text{sr}} $',labelpad=10)# color =dataCol,
@@ -389,9 +397,11 @@ fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
 
-line3 = ax1.errorbar(FinalPostMean,height_values[:,0],xerr = np.sqrt(FinalVar), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
+ax1.errorbar(TruePostMean,height_values[:,0],  xerr =np.sqrt(np.diag(TruePostCovar)) , markeredgecolor ='r', color = 'r' ,zorder=2, marker = '.', markersize =5, linewidth =1.5, capsize = 3)
+ax1.errorbar(TruePostMean,height_values[:,0],  yerr =np.sqrt(np.diag(TruePostCovar)) * 0, markeredgecolor ='r', color = 'r' ,zorder=2, marker = '.', label = r' ``true`` post.~$\bm{\mu}_{\bm{x}|\bm{y}} \pm \bm{\Sigma}_{\bm{x}|\bm{y}}$', markersize =5, linewidth =1.5, capsize = 3)
 
-ax1.errorbar(TruePostMean,height_values[:,0],  xerr =np.sqrt(np.diag(TruePostCovar)) , markeredgecolor ='r', color = 'r' ,zorder=3, marker = '.', label = r'posterior $\bm{\mu}_{\bm{x}|\bm{y}} \pm \bm{\Sigma}_{\bm{x}|\bm{y}}$', markersize =3, linewidth =1, capsize = 3)
+line3 = ax1.errorbar(FinalPostMean,height_values[:,0],xerr = np.sqrt(FinalVar), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
+line3 = ax1.errorbar(FinalPostMean,height_values[:,0],yerr = np.sqrt(FinalVar) * 0, label = r'$\bm{\mu}_{\bm{x}|\bm{y}} \pm$ sample based STD' ,markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
 
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
@@ -407,15 +417,18 @@ CurrRelErrCovar = np.sqrt((np.sum(FinalVar -np.diag(TruePostCovar))**2)/np.sum(n
 
 print(CurrRelErrCovar)
 ##
-relErrCovar = np.zeros(numRTOSampl)
-for i in range(0,numRTOSampl):
-    CurrVar = np.var(FinalO3Sampl[-i-1:], axis = 0)
-    relErrCovar[i] = np.sqrt((np.sum(CurrVar - np.diag(TruePostCovar)) ** 2) / np.sum(
+StartRange = 10
+relErrCovar = np.zeros(numRTOSampl-StartRange)
+for i in range(StartRange ,numRTOSampl+1):
+    CurrVar = np.mean((FinalO3Sampl[-i:] - FinalPostMean)**2)
+
+    relErrCovar[i-StartRange-1] = np.sqrt((np.sum(CurrVar - np.diag(TruePostCovar)) ** 2) / np.sum(
         np.diag(TruePostCovar) ** 2))
 
+##
 
-fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
-ax1.plot(range(0,numRTOSampl),relErrCovar*100, color = 'k')
+fig3, ax1 = plt.subplots(figsize=(PgWidthPt/ 72.27* 1.5,PgWidthPt/2 /72.27*1.5), tight_layout = True)
+ax1.plot(range(StartRange ,numRTOSampl),relErrCovar*100, color = 'k')
 
 ax1.set_xscale('log')
 ax1.set_xlabel('number of samples')
