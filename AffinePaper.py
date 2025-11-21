@@ -95,7 +95,7 @@ ax1.set_xscale('log')
 ax1.legend()
 ax1.set_ylabel(r'tangent height $h_{\ell}$ in km')
 ax1.set_xlabel(r'spectral radiance in $\frac{\text{W} \text{cm}}{\text{m}^2 \text{sr}} $',labelpad=10)# color =dataCol,
-
+plt.savefig('AffinePapData.png', dpi = dpi)
 plt.show(block=True)
 #plt.interactive(False)
 
@@ -164,7 +164,7 @@ axs[1].plot(lamGrid,lamMarg, color = 'k')
 
 axs[1].set_xlabel(r'the regularization parameter $\lambda =\delta / \gamma$')
 axs[1].set_ylabel(r'$\pi(\lambda|\bm{y})$')
-
+plt.savefig('AffinePapFirstMarg.png', dpi = dpi)
 plt.show(block= True)
 
 ##find affine map
@@ -202,19 +202,19 @@ ax1.plot(postMean,height_values[:,0], markeredgecolor ='k', color = 'k' ,zorder=
 currProf = np.copy(testO3Prof[0])
 currProf[currProf < 0] = 0
 ax1.plot(currProf, height_values[:, 0], markeredgecolor=binCol, color=binCol, zorder=1, marker='.', markersize=3,
-         linewidth=0.5, label = r'full cond.~post.~sample')
+         linewidth=0.5, label = r'full cond.~post.~sample', alpha = alpha)
 
 for i in range(1, numRTOSampl):
     currProf = np.copy(testO3Prof[i])
     currProf[currProf<0] = 0
-    ax1.plot(currProf,height_values[:,0], markeredgecolor =binCol, color =binCol  ,zorder=1, marker = '.', markersize =3, linewidth =0.5)
+    ax1.plot(currProf,height_values[:,0], markeredgecolor =binCol, color =binCol  ,zorder=1, marker = '.', markersize =3, linewidth =0.5, alpha = alpha)
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
 ax1.set_ylabel('height in km')
 handles, labels = ax1.get_legend_handles_labels()
 ax1.legend(loc = 'upper right')
 ax1.set_ylim([height_values[0], height_values[-1]])
-
+plt.savefig('AffinePapOzonSampl.png', dpi = dpi)
 plt.show(block= True)
 
 
@@ -256,6 +256,7 @@ ax4.plot(nonLinTestDat,tang_heights_lin, linestyle = 'dotted', marker = 'o', lab
 ax4.legend()
 ax4.set_ylabel('(tangent) height in km')
 ax4.set_xlabel(r'spectral radiance in $\frac{\text{W} \text{cm}}{\text{m}^2 \text{sr}} $',labelpad=10)# color =dataCol,
+plt.savefig('AffinePapAssMap.png', dpi = dpi)
 plt.show(block= True)
 
 
@@ -336,7 +337,7 @@ FullPostTime = time.time() - startTime
 print(f'Elapsed Time to calc mean and covarianve on a {gridSize} x {gridSize} grid: {FullPostTime:.5f}')
 
 
-FinalVar = np.var(FinalO3Sampl[:100], axis = 0)
+FinalVar = np.var(FinalO3Sampl[:500], axis = 0)
 
 
 
@@ -352,7 +353,7 @@ axs[1].plot(lamGrid,lamMarg, color = 'k')
 
 axs[1].set_xlabel(r'the regularization parameter $\lambda =\delta / \gamma$')
 axs[1].set_ylabel(r'$\pi(\lambda|\bm{y})$')
-
+plt.savefig('AffinePapMargFinal.png', dpi = dpi)
 ## calc True Post Mean and Post Covar
 gridSize = 200
 GamBounds = [0.8e15, 1.2e16]
@@ -393,23 +394,30 @@ TruePostMean = np.sum(TrueMeans, axis= 0)/zLam
 TruePostCovar =  np.sum(TrueCovars, axis = 0)/zLam * np.sum( gamMarg / gamGrid)
 lamMarg = unNormlamMarg/zLam
 
+
+lower_error = np.sqrt(FinalVar)
+upper_error = np.sqrt(FinalVar)
+lower_error[(FinalPostMean - lower_error) < 0] =  FinalPostMean[(FinalPostMean- lower_error) < 0]
+lower_error[FinalPostMean < 0] =  0
+asymmetric_error = np.array(list(zip(lower_error, upper_error))).T
+
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
 
-ax1.errorbar(TruePostMean,height_values[:,0],  xerr =np.sqrt(np.diag(TruePostCovar)) , markeredgecolor ='r', color = 'r' ,zorder=2, marker = '.', markersize =5, linewidth =1.5, capsize = 3)
-ax1.errorbar(TruePostMean,height_values[:,0],  yerr =np.sqrt(np.diag(TruePostCovar)) * 0, markeredgecolor ='r', color = 'r' ,zorder=2, marker = '.', label = r' ``true`` post.~$\bm{\mu}_{\bm{x}|\bm{y}} \pm \bm{\Sigma}_{\bm{x}|\bm{y}}$', markersize =5, linewidth =1.5, capsize = 3)
+#ax1.errorbar(TruePostMean,height_values[:,0],  xerr =np.sqrt(np.diag(TruePostCovar)) , markeredgecolor ='r', color = 'r' ,zorder=2, marker = '.', markersize =5, linewidth =1.5, capsize = 3)
+#ax1.errorbar(TruePostMean,height_values[:,0],  yerr =np.sqrt(np.diag(TruePostCovar)) * 0, markeredgecolor ='r', color = 'r' ,zorder=2, marker = '.', label = r' ``true`` post.~$\bm{\mu}_{\bm{x}|\bm{y}} \pm \bm{\Sigma}_{\bm{x}|\bm{y}}$', markersize =5, linewidth =1.5, capsize = 3)
 
-line3 = ax1.errorbar(FinalPostMean,height_values[:,0],xerr = np.sqrt(FinalVar), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
+line3 = ax1.errorbar(FinalPostMean,height_values[:,0],xerr = asymmetric_error, markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
 line3 = ax1.errorbar(FinalPostMean,height_values[:,0],yerr = np.sqrt(FinalVar) * 0, label = r'$\bm{\mu}_{\bm{x}|\bm{y}} \pm$ sample based STD' ,markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
 
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
 ax1.set_ylabel('height in km')
 handles, labels = ax1.get_legend_handles_labels()
-ax1.legend()
+ax1.legend(loc = 'upper right')
 ax1.set_ylim([height_values[0], height_values[-1]])
-
+plt.savefig('AffinePapOzoFinal.png', dpi = dpi)
 plt.show(block= True)
 
 
@@ -431,6 +439,7 @@ fig3, ax1 = plt.subplots(figsize=(PgWidthPt/ 72.27* 1.5,PgWidthPt/2 /72.27*1.5),
 ax1.plot(range(StartRange ,numRTOSampl),relErrCovar*100, color = 'k')
 
 ax1.set_xscale('log')
-ax1.set_xlabel('number of samples')
-ax1.set_ylabel('rel.~RMS err.~ in $\%$')
+ax1.set_xlabel('number of samples N')
+ax1.set_ylabel('rel.~RMS err.~in $\%$')
+plt.savefig('AffinePapErr.png', dpi = dpi)
 plt.show(block= True)
