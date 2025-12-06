@@ -172,19 +172,23 @@ plt.show(block= True)
 # sample a test prof via RTO
 
 numRTOSampl = SpecNumMeas
-seeds = np.random.uniform(low=0.0, high=1.0, size=(numRTOSampl,1))
+seeds = np.random.uniform(low=0.0, high=1.0, size=(numRTOSampl,2))
 CDFLam = np.cumsum(lamMarg)
 LowTriL = np.linalg.cholesky(L)
 gamSampl = np.zeros(numRTOSampl)
 #lamSampl = np.zeros(numRTOSampl)
 lamSampl = np.interp(seeds[:, 0], CDFLam, lamGrid)
 currF = np.interp(lamSampl, lamGrid, FGrid)
+currG = np.interp(lamSampl, lamGrid, GGrid)
 testO3Prof = np.zeros((numRTOSampl,SpecNumLayers))
 
 for i in range(0, numRTOSampl):
-    shape = m / 2 + alphaD + alphaG
-    rate = currF[i] / 2 + betaG + betaD * lamSampl[i]
-    gamSampl[i] = np.random.gamma(shape=shape, scale=1 / rate)
+    # shape = m / 2 + alphaD + alphaG
+    # rate = currF[i] / 2 + betaG + betaD * lamSampl[i]
+    # gamSampl[i] = np.random.gamma(shape=shape, scale=1 / rate)
+    currCondMarg = np.exp(-CurrMarg(lamSampl[i], gamGrid, currG[i], currF[i], n, m, betaG, betaD) - 200)
+    CDFGam = np.cumsum(currCondMarg/np.sum(currCondMarg))
+    gamSampl[i] = np.interp(seeds[i, 1], CDFGam, gamGrid)
     B = (ATA + lamSampl[i] * L)
     LowTri = np.sqrt(gamSampl[i]) * np.linalg.cholesky(B)
 
@@ -193,6 +197,23 @@ for i in range(0, numRTOSampl):
                 LowTriL @ v[m:])
     testO3Prof[i] = scy.linalg.cho_solve((LowTri, True), CurrATy)
 
+
+# fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)
+# axs[0].plot(gamGrid,gamMarg, color = 'k')
+# axsTw = axs[0].twinx()
+# axsTw.hist(gamSampl)
+# axs[0].set_xlabel(r'the noise precision $\gamma$')
+# axs[0].set_ylabel(r'$\pi(\gamma|\bm{y})$')
+#
+# axs[1].plot(lamGrid,lamMarg, color = 'k')
+# axsTw = axs[1].twinx()
+# axsTw.hist(lamSampl)
+# axs[1].set_xlabel(r'the regularization parameter $\lambda =\delta / \gamma$')
+# axs[1].set_ylabel(r'$\pi(\lambda|\bm{y})$')
+#
+# plt.show(block= True)
+
+##
 
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 
@@ -312,19 +333,23 @@ lamMarg = unNormlamMarg/zLam
 # final sample a test prof via RTO
 
 numRTOSampl = 10000
-seeds = np.random.uniform(low=0.0, high=1.0, size=(numRTOSampl,1))
+seeds = np.random.uniform(low=0.0, high=1.0, size=(numRTOSampl,2))
 CDFLam = np.cumsum(lamMarg)
 LowTriL = np.linalg.cholesky(L)
 gamSampl = np.zeros(numRTOSampl)
 #lamSampl = np.zeros(numRTOSampl)
 lamSampl = np.interp(seeds[:, 0], CDFLam, lamGrid)
 currF = np.interp(lamSampl, lamGrid, FGrid)
+currG = np.interp(lamSampl, lamGrid, GGrid)
 FinalO3Sampl = np.zeros((numRTOSampl,SpecNumLayers))
 
 for i in range(0, numRTOSampl):
-    shape = m / 2 + alphaD + alphaG
-    rate = currF[i] / 2 + betaG + betaD * lamSampl[i]
-    gamSampl[i] = np.random.gamma(shape=shape, scale=1 / rate)
+    # shape = m / 2 + alphaD + alphaG
+    # rate = currF[i] / 2 + betaG + betaD * lamSampl[i]
+    # gamSampl[i] = np.random.gamma(shape=shape, scale=1 / rate)
+    currCondMarg = np.exp(-CurrMarg(lamSampl[i], gamGrid, currG[i], currF[i], n, m, betaG, betaD) - 200)
+    CDFGam = np.cumsum(currCondMarg/np.sum(currCondMarg))
+    gamSampl[i] = np.interp(seeds[i, 1], CDFGam, gamGrid)
     B = (ATA + lamSampl[i] * L)
     LowTri = np.sqrt(gamSampl[i]) * np.linalg.cholesky(B)
 
