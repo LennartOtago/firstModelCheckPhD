@@ -153,18 +153,52 @@ print(f'Elapsed Time to calc mean on a {gridSize} x {gridSize} grid: {FullPostTi
 
 
 fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)
-axs[0].plot(gamGrid,gamMarg, color = 'k')
-
+axs[0].plot(gamGrid,gamMarg, color = 'k', marker = '.')
+axs[0].set_ylim(0)
 axs[0].set_xlabel(r'the noise precision $\gamma$')
 axs[0].set_ylabel(r'$\pi(\gamma|\bm{y})$')
 
-axs[1].plot(lamGrid,lamMarg, color = 'k')
-#axT.set_ylim(0)
+axs[1].plot(lamGrid,lamMarg, color = 'k', marker = '.')
+axs[1].set_ylim(0)
 
 
 axs[1].set_xlabel(r'the regularization parameter $\lambda =\delta / \gamma$')
 axs[1].set_ylabel(r'$\pi(\lambda|\bm{y})$')
 plt.savefig('AffinePapFirstMarg.png', dpi = dpi)
+
+plt.show(block= True)
+
+## f ang g on lambda grid
+TrueGridSize = 200
+TrueLamGrid = np.linspace(*LambBounds, TrueGridSize)
+TrueFGrid= np.zeros(TrueGridSize)
+TrueGGrid= np.zeros(TrueGridSize)
+for i in range(0,TrueGridSize):
+    #lambdas
+    B = (ATA + TrueLamGrid[i] * L)
+    LowTri = np.linalg.cholesky(B)
+    currX = scy.linalg.cho_solve((LowTri, True), ATy[:, 0])
+    TrueFGrid[i] = f(ATy, y, currX)
+    TrueGGrid[i] = 2* np.sum(np.log(np.diag(LowTri)))
+
+
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)
+axs[0].plot(lamGrid, FGrid, color = 'r', marker = '.', linestyle = 'none', label= 'grid points')
+axs[0].plot(TrueLamGrid, TrueFGrid,color = 'k')
+
+axs[0].set_xlabel(r'$\lambda$')
+axs[0].set_ylabel(r'$f(\lambda)$')
+
+axs[1].plot(lamGrid,GGrid, color = 'r', marker = '.', linestyle = 'none')
+axs[1].plot(TrueLamGrid, TrueGGrid, color = 'k' , label = 'true function')
+
+
+axs[1].set_xlabel(r'$\lambda$')
+#axs[1].set_xscale('log')
+axs[1].set_ylabel(r'$g(\lambda)$')
+axs[0].legend()
+axs[1].legend()
+plt.savefig('AffinePapfandg.png', dpi = dpi)
 plt.show(block= True)
 
 ##find affine map
@@ -367,13 +401,13 @@ FinalVar = np.var(FinalO3Sampl[:500], axis = 0)
 
 
 fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)
-axs[0].plot(gamGrid,gamMarg, color = 'k')
+axs[0].plot(gamGrid,gamMarg, color = 'k', marker = '.')
 
 axs[0].set_xlabel(r'the noise precision $\gamma$')
 axs[0].set_ylabel(r'$\pi(\gamma|\bm{y})$')
-
-axs[1].plot(lamGrid,lamMarg, color = 'k')
-#axT.set_ylim(0)
+axs[0].set_ylim(0)
+axs[1].plot(lamGrid,lamMarg, color = 'k', marker = '.')
+#axs[1].set_ylim(0)
 
 
 axs[1].set_xlabel(r'the regularization parameter $\lambda =\delta / \gamma$')
@@ -449,6 +483,10 @@ plt.show(block= True)
 CurrRelErrCovar = np.sqrt((np.sum(FinalVar -np.diag(TruePostCovar))**2)/np.sum(np.diag(TruePostCovar)**2))
 
 print(CurrRelErrCovar)
+
+
+CurrRelMeanErr = np.sqrt(np.sum(FinalPostMean - TruePostMean)**2/np.sum(TruePostMean)**2)
+print(f'posterior mean RMS error: {CurrRelMeanErr*100}')
 ##
 StartRange = 10
 relErrCovar = np.zeros(numRTOSampl-StartRange)
