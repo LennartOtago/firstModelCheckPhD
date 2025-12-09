@@ -506,3 +506,24 @@ ax1.set_xlabel('number of samples N')
 ax1.set_ylabel('rel.~RMS err.~in $\%$')
 plt.savefig('AffinePapErr.png', dpi = dpi)
 plt.show(block= True)
+
+##
+StartRange = 1
+relErrCovar = np.zeros(numRTOSampl-StartRange)
+for i in range(StartRange ,numRTOSampl+1):
+    #CurrVar = np.mean((FinalO3Sampl[-i:] - FinalPostMean)**2)
+    CurrVar = np.sqrt(np.var(FinalO3Sampl[-i:],axis = 0, mean = np.copy(FinalPostMean)))
+    CurrMean = np.copy(FinalPostMean)
+    #CurrMean = np.abs(np.mean(FinalO3Sampl[-i:],axis = 0))
+    relErrCovar[i-StartRange-1] = np.mean(CurrVar /CurrMean)
+
+##
+
+fig3, ax1 = plt.subplots(figsize=(PgWidthPt/ 72.27* 1.5,PgWidthPt/2 /72.27*1.5), tight_layout = True)
+ax1.plot(range(StartRange ,numRTOSampl),relErrCovar*100, color = 'k')
+
+ax1.set_xscale('log')
+ax1.set_xlabel('number of samples N')
+ax1.set_ylabel('Coefficient of Variation~in $\%$')
+plt.savefig('AffinePapCV.png', dpi = dpi)
+plt.show(block= True)
