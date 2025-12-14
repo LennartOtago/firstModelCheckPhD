@@ -180,31 +180,12 @@ for i in range(0,TrueGridSize):
     currX = scy.linalg.cho_solve((LowTri, True), ATy[:, 0])
     TrueFGrid[i] = f(ATy, y, currX)
     TrueGGrid[i] = 2* np.sum(np.log(np.diag(LowTri)))
-
-
-fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)
-axs[0].plot(lamGrid, FGrid, color = 'r', marker = '.', linestyle = 'none', label= 'grid points')
-axs[0].plot(TrueLamGrid, TrueFGrid,color = 'k')
-
-axs[0].set_xlabel(r'$\lambda$')
-axs[0].set_ylabel(r'$f(\lambda)$')
-
-axs[1].plot(lamGrid,GGrid, color = 'r', marker = '.', linestyle = 'none')
-axs[1].plot(TrueLamGrid, TrueGGrid, color = 'k' , label = 'true function')
-
-
-axs[1].set_xlabel(r'$\lambda$')
-#axs[1].set_xscale('log')
-axs[1].set_ylabel(r'$g(\lambda)$')
-axs[0].legend()
-axs[1].legend()
-plt.savefig('AffinePapfandg.png', dpi = dpi)
-plt.show(block= True)
-
 ##find affine map
 
 # sample a test prof via RTO
+startTime= time.time()
 
+numRTOSampl = 10000#SpecNumMeas
 numRTOSampl = SpecNumMeas
 seeds = np.random.uniform(low=0.0, high=1.0, size=(numRTOSampl,2))
 CDFLam = np.cumsum(lamMarg)
@@ -231,7 +212,8 @@ for i in range(0, numRTOSampl):
                 LowTriL @ v[m:])
     testO3Prof[i] = scy.linalg.cho_solve((LowTri, True), CurrATy)
 
-
+FullPostTime = time.time() - startTime
+print(f'to draw {numRTOSampl} ozone samples takes {FullPostTime:.8f} seconds')
 # fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)
 # axs[0].plot(gamGrid,gamMarg, color = 'k')
 # axsTw = axs[0].twinx()
@@ -249,6 +231,38 @@ for i in range(0, numRTOSampl):
 
 ##
 
+fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)
+axs[0].plot(lamGrid, FGrid, color = 'r', marker = '.', linestyle = 'none', label= 'grid points')
+axs[0].plot(TrueLamGrid, TrueFGrid,color = 'k')
+
+axs[0].set_xlabel(r'$\lambda$')
+axs[0].set_ylabel(r'$f(\lambda)$')
+
+axs[1].plot(lamGrid,GGrid, color = 'r', marker = '.', linestyle = 'none')
+axs[1].plot(TrueLamGrid, TrueGGrid, color = 'k' , label = 'true function')
+
+
+axs[1].set_xlabel(r'$\lambda$')
+#axs[1].set_xscale('log')
+axs[1].set_ylabel(r'$g(\lambda)$')
+axs[0].legend()
+axs[1].legend()
+plt.savefig('AffinePapfandg.png', dpi = dpi)
+plt.show(block= True)
+
+##
+
+from puwr import tauint
+Uwerrmean, Uwerrgam, Uwerrtintgam, Uwerrd_tintgam = tauint([[gamSampl]],f = 0, full_output = False, plots=False)
+Uwerrmean, Uwerrlam, Uwerrtintlam, Uwerrd_tintlam = tauint([[lamSampl]],f = 0, full_output = False, plots=False)
+
+#fig.savefig('UwerrTauIntFirstO3gam.png', dpi = dpi)
+#plt.close()
+print(fr'IATC Gamma {2*Uwerrtintgam:.3f}+-{2* Uwerrd_tintgam:.3f}')
+
+print(fr'IATC Lambda {2*Uwerrtintlam:.3f}+-{2* Uwerrd_tintlam:.3f}')
+##
+numRTOSampl = SpecNumMeas
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
@@ -324,7 +338,7 @@ ATy = A.T @ y
 
 
 ## calc Marg on Grid for affine map
-gridSize = 25
+gridSize = 20
 GamBounds = [0.8e15, 1.2e16]
 LambBounds = [1e-5, 8e-4]
 n = len(height_values)
@@ -363,10 +377,10 @@ zLam = np.sum(unNormlamMarg)
 FinalPostMean = np.sum(FinalMeans, axis= 0)/zLam
 lamMarg = unNormlamMarg/zLam
 
-
+##
 # final sample a test prof via RTO
 
-numRTOSampl = 10000
+numRTOSampl = 50#1000
 seeds = np.random.uniform(low=0.0, high=1.0, size=(numRTOSampl,2))
 CDFLam = np.cumsum(lamMarg)
 LowTriL = np.linalg.cholesky(L)
@@ -398,8 +412,17 @@ print(f'Elapsed Time to calc mean and covarianve on a {gridSize} x {gridSize} gr
 
 FinalVar = np.var(FinalO3Sampl[:500], axis = 0)
 
+##
+from puwr import tauint
+Uwerrmean, Uwerrgam, Uwerrtintgam, Uwerrd_tintgam = tauint([[gamSampl]],f = 0, full_output = False, plots=False)
+Uwerrmean, Uwerrlam, Uwerrtintlam, Uwerrd_tintlam = tauint([[lamSampl]],f = 0, full_output = False, plots=False)
 
+#fig.savefig('UwerrTauIntFirstO3gam.png', dpi = dpi)
+#plt.close()
+print(fr'IATC Gamma {2*Uwerrtintgam:.3f}+-{2* Uwerrd_tintgam:.3f}')
 
+print(fr'IATC Lambda {2*Uwerrtintlam:.3f}+-{2* Uwerrd_tintlam:.3f}')
+##
 fig, axs = plt.subplots(2, 1,tight_layout=True,figsize=set_size(PgWidthPt, fraction=fraction))#, dpi = dpi)
 axs[0].plot(gamGrid,gamMarg, color = 'k', marker = '.')
 
@@ -511,19 +534,18 @@ plt.show(block= True)
 StartRange = 1
 relErrCovar = np.zeros(numRTOSampl-StartRange)
 for i in range(StartRange ,numRTOSampl+1):
-    #CurrVar = np.mean((FinalO3Sampl[-i:] - FinalPostMean)**2)
-    CurrVar = np.sqrt(np.var(FinalO3Sampl[-i:],axis = 0, mean = np.copy(FinalPostMean)))
+    CurrVar = np.sqrt(np.mean((FinalO3Sampl[-i:] - FinalPostMean)**2,axis = 0))
+    #CurrVar = np.sqrt(np.var(FinalO3Sampl[-i:],axis = 0, mean = np.copy(FinalPostMean)))
     CurrMean = np.copy(FinalPostMean)
     #CurrMean = np.abs(np.mean(FinalO3Sampl[-i:],axis = 0))
     relErrCovar[i-StartRange-1] = np.mean(CurrVar /CurrMean)
 
-##
 
 fig3, ax1 = plt.subplots(figsize=(PgWidthPt/ 72.27* 1.5,PgWidthPt/2 /72.27*1.5), tight_layout = True)
 ax1.plot(range(StartRange ,numRTOSampl),relErrCovar*100, color = 'k')
 
 ax1.set_xscale('log')
 ax1.set_xlabel('number of samples N')
-ax1.set_ylabel('Coefficient of Variation~in $\%$')
+ax1.set_ylabel(r'$\overline{\text{CV}}$~in $\%$')
 plt.savefig('AffinePapCV.png', dpi = dpi)
 plt.show(block= True)
