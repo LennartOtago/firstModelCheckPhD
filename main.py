@@ -877,14 +877,14 @@ plt.show(block = True)
 
 ## new forwrad model
 
-
+print(height_values)
 
 startInd = 23
 EndInd = len(height_values[startInd::2]) + startInd
 
 height_values[startInd:EndInd] = np.copy(height_values[startInd::2])
 height_values = np.copy(height_values[:EndInd])
-
+print(height_values)
 
 temp_values[startInd:EndInd] = np.copy(temp_values[startInd::2])
 temp_values = np.copy(temp_values[:EndInd])
@@ -916,6 +916,7 @@ for i in range(0,len(VMR_O3)-1):
 np.savetxt('GraphLaplacian.txt', L, header = 'Graph Lalplacian', fmt = '%.15f', delimiter= '\t')
 #cholesky decomposition of L for W1 and v1
 lowC_L = scy.linalg.cholesky(L, lower = True)
+
 
 ##
 A_lin_dx, tang_heights_lin, extraHeight = gen_forward_map(meas_angChosen,height_values,ObsHeight,R_Earth)

@@ -491,7 +491,7 @@ ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color
 #ax1.errorbar(TruePostMean,height_values[:,0],  yerr =np.sqrt(np.diag(TruePostCovar)) * 0, markeredgecolor ='r', color = 'r' ,zorder=2, marker = '.', label = r' ``true`` post.~$\bm{\mu}_{\bm{x}|\bm{y}} \pm \bm{\Sigma}_{\bm{x}|\bm{y}}$', markersize =5, linewidth =1.5, capsize = 3)
 
 line3 = ax1.errorbar(FinalPostMean,height_values[:,0],xerr = asymmetric_error, markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
-line3 = ax1.errorbar(FinalPostMean,height_values[:,0],yerr = np.sqrt(FinalVar) * 0, label = r'$\bm{\mu}_{\bm{x}|\bm{y}} \pm$ sample based STD' ,markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
+line3 = ax1.errorbar(FinalPostMean,height_values[:,0],yerr = np.sqrt(FinalVar) * 0, label = r'$\bm{\mu}_{\bm{x}|\bm{y}} \pm$ sample-based STD' ,markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
 
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
