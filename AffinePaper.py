@@ -34,7 +34,7 @@ binCol = 'C0'
 postCol = 'C1'
 priorCol = 'k'
 DatCol =  'gray'
-TrueCol = 'C2'
+TrueCol =[50/255,220/255, 0/255]# 'C2'
 alpha = 0.75
 
 
@@ -380,7 +380,7 @@ lamMarg = unNormlamMarg/zLam
 ##
 # final sample a test prof via RTO
 
-numRTOSampl = 50#1000
+numRTOSampl = 1000
 seeds = np.random.uniform(low=0.0, high=1.0, size=(numRTOSampl,2))
 CDFLam = np.cumsum(lamMarg)
 LowTriL = np.linalg.cholesky(L)
@@ -531,10 +531,14 @@ plt.savefig('AffinePapErr.png', dpi = dpi)
 plt.show(block= True)
 
 ##
-StartRange = 1
+StartRange = 10
 relErrCovar = np.zeros(numRTOSampl-StartRange)
 for i in range(StartRange ,numRTOSampl+1):
-    CurrVar = np.sqrt(np.mean((FinalO3Sampl[-i:] - FinalPostMean)**2,axis = 0))
+    #print(i-1)
+    #print(FinalO3Sampl[-i:].shape[0])
+    #print('---')
+    CurrVar = np.sqrt(np.sum((FinalO3Sampl[-i:] - FinalPostMean)**2,axis = 0)/(i-1))
+    #print( (FinalO3Sampl[-i:] - FinalPostMean).shape)
     #CurrVar = np.sqrt(np.var(FinalO3Sampl[-i:],axis = 0, mean = np.copy(FinalPostMean)))
     CurrMean = np.copy(FinalPostMean)
     #CurrMean = np.abs(np.mean(FinalO3Sampl[-i:],axis = 0))
