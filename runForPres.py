@@ -1239,7 +1239,7 @@ np.savetxt('SecO3Var.txt',CondVar, fmt = '%.30f', delimiter= '\t')
 
 FirstSamp = 100#len(y)
 Results = np.random.multivariate_normal(MargInteg, CondVar,size=FirstSamp)
-Results[Results < 0] = 0
+#Results[Results < 0] = 0
 # rejI = 0
 # totI = 0
 #
@@ -1256,12 +1256,18 @@ fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
 #ax1.scatter(VMR_O3,height_values,marker = 'o', facecolor = 'None', color = "#009E73", label = 'true profile', zorder=1, s =12)#,linewidth = 5)
 ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color = TrueCol , label = r'true $\bm{x}$', zorder=0 ,linewidth = 3, markersize =15)
 #line3 = ax1.plot(MargInteg,height_values[:,0], markeredgecolor =MeanCol, color = MeanCol ,zorder=3, marker = '.',  label = r'$\text{E}_{\mathbf{x},\mathbf{\theta}|\mathbf{y}} [\mathbf{x}]$', markersize =3, linewidth =1)#, markerfacecolor = 'none'
-line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr =3* np.sqrt(np.diag(CondVar)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
-ax1.errorbar(MargInteg,height_values[:,0],  yerr = np.zeros(len(height_values)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', label = r'posterior $\mu \pm 3\sigma$ ', markersize =3, linewidth =1, capsize = 3)
+#line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr =3* np.sqrt(np.diag(CondVar)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
+line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr =np.sqrt(np.diag(CondVar)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
 
-line3 = ax1.errorbar(testTruncMean,height_values[:,0], xerr = np.sqrt(testTruncVar), markeredgecolor =postCol, color = postCol ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)
-for i in range(1,10):
-    ax1.plot(Results[i], height_values, markeredgecolor =binCol , color = binCol ,zorder=2, marker = '.', markersize =2, linewidth =0.1, alpha = alpha)
+ax1.errorbar(MargInteg,height_values[:,0],  yerr = np.zeros(len(height_values)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.',label = r'posterior $\bm{\mu}_{\bm{x}|\bm{y}} \pm \bm{\Sigma}_{\bm{x}|\bm{y}}$', markersize =3, linewidth =1, capsize = 3)
+
+#line3 = ax1.errorbar(testTruncMean,height_values[:,0], xerr = np.sqrt(testTruncVar), markeredgecolor =postCol, color = postCol ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)
+#for i in range(1,10):
+ax1.plot(Results[0], height_values, markeredgecolor=binCol, color=binCol, zorder=1, marker='.', markersize=4,
+         linewidth=0.75, alpha=alpha, label = 'posterior sample')
+
+for i in range(1, len(y)):
+    ax1.plot(Results[i], height_values, markeredgecolor =binCol , color = binCol ,zorder=1, marker = '.', markersize =4, linewidth =0.75, alpha = alpha)
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
 
@@ -1269,11 +1275,11 @@ ax1.set_ylabel('height in km')
 handles, labels = ax1.get_legend_handles_labels()
 
 ax1.set_ylim([height_values[0], height_values[-1]])
-ax1.legend()
+ax1.legend(loc = 'upper right')
 
 
 fig3.savefig('SecRecResinclReg.png', dpi = dpi)
-plt.show()
+plt.show(block = True)
 
 
 ##
