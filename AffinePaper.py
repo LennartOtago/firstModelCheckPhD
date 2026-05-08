@@ -330,12 +330,54 @@ plt.show(block= True)
 
 
 ##
-
+A_org = np.copy(A)
 
 A = RealMap @ np.copy(A)
 ATA = A.T @ A
 ATy = A.T @ y
+##
+U, SingS, Vh = np.linalg.svd(A , full_matrices=True)
+U_org, SingS_org, Vh_org = np.linalg.svd(A_org , full_matrices=True)
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
 
+ax1.scatter(range(len(SingS)), SingS , color = 'red', s = 20, label = 'affine model')
+ax1.scatter(range(len(SingS)), SingS_org, color = 'black' , s = 10 , label = 'linear foward model' )
+ax1.set_yscale('log')
+ax1.legend()
+plt.savefig('VerteidigungSingVal.png', dpi = dpi)
+plt.show(block = True)
+
+##
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+
+for i in range(0,10):
+    ax1.plot(Vh[i], height_values, color = 'red', label = 'affine model')
+    ax1.plot(Vh_org[i], height_values, color='black', label='linear foward model')
+h, l = ax1.get_legend_handles_labels()
+ax1.legend(h[:2], l[:2])
+plt.savefig('VerteidigungSingVect_1.png', dpi = dpi)
+plt.show(block = True)
+
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+
+for i in range(10,20):
+    ax1.plot(Vh[i], height_values, color = 'red', label = 'affine model')
+    ax1.plot(Vh_org[i], height_values, color='black', label='linear foward model')
+
+h, l = ax1.get_legend_handles_labels()
+ax1.legend(h[:2], l[:2])
+plt.savefig('VerteidigungSingVect_2.png', dpi = dpi)
+plt.show(block = True)
+
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+
+for i in range(20,len(Vh)):
+    ax1.plot(Vh[i], height_values, color = 'red', label = 'affine model')
+    ax1.plot(Vh_org[i], height_values, color='black', label='linear foward model')
+h, l = ax1.get_legend_handles_labels()
+ax1.legend(h[:2], l[:2])
+plt.savefig('VerteidigungSingVect_3.png', dpi = dpi)
+plt.show(block = True)
 
 ## calc Marg on Grid for affine map
 gridSize = 20

@@ -391,15 +391,16 @@ for j in range(0, SpecNumMeas):
     tot_r[j] =  np.sqrt( ( height_values[-1] + R_Earth)**2 - (tang_heights_lin[j] +R_Earth )**2)
 print('Distance through layers check: ' + str(np.allclose( sum(A_lin_dx.T,0), tot_r[:,0])))
 
-# U, SingS, Vh = np.linalg.svd(A_lin , full_matrices=True)
-#
-# fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
-#
-# ax1.scatter(range(len(SingS)), SingS )
-#
-# ax1.set_yscale('log')
-#
-# plt.show(block = True)
+U, SingS, Vh = np.linalg.svd(A_lin , full_matrices=True)
+
+fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction), tight_layout=True)
+
+ax1.scatter(range(len(SingS)), SingS )
+
+ax1.set_yscale('log')
+
+plt.show(block = True)
+print('bla')
 ##
 # MaxAngTry = MaxAng[0] - MinAng[0]
 # meas_ang1 =np.array(-1/ (1.25 ** np.linspace(0,len(meas_ang)-1 ,len(meas_ang)))  ) * MaxAngTry + MaxAngTry
