@@ -647,7 +647,40 @@ plt.show(block = True)
 print('bla')
 
 np.savetxt('RegSol.txt',x_opt / theta_scale_O3, fmt = '%.15f', delimiter= '\t')
+## test RTO
+
+ATy = A.T @ y
+ATA = A.T @ A
+
+num_sampl_RTO = 1000
+RTO_Sampl = np.zeros((num_sampl_RTO,len(VMR_O3)))
+for i in range(0,num_sampl_RTO):
+    gam = gammas[10*num_sampl_RTO]
+    lamb = lambdas[10*num_sampl_RTO]
+    W = np.random.normal(loc=0.0, scale=1, size=len(A))
+    v_1 = np.sqrt(gam) * A.T @ W
+
+    W2 = np.random.multivariate_normal(np.zeros(len(L)), L)
+    v_2 = np.sqrt(gam * lamb) * W2
+
+    SetB = gam * ATA + gam * lamb * L
+    RandX = (gam * ATy[:, 0] + v_1 + v_2)
+
+    LowTri = np.linalg.cholesky(SetB)
+    UpTri = LowTri.T
+    XSampl = lu_solve(LowTri, UpTri, RandX)
+    RTO_Sampl[i] = np.copy(XSampl)
+
+
+RTO_std = np.sqrt(np.var(RTO_Sampl,axis = 0))
+RTO_mean = np.mean(RTO_Sampl,axis = 0)
+
+np.savetxt('first_RTO_mean.txt',RTO_mean, fmt = '%.30f', delimiter= '\t')
+np.savetxt('first_RTO_std.txt',RTO_std, fmt = '%.30f', delimiter= '\t')
+np.savetxt('first_RTO_Sampl.txt',RTO_Sampl, fmt = '%.30f', delimiter= '\t')
+
 ##
+
 TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
 
 fig3, ax1 = plt.subplots(figsize=set_size(PgWidthPt, fraction=fraction))
@@ -662,7 +695,10 @@ ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color
 line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr = np.sqrt(np.diag(CondVar)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3 )#, markerfacecolor = 'none'
 ax1.errorbar(MargInteg,height_values[:,0],  yerr = np.zeros(len(height_values)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', label = r'posterior $\mu \pm \sigma$ ', markersize =3, linewidth =1, capsize = 3)
 
-
+#line3 = ax1.errorbar(RTO_mean,height_values[:,0],xerr = RTO_std, markeredgecolor ='red', color = 'red' ,zorder=2, marker = '.', markersize =5, linewidth =2, capsize = 4 )#, markerfacecolor = 'none'
+binCol = 'C0'
+for i in range(1,50):
+    ax1.plot(RTO_Sampl[i], height_values, markeredgecolor=binCol, color=binCol, zorder=1, marker='.', markersize=4,linewidth=0.75, alpha = 0.5)
 ax1.set_xlabel(r'ozone volume mixing ratio ')
 #multicolor_ylabel(ax1,('(Tangent)','Height in km'),('k', dataCol),axis='y')
 ax1.set_ylabel('height in km')
@@ -681,8 +717,8 @@ ax1.set_ylim([height_values[0], height_values[-1]])
 # ax1.xaxis.set_label_position('bottom')
 # ax1.spines[:].set_visible(False)
 
-fig3.savefig('FirstRecRes.png', dpi = dpi)
-plt.show()
+#fig3.savefig('FirstRecRes.png', dpi = dpi)
+plt.show(block = True)
 
 
 ##find affine map
@@ -1017,6 +1053,38 @@ axs[1].set_xlabel(r'$\lambda =\delta / \gamma$, the regularization parameter')
 plt.savefig('SecHistoPlot.png', dpi = dpi)
 plt.show()
 
+## test RTO for affine map
+
+
+num_sampl_RTO = 1000
+sec_RTO_Sampl = np.zeros((num_sampl_RTO,len(VMR_O3)))
+for i in range(0,num_sampl_RTO):
+    gam = gammas[10*num_sampl_RTO]
+    lamb = lambdas[10*num_sampl_RTO]
+    W = np.random.normal(loc=0.0, scale=1, size=len(A))
+    v_1 = np.sqrt(gam) * A.T @ W
+
+    W2 = np.random.multivariate_normal(np.zeros(len(L)), L)
+    v_2 = np.sqrt(gam * lamb) * W2
+
+    SetB = gam * ATA + gam * lamb * L
+    RandX = (gam * ATy[:, 0] + v_1 + v_2)
+
+    LowTri = np.linalg.cholesky(SetB)
+    UpTri = LowTri.T
+    XSampl = lu_solve(LowTri, UpTri, RandX)
+    sec_RTO_Sampl[i] = np.copy(XSampl)
+
+
+sec_RTO_std = np.sqrt(np.var(RTO_Sampl,axis = 0))
+sec_RTO_mean = np.mean(RTO_Sampl,axis = 0)
+
+np.savetxt('sec_RTO_mean.txt',sec_RTO_mean, fmt = '%.30f', delimiter= '\t')
+np.savetxt('sec_RTO_std.txt',sec_RTO_std, fmt = '%.30f', delimiter= '\t')
+np.savetxt('sec_RTO_Sampl.txt',sec_RTO_Sampl, fmt = '%.30f', delimiter= '\t')
+
+
+
 ##
 TrueCol = [50/255,220/255, 0/255]#'#02ab2e'
 
@@ -1030,6 +1098,9 @@ ax1.plot(VMR_O3,height_values[:,0],marker = 'o',markerfacecolor = TrueCol, color
 line3 = ax1.errorbar(MargInteg,height_values[:,0],xerr =3* np.sqrt(np.diag(CondVar)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', markersize =3, linewidth =1, capsize = 3)#, markerfacecolor = 'none'
 ax1.errorbar(MargInteg,height_values[:,0],  yerr = np.zeros(len(height_values)), markeredgecolor ='k', color = 'k' ,zorder=3, marker = '.', label = r'posterior $\mu \pm 3\sigma$ ', markersize =3, linewidth =1, capsize = 3)
 
+
+for i in range(1,50):
+    ax1.plot(sec_RTO_Sampl[i], height_values, markeredgecolor=binCol, color=binCol, zorder=1, marker='.', markersize=4,linewidth=0.75, alpha = 0.5)
 
 ax1.set_xlabel(r'ozone volume mixing ratio ')
 #multicolor_ylabel(ax1,('(Tangent)','Height in km'),('k', dataCol),axis='y')
