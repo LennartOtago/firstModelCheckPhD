@@ -1700,9 +1700,18 @@ for b in range(1,TotBinNum):
         meanGamInt[p] = SetGamma * gamHist[p] / np.sum(gamHist)
 
     IntMean[b-1] =np.sum(MargResults,0)  / theta_scale_O3
+    # correction
+    CorrVarB = np.zeros((b, len(L), len(L)))
+    for p in range(0,b):
+        SetLambda = lambBinEdges[p] + (lambBinEdges[p] + lambBinEdges[p + 1]) / 2
+        currB = ATA + SetLambda * L
+        LowTri = scy.linalg.cholesky(currB, lower=True)
+        B_inv_A_trans_y = scy.linalg.cho_solve((LowTri, True),  ATy[:, 0])
+        # theta_scale_O3 = 1
+        CorrVarB[p] = (IntMean[b-1] *theta_scale_O3 -  B_inv_A_trans_y ).reshape((len(L),1)) @ (IntMean[b-1]*theta_scale_O3 -  B_inv_A_trans_y ).reshape((1,len(L)))  * lambHist[p] / np.sum(lambHist)
 
 
-    IntCoVar[b-1] = np.sum(gamInt) * np.sum(VarB,0)  / (theta_scale_O3) ** 2
+    IntCoVar[b-1] = ( np.sum(gamInt) * np.sum(VarB,0) + np.sum(CorrVarB, 0))/ (theta_scale_O3) ** 2
 
 
 ## calc norms
